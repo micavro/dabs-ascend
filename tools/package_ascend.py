@@ -22,7 +22,7 @@ def main():
     if target.exists() or target.with_suffix(target.suffix + ".sha256").exists():
         parser.error("Output or checksum already exists; choose a new --out")
     identity = verify_original_assets()
-    paths = [ROOT / name for name in ("README.md", "README_先读我.md", "run_ascend.sh",
+    paths = [ROOT / name for name in ("README.md", "README_先读我.md", "README_existing.md", "run_ascend.sh", "run_dabs_existing.sh",
              "requirements-ascend.txt", "requirements-controller.txt", "requirements-offline.txt",
              ".gitignore", ".gitattributes")]
     for directory in ("source", "profiles", "provenance", "evidence", "docs", "tools", "runtime_local",
@@ -37,8 +37,9 @@ def main():
         if not path.resolve().is_relative_to(ROOT):
             raise ValueError("Refuse file outside project: " + str(path))
         files[path.relative_to(ROOT).as_posix()] = path
-    if b"\r" in (ROOT / "run_ascend.sh").read_bytes():
-        raise ValueError("run_ascend.sh must use Linux LF line endings")
+    for name in ("run_ascend.sh", "run_dabs_existing.sh"):
+        if b"\r" in (ROOT / name).read_bytes():
+            raise ValueError(name + " must use Linux LF line endings")
     prefix = "DABS_Ascend_Linux_v1/"
     manifest = {"schema": "dabs-ascend-delivery-1", "files": {name: sha(path) for name, path in sorted(files.items())},
                 "original_source_files_verified": identity["source_check"]["source_files_verified"],

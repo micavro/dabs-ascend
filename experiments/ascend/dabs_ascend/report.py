@@ -19,13 +19,17 @@ def make_report(out, plan, summaries, status, error=None):
     from .common import read_json
     env = read_json(out / "environment.json") if (out / "environment.json").exists() else {}
     canaries = read_json(out / "canary_summary.json") if (out / "canary_summary.json").exists() else []
+    external = env.get("mode") == "existing-http-services"
     cases = []
 
     def add(identifier, label, result, evidence):
         cases.append({"id": identifier, "test": label, "status": result, "evidence": evidence})
 
-    add("A01", "Linux / NPU / model / compatible existing environment", "PASS" if env.get("passed") else "FAIL", "environment.json")
-    add("A02", "All selected physical NPUs perform real constrained inference", "PASS" if len(canaries) == len(env.get("devices", [])) and canaries else "NOT_RUN", "servers.json; canary_summary.json; canaries.jsonl")
+    add("A01", "Controller / model metadata / declared mappings / HTTP services" if external else
+        "Linux / NPU / model / compatible existing environment", "PASS" if env.get("passed") else "FAIL", "environment.json")
+    canaries_pass = bool(canaries) and len(canaries) == len(env.get("devices", [])) and all(c.get("passed") for c in canaries)
+    add("A02", "All selected HTTP endpoints perform constrained inference; host mapping recorded" if external else
+        "All selected physical NPUs perform real constrained inference", "PASS" if canaries_pass else "NOT_RUN", "servers.json; canary_summary.json; canaries.jsonl")
     add("A03", "Fresh Ascend profile; NVIDIA coefficients unused", "PASS" if (out / "ascend_profile.json").exists() else "NOT_RUN", "calibration_rows.json; ascend_profile.json")
     add("A04", "All declared conditions complete; no failed conditions omitted", "PASS" if status == "complete" and len(summaries) == len(plan) else "FAIL", "protocol.json; index.json; conditions/*/status.json")
     add("A05", "Real parent answers and DAG dependency order", "PASS" if summaries and all(s["dependency_handoff_pass"] for s in summaries) else "NOT_RUN", "conditions/*/nodes.json; conditions/*/input_proof.json")
@@ -38,10 +42,16 @@ def make_report(out, plan, summaries, status, error=None):
     add("A11", "Native prefill/decode/mixed-phase and finite engine queue reorder", "UNSUPPORTED", "Requires a version-specific Ascend V1 native adapter")
     add("A12", "Historical GPU39 speedup / supervisor performance thresholds", "NOT_EVALUATED", "Different platform and execution adapter; numerical acceptance targets pending")
     passed = status == "complete" and all(c["status"] == "PASS" for c in cases[:7])
+    limits = list(LIMITS) + (env.get("limits", []) if external else [])
     report = {"status": status, "functional_test_pass": passed,
-              "strict_gpu39_reproduction_pass": False, "real_npu_verified": bool(canaries),
+              "service_mode": "existing-http-services" if external else "managed",
+              "strict_gpu39_reproduction_pass": False,
+              "real_npu_verified": bool(canaries_pass and env.get("passed") and not external),
+              "http_inference_verified": bool(canaries_pass),
               "completed_conditions": len(summaries), "declared_conditions": len(plan),
-              "error": error, "tests": cases, "limits": LIMITS}
+              "error": error, "tests": cases, "limits": limits}
+    if external:
+        report["physical_mapping_evidence"] = "host Docker manifest; no native controller probe"
     write_json(out / "acceptance.json", report)
     for filename, rows in (("test_items.csv", cases), ("metrics.csv", [
         {**s["spec"], **{k: s[k] for k in ("jct_mean_ms", "jct_p95_ms", "ttft_text_proxy_mean_ms",
@@ -59,7 +69,7 @@ def make_report(out, plan, summaries, status, error=None):
              "本记录不证明原 GPU39 性能复现或论文指标通过。", "",
              "| ID | 测试项 | 状态 | 证据 |", "|---|---|---|---|"]
     lines += [f"| {c['id']} | {c['test']} | {c['status']} | {c['evidence']} |" for c in cases]
-    lines += ["", "## 迁移边界", ""] + ["- " + value for value in LIMITS]
+    lines += ["", "## 迁移边界", ""] + ["- " + value for value in limits]
     if error:
         lines += ["", "错误：`" + error.replace("`", "'") + "`"]
     (out / "TEST_REPORT.md").write_text("\n".join(lines) + "\n", encoding="utf-8")

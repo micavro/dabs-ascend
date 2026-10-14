@@ -1,5 +1,28 @@
 # DABS 昇腾一键运行
 
+## 现场已有 8 个 Qwen 容器：用这个入口
+
+在 **Linux 宿主机**的项目目录执行，不要进入模型容器。默认连接现有的 `wushibo-qwen-small-npu0`～`7`，端口 `8001`～`8008`；只新建临时 CPU 控制端，退出后模型服务继续运行。
+
+Git 下载的项目先敲 `git pull --ff-only`；ZIP 下载的项目重新下载解压到新目录。
+
+```bash
+bash run_dabs_existing.sh check
+bash run_dabs_existing.sh
+```
+
+第一行只检查，第二行运行小测试。模型路径默认 `/data/model/Qwen2.5-1.5B-Instruct`；不同路径先敲 `export MODEL_PATH=/实际路径`。需要宿主机的 `python3` 和 `sudo docker`，控制端复用所选第一张卡对应容器的本地镜像，不下载镜像、不重新加载模型。
+
+小测试通过后，四卡 B1–B4 工作流测试：
+
+```bash
+DEVICE_IDS=0,1,2,3 bash run_dabs_existing.sh benchmark
+```
+
+更多现场参数、结果位置和自检见 [已有服务说明](README_existing.md)。默认控制端每副本最多 2 个在途请求；服务端并发配置保持原样。
+
+## 需要由脚本新建模型服务：原入口
+
 下面的命令在 **Linux 昇腾机器上、之前跑 MFE 的 vLLM-Ascend 容器内**手敲执行。
 
 ## 1. 先确认环境
@@ -76,4 +99,4 @@ bash run_ascend.sh
 
 开发机也可用 `python tools/run_ascend.py test` 自检；需要离线传输包时执行 `python -X utf8 tools/package_ascend.py`。
 
-Linux CPU 自动检查已通过，真实昇腾推理仍待上机验证。更多参数和适配范围见 [昇腾部署说明](docs/ascend-linux.md)；历史 NVIDIA 工程见 [原工程说明](README_先读我.md)。
+已有 Linux CPU 自动检查记录；现场已开始运行并反馈了已有服务补丁，本次合并后的现场结果仍需看实际运行日志。更多参数和适配范围见 [昇腾部署说明](docs/ascend-linux.md)；历史 NVIDIA 工程见 [原工程说明](README_先读我.md)。

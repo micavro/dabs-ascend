@@ -20,7 +20,7 @@ from .common import DATASET, ROOT, configuration, read_json, sha, source_identit
 from .runtime import MODEL_NAME, Servers, device_ids, device_locks, preflight
 
 
-def parser():
+def parser(existing=False):
     p = argparse.ArgumentParser(description="DABS Linux Ascend functional port. Reuse the existing MFE container; no automatic installs.")
     p.add_argument("mode", nargs="?", choices=("smoke", "benchmark", "check", "test", "plan"), default="smoke")
     p.add_argument("--model", type=Path, default=Path(os.environ.get("MODEL_PATH", "/x/Qwen2.5-1.5B-Instruct")))
@@ -37,11 +37,19 @@ def parser():
     p.add_argument("--rate", type=float, default=2.)
     p.add_argument("--blocks", type=int, nargs="+", default=[1, 2, 3, 4])
     p.add_argument("--seed", type=int, default=20261014)
+    p.set_defaults(service_mode="managed")
+    if existing:
+        p.description = "DABS controller for existing Ascend HTTP services; no model process ownership."
+        p.set_defaults(service_mode="existing", base_port=8001, model=Path("/models/qwen"),
+                       devices=os.environ.get("DEVICE_IDS", "0,1,2,3,4,5,6,7"),
+                       max_inflight=2, condition_timeout=1800., request_timeout=300.)
+        p.add_argument("--deployment-manifest", type=Path)
+        p.add_argument("--container-prefix", default="wushibo-qwen-small-npu")
     return p
 
 
-def prepare_args(argv=None):
-    p = parser()
+def prepare_args(argv=None, existing=False):
+    p = parser(existing=existing)
     args = p.parse_args(argv)
     try:
         args.devices = device_ids(args.devices)
@@ -59,8 +67,19 @@ def prepare_args(argv=None):
         p.error("blocks must be distinct members of 1,2,3,4")
     if not .05 <= args.memory <= .95 or not 1 <= args.max_inflight <= 64:
         p.error("memory must be 0.05..0.95 and max-inflight 1..64")
-    if not 1024 <= args.base_port <= 65536 - len(args.devices):
+    port_span = max(args.devices) + 1 if existing else len(args.devices)
+    if not 1024 <= args.base_port <= 65536 - port_span:
         p.error("Selected port range is invalid")
+    if existing:
+        from .existing import container_name
+        try:
+            container_name(args.container_prefix, args.devices[0])
+        except ValueError as exc:
+            p.error(str(exc))
+        if args.mode not in ("test", "plan") and args.deployment_manifest is None:
+            p.error("--deployment-manifest is required for existing-service inference/check")
+        if args.deployment_manifest is not None:
+            args.deployment_manifest = args.deployment_manifest.expanduser().resolve()
     if any(not math.isfinite(x) or x <= 0 for x in (args.startup_timeout, args.condition_timeout, args.request_timeout)):
         p.error("Timeouts must be finite positive seconds")
     if args.suite == "case" and (len(args.devices) != 4 or args.rate != 2.):
@@ -99,7 +118,11 @@ async def execute_suite(args, out, plan, summaries, initial_identity):
     from semantic19.dataset import load_public
     from typed19.workflow import compile_packets
 
-    servers = Servers(args, out)
+    if args.service_mode == "existing":
+        from .existing import ExistingServers
+        servers = ExistingServers(args, out)
+    else:
+        servers = Servers(args, out)
     pool = None
     async with httpx.AsyncClient(timeout=httpx.Timeout(args.request_timeout, connect=10),
                                  trust_env=False, limits=httpx.Limits(max_connections=256, max_keepalive_connections=128)) as client:
@@ -142,14 +165,18 @@ async def execute_suite(args, out, plan, summaries, initial_identity):
                                                             "functional_pass": summary["functional_pass"]}), flush=True)
                 if not summary["functional_pass"]:
                     raise RuntimeError("Answer/dependency contract failed; full results retained; no automatic retry")
+            servers.check_alive()
         finally:
             if pool is not None:
                 pool.shutdown(wait=True, cancel_futures=True)
-            servers.close()
+            if args.service_mode == "existing":
+                await servers.aclose()
+            else:
+                servers.close()
 
 
-def main(argv=None):
-    args = prepare_args(argv)
+def main(argv=None, *, existing=False):
+    args = prepare_args(argv, existing=existing)
     source_paths()
     if args.mode == "test":
         suite = unittest.defaultTestLoader.discover(str(ROOT / "tests/ascend"), pattern="test_*.py")
@@ -182,12 +209,17 @@ def main(argv=None):
     signal.signal(signal.SIGTERM, interrupted)
     try:
         write_json(out / "original_integrity.json", verify_original_assets())
-        preflight(args, out)
+        if args.service_mode == "existing":
+            from .existing import preflight as existing_preflight
+            existing_preflight(args, out)
+        else:
+            preflight(args, out)
         if args.mode == "check":
             write_json(out / "status.json", {"status": "environment_checked", "real_inference": False})
             print("ASCEND_ENVIRONMENT_CHECK_PASS (no model generation)", flush=True)
             return 0
-        with device_locks(args.devices):
+        lock_dir = ROOT / "outputs/.existing_controller_locks" if existing else None
+        with device_locks(args.devices, directory=lock_dir):
             write_json(out / "status.json", {"status": "running"})
             asyncio.run(execute_suite(args, out, plan, summaries, identity))
         status = "complete"

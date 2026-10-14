@@ -20,6 +20,10 @@ jobs:
       - name: Install client dependencies
         run: python -m pip install -r requirements-ascend.txt
       - name: Check Bash entry
-        run: bash -n run_ascend.sh
+        run: |
+          bash -n run_ascend.sh
+          bash -n run_dabs_existing.sh
       - name: Run CPU tests and frozen-source integrity checks
         run: bash run_ascend.sh test
+      - name: Validate existing-service plan without Docker or model files
+        run: python tools/run_dabs_existing.py plan --devices 4,5 --suite smoke

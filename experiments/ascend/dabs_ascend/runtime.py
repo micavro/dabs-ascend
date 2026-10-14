@@ -179,12 +179,14 @@ def preflight(args, out):
 
 
 @contextmanager
-def device_locks(devices):
+def device_locks(devices, directory=None):
     import fcntl
     handles = []
+    directory = Path(directory) if directory is not None else Path("/tmp")
+    directory.mkdir(parents=True, exist_ok=True)
     try:
         for device in sorted(devices):
-            handle = open(f"/tmp/dabs-ascend-device-{device}.lock", "a+")
+            handle = open(directory / f"dabs-ascend-device-{device}.lock", "a+")
             handles.append(handle)
             fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
         yield
