@@ -1,0 +1,77 @@
+{
+  "registry": [
+    {
+      "id": "HIST-D0-20261010",
+      "code": "spra_stage19_typed_handoff_v1 + spra_stage19_musique_joint_v1",
+      "run": "/home/wmy/sci/spra_paper_experiments_github/spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e",
+      "replicas": 4,
+      "rate": 2,
+      "unique_questions": 64,
+      "blocks": 4,
+      "DAG_JCT_gain_vs_Affinity_pct": 13.303823038299074,
+      "evidence": "saved checkpoint; original raw not fully received",
+      "complete_new_native_reaudit": false
+    },
+    {
+      "id": "REPRO-D0-20261011-PAIR",
+      "code": "spra_workflow_d0_repro_v1",
+      "runs": [
+        "/home/wmy/sci/spra_paper_experiments_github/spra_stage19_typed_handoff_v1/runs/PILOT_20261011T185607Z_8e964348",
+        "/home/wmy/sci/spra_paper_experiments_github/spra_stage19_typed_handoff_v1/runs/PILOT_20261011T185806Z_fc5b583b"
+      ],
+      "replicas": 4,
+      "rate": 2,
+      "unique_questions": 64,
+      "blocks": 4,
+      "rounds": 2,
+      "DAG_JCT_gain_vs_Affinity_pct": 7.781972097932437,
+      "evidence": "both console logs and analysis archive"
+    },
+    {
+      "id": "ABLATION-v2-R4-L2",
+      "code": "spra_workflow_sched_v2",
+      "run": "/home/wmy/sci/spra_paper_experiments_github/spra_workflow_sched_v2/runs/ablation_v2",
+      "replicas": 4,
+      "rate": 2,
+      "unique_questions": 64,
+      "blocks": 4,
+      "rounds": 6,
+      "formal_conditions": 72,
+      "paired_DAG_Affinity": 24,
+      "DAG_JCT_gain_vs_Affinity_pct": 10.451278145263931,
+      "positive_pairs": 22,
+      "evidence": "complete console accepted condition records; no RR/P2C in this suite"
+    },
+    {
+      "id": "GRID-v2-FAILED-PRESERVE",
+      "code": "spra_workflow_sched_v2",
+      "run": "/home/wmy/sci/spra_paper_experiments_github/spra_workflow_sched_v2/runs/grid_v2",
+      "evidence": "41 accepted plus age_admission failure; not pooled with v2.1"
+    },
+    {
+      "id": "AGECHECK-v2.1",
+      "code": "spra_workflow_sched_v2_1",
+      "run": "/home/wmy/sci/spra_paper_experiments_github/spra_workflow_sched_v2_1/runs/agecheck_v2_1",
+      "formal_conditions": 10,
+      "performance_claim": false
+    },
+    {
+      "id": "GRID-v2.1",
+      "code": "spra_workflow_sched_v2_1",
+      "run": "/home/wmy/sci/spra_paper_experiments_github/spra_workflow_sched_v2_1/runs/grid_v2_1",
+      "planned_conditions": 640,
+      "user_reports_completed_replicas": [
+        1,
+        2,
+        3
+      ],
+      "received_valid_conditions": 238,
+      "received_scope": "R1 T1 complete + R1 T2 two damaged transcripts; R3 T1 80; R2 and R3 T2 absent",
+      "do_not_rerun_missing_transcripts": true
+    }
+  ],
+  "metric": "mean within-(run,R,lambda,repeat,block) paired percentage reduction",
+  "no_pooling_across_versions": true,
+  "source_hardware_checkpoint": "see protocol/environment/frozen archive on GPU",
+  "new_GPU_runs": 0
+}

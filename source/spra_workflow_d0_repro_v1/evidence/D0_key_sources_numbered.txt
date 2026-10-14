@@ -1,0 +1,321 @@
+
+SOURCE: spra_stage19_musique_joint_v1/semantic19/selector.py
+L1: """Known-DAG complete-action selector with paired comparisons and decode guards.
+L2: 
+L3: Only a bounded 2x2 neighborhood is scored per event. The model is still a
+L4: surrogate, not an optimum certificate. The 200ms physical-action contract and
+L5: shared continuation are inherited unchanged from the repaired native runtime.
+L6: """
+L7: from __future__ import annotations
+L8: import copy,math,time,statistics
+L9: from joint18v2.actions import affinity,resources
+L10: from joint18v2.common import action_key,validate_action,quantile
+L11: from joint18v2.search import reference
+L12: from joint18v2.model import predict
+L13: from core18v2.engine import evaluate
+L14: 
+L15: 
+L16: def tail_values(s,model,placement):
+L17:     ns=s['nodes'];own={};tail={}
+L18:     for k,n in ns.items():
+L19:         if n['state']=='done':own[k]=0.;continue
+L20:         r=placement.get(k,n.get('replica'))
+L21:         if r is None:r=0
+L22:         d=max(0,n['output']-n.get('output_done',0))
+L23:         remp=max(0,n['prompt']-n.get('computed',0)) if n.get('phase')!='decode' else 0
+L24:         own[k]=(predict(model,r,remp,0,0,n.get('computed',0)) if remp else 0)+d*predict(model,r,0,1,n['prompt']+n.get('output_done',0),0)
+L25:     # Traversal comes from the compiled source graph; no gold/output-future access.
+L26:     def visit(k):
+L27:         if k not in tail:
+L28:             tail[k]=own[k]+max((visit(j) for j in ns[k].get('compiled_successors',[]) if j in ns),default=0.)
+L29:         return tail[k]
+L30:     for k in ns:visit(k)
+L31:     return own,tail
+L32: 
+L33: 
+L34: def schedule_alternative(s,model,cfg,base):
+L35:     ns=s['nodes'];ready=s['ready'];a=copy.deepcopy(base)
+L36:     if not ready:return a
+L37:     own,tails=tail_values(s,model,base['placement'])
+L38:     wfmax={}
+L39:     for k,n in ns.items():
+L40:         if n['state'] in ('submitted','ready'):wfmax[n['wid']]=max(wfmax.get(n['wid'],0.),tails[k])
+L41:     orderable=[k for k,n in ns.items() if n['state'] in ('submitted','ready') and n.get('phase')!='decode']
+L42:     a['order']=sorted(orderable,key=lambda k:((wfmax.get(ns[k]['wid'],tails[k])-tails[k])/max(1.,wfmax.get(ns[k]['wid'],tails[k])),wfmax.get(ns[k]['wid'],tails[k]),ns[k].get('ready_at') or 0,k))
+L43:     # Prefer an actual current ready antichain from the precompiled native graph.
+L44:     groups=set()
+L45:     for k in ready:
+L46:         for g in ns[k].get('compiled_groups',[]):
+L47:             actual=tuple(x for x in g if x in ready)
+L48:             if len(actual)>1:groups.add(actual)
+L49:     if groups:
+L50:         group=max(groups,key=lambda g:(len(g),max(tails[k] for k in g)))
+L51:         group=sorted(group,key=lambda k:(-tails[k],ns[k]['ready_at'],k))
+L52:         moved=group[:max(1,len(group)//2)]
+L53:     else:moved=[max(ready,key=lambda k:(tails[k],-ns[k]['ready_at']))]
+L54:     source=base['placement'][moved[0]]
+L55:     # Post-assignment pressure includes already submitted work and planned new work.
+L56:     loads=list(s['pressure'])
+L57:     for k,r in base['placement'].items():loads[r]+=max(1.,ns[k]['prompt']/1024.)
+L58:     choices=[r for r in range(s['replicas']) if r!=source]
+L59:     if choices:
+L60:         destination=min(choices,key=lambda r:(loads[r],r))
+L61:         for k in moved:a['placement'][k]=destination
+L62:         a['family']='known_dag_partial_group'
+L63:         a['proposal']={'moved_nodes':moved,'destination':destination,'compiled_native_group':bool(groups),'not_hardcoded_by_node_name':True}
+L64:     else:a['family']='known_dag_order'
+L65:     # Bounded admission template is periodically considered, never infinite holding.
+L66:     if s.get('decision_index',0)%3==0:
+L67:         ad=[]
+L68:         for r in range(s['replicas']):
+L69:             ks=[k for k in a['order'] if k in ready and a['placement'][k]==r]
+L70:             active=sum(n['state']=='submitted' and n.get('replica')==r for n in ns.values())
+L71:             if active>=cfg['admission_soft_active'] and len(ks)>1:
+L72:                 ad+=ks[:1]+[k for k in ks[1:] if s['now']-ns[k]['ready_at']>=cfg['max_admission_wait_s']]
+L144:     return violations
+L145: 
+L146: 
+L147: def choose(s,model,cfg,method,deadline=None):
+L148:     begin=time.monotonic();deadline=deadline or begin+cfg['planning_soft_limit_s'];base=reference(s,cfg)
+L149:     result={'action':base,'evaluations':[],'model_selection':False,'wall_ms':0.,'joint_cross_candidates_evaluated':0,
+L150:         'complete_distinct_evaluations':0,'paired_packet_attempted':False,'paired_packet_complete':False,
+L151:         'decode_guard_rejections':0,'deadline_reached':False,'knowledge':'known native DAG; unknown future content/output length/cache',
+L152:         'tpot_nonregression_guaranteed':False,'hard_realtime_guaranteed':False}
+L153:     def done():
+L154:         result['wall_ms']=(time.monotonic()-begin)*1000;result['deadline_reached']=time.monotonic()>=deadline
+L155:         validate_action(result['action'],s,cfg);return result
+L156:     if method=='A':return done()
+L157:     if not s['ready'] and not any(n['state']=='submitted' and n.get('phase')!='decode' for n in s['nodes'].values()):
+L158:         result.update(no_state_opportunity=True,policy_equivalent_no_prefill=True);return done()
+L159:     schedule=base if method=='B' else schedule_alternative(s,model,cfg,base)
+L160:     result['known_dag_group_proposed']=bool(schedule.get('proposal',{}).get('compiled_native_group'))
+L161:     result['known_dag_alternative_generated']=action_key(schedule)!=action_key(base)
+L162:     capvec,local=budget_alternative(s,model,cfg,schedule)
+L163:     cells={'00':copy.deepcopy(base),'10':copy.deepcopy(schedule),'01':copy.deepcopy(base),'11':copy.deepcopy(schedule)}
+L164:     cells['01']['caps']=list(capvec);cells['11']['caps']=list(capvec)
+L165:     cells['01']['family']='known_dag_budget_only';cells['11']['family']='joint/'+schedule['family']
+L166:     result['local_budget_proposals']=local;memo={};scores={};guards={};counted=set()
+L167:     result['paired_distinct_actions']=len({action_key(a) for a in cells.values()})
+L168:     result['paired_has_distinct_placement_and_budget']=action_key(cells['00'])!=action_key(cells['10']) and capvec!=base['caps']
+L169:     def score(label,remaining):
+L170:         a=cells[label];key=action_key(a)
+L171:         if key in memo:z=memo[key]
+L172:         else:
+L173:             now=time.monotonic()
+L174:             if now>=deadline:return None
+L175:             # Fixed overall deadline; no optimistic incomplete scalar is ranked.
+L176:             stop=min(deadline,now+max(.001,(deadline-now)/max(1,remaining)))
+L177:             z=evaluate(s,a,model,cfg,deadline=stop);memo[key]=z
+L178:         valid=z.get('rankable',False);val=z.get('sum_remaining_jct_ms') if valid else None
+L179:         scores[label]=val
+L180:         result['evaluations'].append({'cell':label,'family':a['family'],'action':a,'complete':valid,'cost_ms':val,
+L181:             'cpu_wall_ms':z.get('cpu_wall_ms'),'reason':z.get('reason'),'is_cross':label=='11',
+L182:             'estimated_remaining_outputs':True,'score_is_real_counterfactual':False})
+L183:         if valid:
+L184:             if key not in counted:result['complete_distinct_evaluations']+=1;counted.add(key)
+L185:             if label=='11':result['joint_cross_candidates_evaluated']+=1
+L186:         return z if valid else None
+L187:     wanted=['00','10'] if method=='D' else ['00','01'] if method=='B' else ['00','10','01','11']
+L188:     z0=score('00',len(wanted))
+L189:     if z0 is None:result['reference_unrankable']=True;return done()
+L190:     if method=='Decoupled':
+L191:         z1=score('10',2)
+L192:         first='10' if z1 is not None and scores['10']<scores['00'] and not guard(s,z0,z1,base,cells['10'],model,cfg) else '00'
+L193:         nxt='11' if first=='10' else '01';z2=score(nxt,1)
+L194:         selected=first
+L195:         if z2 is not None:
+L196:             violations=guard(s,z0,z2,base,cells[nxt],model,cfg);result['decode_guard_rejections']+=bool(violations)
+L197:             if not violations and scores[nxt]<scores[first]:selected=nxt
+L198:         result.update(action=cells[selected],model_selection=True,selected_cell=selected,sequential_coordinate_choice=True)
+L199:         return done()
+L200:     result['paired_packet_attempted']=method=='Joint'
+L201:     complete=True;valid_labels=['00']
+L202:     for index,label in enumerate(wanted[1:],1):
+L203:         z=score(label,len(wanted)-index)
+L204:         if z is None:complete=False;continue
+L205:         violations=guard(s,z0,z,base,cells[label],model,cfg);guards[label]=violations
+L206:         if violations:result['decode_guard_rejections']+=1
+L207:         else:valid_labels.append(label)
+L208:     result['guard_details']=guards
+L209:     if method=='Joint' and not complete:
+L210:         result['pair_incomplete_reference_retained']=True;return done()
+L211:     result['paired_packet_complete']=method=='Joint' and complete
+L212:     best=min(valid_labels,key=lambda label:(scores[label],label!='00'))
+L213:     if scores['00']-scores[best]<cfg['minimum_predicted_gain_ms']:best='00'
+L214:     result.update(action=cells[best],model_selection=True,selected_cell=best)
+L215:     result['paired_packet_distinct_actions']=len({action_key(a) for a in cells.values()})
+L216:     return done()
+
+SOURCE: spra_stage19_musique_joint_v1/joint18v2/client.py
+L39: async def gate(client,runtime,R=4):
+L40:     ss=await asyncio.to_thread(statuses,runtime,R)
+L41:     for r,s in enumerate(ss):
+L42:         if s.get('recovery_revision')!=REVISION:raise BackendNotReady('expected boot/metric recovery hook on '+s.get('pod','unknown'))
+L43:         if s['boot_id']!=boot_id() or s.get('clock_namespace_inode')!=clock_namespace():raise RuntimeError('clock domains differ; no subtraction of unrelated monotonic clocks')
+L44:         for k,v in [('hard_total',4096),('max_model_len',4096),('block_size',16),('max_num_seqs',64),('num_scheduler_steps',1)]:
+L45:             if s.get(k)!=v:raise RuntimeError(f'{s["pod"]}: expected {k}={v}')
+L46:         if any(s[k] for k in ('running','waiting','swapped')):raise RuntimeError('dedicated engines must be idle')
+L47:         if time.monotonic_ns()-s['mono_ns']>2_000_000_000:raise RuntimeError('idle observation heartbeat stale')
+L48:         if s.get('native_cache_allocator') not in ('v1','v2'):raise RuntimeError('native cache observer absent')
+L49:         z=await client.get(ENDPOINTS[r]+'/health');z.raise_for_status()
+L50:         z=await client.get(ENDPOINTS[r]+'/v1/models');z.raise_for_status()
+L51:         if not any(m.get('id')=='Qwen2.5-1.5B-Instruct' for m in z.json().get('data',[])):raise RuntimeError('model mismatch')
+L52:     gpus=[s.get('nvidia_visible_devices') for s in ss]
+L53:     if None in gpus or len(set(gpus))!=R:raise RuntimeError('GPU identities not distinct')
+L54:     return ss
+L55: 
+L176:       'cache_evidence':cache,'queue_order':queue,'current_caps':list(current),'inflight_batches':inflight,
+L177:       'decision_index':decision_index,'state_ages_s':[(now_ns-s['mono_ns'])/1e9 for s in ss],
+L178:       'cache_unknown_count':sum(1 for n in ns.values() if n.get('prefix_hash') and not any(e['prefix_hash']==n['prefix_hash'] for e in cache))}
+L179: 
+L180: def process_plan(snapshot,model,cfg,method,deadline):
+L181:     if cfg.get('semantic_selector'):
+L182:         from semantic19.selector import choose as semantic_choose
+L183:         return semantic_choose(snapshot,model,cfg,method,deadline)
+L184:     return choose(snapshot,model,cfg,method,deadline)
+L185: 
+L289:                 wake.clear();await asyncio.sleep(cfg['ready_coalesce_s'])
+L290:                 if all(n['state']=='done' for n in nodes.values()):break
+L291:                 begin=time.monotonic();next_tick=anchor+(math.floor((begin-anchor)/cfg['epoch_s'])+1)*cfg['epoch_s']
+L292:                 if next_tick-begin<cfg['commit_reserve_s']:continue
+L293:                 # The current horizon ends at the existing absolute tick, never plan_end+200ms.
+L294:                 expire_ns=int(next_tick*1e9);deadline=min(begin+cfg['planning_soft_limit_s'],next_tick-cfg['commit_reserve_s'])
+L295:                 decision_index+=1
+L296:                 # Use a just-read frame rather than only the periodic sampler's cached frame.
+L297:                 # The bounded read is common infrastructure; dependency callbacks keep running.
+L298:                 ss_latest=await asyncio.to_thread(statuses,runtime,R);same_engines(ss_latest,initial)
+L299:                 scfg=dict(cfg)
+L300:                 horizon=(next_tick-begin)*1000;expected=min(max(1.,quantile(latencies,.9) if latencies else cfg['initial_expected_apply_delay_ms']),max(1.,horizon-5.))
+L307:                 if force_caps is not None:ans['action']['caps']=list(force_caps)
+L308:                 elif mechanism is not None:
+L309:                     # Background and root setup are predeclared and identical across the four cells.
+L310:                     for k in base['placement']:
+L311:                         if k.startswith('bg/') or k=='w0000/root' or k=='w0000/sink':base['placement'][k]=0
+L312:                     base=resources(base,snap,cfg);a,trigger=mechanism.apply(snap,base,ss_latest,cfg);ans['action']=a
+L313:                     if trigger:
+L314:                         writer.submit(folder/'mechanism_trigger.json',trigger,replace=True)
+L315:                     elif mechanism.triggered and publisher.record and publisher.record['action_expires_ns']>time.monotonic_ns():
+L316:                         # Do not overwrite the fixed 200ms mechanism window when a sibling completes.
+L317:                         ans['action']['caps']=list(publisher.record['caps'])
+L318:                 elif method!='A' and snap['cache_unknown_count']:
+L319:                     ans['cache_unknown_fallback']=True
+L320:                 elif method!='A':
+L321:                     if pending is not None and not pending.done():busy=True;ans['worker_busy_fallback']=True
+L322:                     else:
+L323:                         if pending is not None:
+L324:                             try:pending.result()
+L325:                             except BaseException:pass
+L326:                             pending=None
+L327:                         if executor is None or model is None:raise RuntimeError('optimized method requires isolated worker/model')
+L328:                         worker_snapshot=dict(snap)
+L329:                         worker_snapshot['cache_evidence']=[{k:v for k,v in e.items() if k not in ('blocks','block_ids')} for e in snap['cache_evidence']]
+L330:                         handoff=min(float(cfg.get('result_handoff_reserve_s',.020)),max(0.,deadline-time.monotonic())*.25)
+L331:                         evaluation_deadline=deadline-handoff
+L332:                         pending=asyncio.get_running_loop().run_in_executor(executor,process_plan,worker_snapshot,model,scfg,method,evaluation_deadline)
+L333:                         try:
+L334:                             ans=await asyncio.wait_for(asyncio.shield(pending),timeout=max(.0001,deadline-time.monotonic()))
+L335:                             pending=None
+L336:                             ans.update(result_receive_deadline=deadline,worker_evaluation_deadline=evaluation_deadline,
+L337:                                 reserved_handoff_ms=handoff*1000,result_received_s=time.monotonic(),
+L338:                                 received_before_total_deadline=time.monotonic()<deadline)
+L339:                         except asyncio.TimeoutError:ans.update(worker_timeout_fallback=True,
+
+SOURCE: spra_stage19_typed_handoff_v1/tools/run_typed.py
+L16: native_client.stream=typed_stream
+L17: from joint18v2.common import atomic,load,digest,quantile
+L18: from joint18v2.client import gate,execute,wait_drained,token_pool
+L19: HOOK='78ca1d716c5701a9f83ba7dc0b22669b6b50a38bd54626a56642130cd1684418'
+L134:     import httpx
+L135:     cfg=load(ROOT/'configs/semantic.json');cfg['arrival_rate']=a.rate
+L136:     if a.command=='pilot':
+L137:         artifact,model,priors,mf=prepared(a)
+L138:         if sha(a.dataset/'manifest.json')!=mf['dataset_manifest_sha256']:raise ValueError('dataset changed after development freeze')
+L139:         if mf.get('profile_configuration',{}).get('arrival_rate')!=cfg['arrival_rate']:
+L140:             raise ValueError('pilot rate differs from frozen development profile; keep the predeclared rate')
+L141:         cfg['base_cap']=mf['best_fixed_cap']
+L142:     else:model=None;priors=None
+L143:     split={'smoke':'smoke','profile':'profile','pilot':'pilot'}.get(a.command)
+L144:     records,dmanifest=load_public(a.dataset,split) if split else (None,None)
+L145:     if a.command=='profile' and not a.legacy_model.is_file():raise FileNotFoundError('legacy model missing: '+str(a.legacy_model))
+L146:     initial_code=code_hashes()
+L147:     with (a.runtime/'experiment.lock').open('a') as lock:
+L148:         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+L149:         async with httpx.AsyncClient(timeout=httpx.Timeout(180,connect=5,pool=10),trust_env=False,
+L150:                 limits=httpx.Limits(max_connections=192,max_keepalive_connections=64,keepalive_expiry=2)) as client:
+L151:             initial=await gate(client,a.runtime,4)
+L152:             if any(s.get('hook_source_sha256')!=HOOK for s in initial):raise ValueError('unexpected native hook; no restart or replacement performed')
+L153:             if a.command=='gate':print('GATE_READY=True MODEL_GENERATION_REQUESTS=0 BACKEND_CHANGED=False');return
+L154:             out=ROOT/'runs'/(a.command.upper()+'_'+time.strftime('%Y%m%dT%H%M%SZ',time.gmtime())+'_'+uuid.uuid4().hex[:8]);out.mkdir(parents=True)
+L155:             print('RESULT='+str(out),flush=True)
+L156:             atomic(out/'environment.json',initial);atomic(out/'dataset_manifest.json',dmanifest);atomic(out/'code_identity.json',initial_code)
+L157:             atomic(out/'frozen_protocol.json',{'revision':REVISION,'command':a.command,'config':cfg,
+L158:                 'known_plan':True,'unknown_future_outputs':True,'source_gold_steps_are_privileged_plan_annotations':True,
+L159:                 'same_plan_executor_for_all_methods':True,'quality_guard_pp':2.0,'mean_p95_TPOT_noninferiority_pct':3.0,
+L160:                 'all_waits_in_JCT':True,'no_posthoc_subtraction':True,'replicas_or_backend_changed':False,
+L161:                 'no_automatic_retries':True,'output_schema':'one JSON string answer, native guided_json',
+L162:                 'raw_prose_never_substituted_into_child':True,'canonical_chat_tokens_sent_unchanged':True,
+L163:                 'overall_question_sent':False,'no_new_dependencies_or_backend_changes':True,'orders':ORDERS,'profile_input_tuning_disjoint_from_pilot':True})
+L168:                 # Fixed-count service warmup is separate from semantic measured cohorts.
+L169:                 if a.command!='smoke':
+L170:                     from tools.experiment import warm_nodes,FixedWarmup
+L171:                     from tools.experiment import salt
+L172:                     pool=await token_pool(client,cfg['model'])
+L173:                     for wi,profile in enumerate(((512,32),(3328,64)),1):
+L174:                         ns=warm_nodes(cfg,pool,profile,salt(pool))
+L175:                         await execute(client,a.runtime,initial,cfg,ns,out/'SERVICE_WARMUP'/f'P{wi}','Forced',None,mechanism=FixedWarmup())
+L176:                     print('SERVICE_WARMUP_COMPLETE=True REQUESTS=8 MEASURED=False')
+L177:                     await warm_schema(client,a.runtime,initial,cfg,out,tok,pool)
+L178:                 if a.command=='smoke':design=[(0,1,'A',cfg['base_cap'],packets,190301)]
+L179:                 elif a.command=='profile':
+L180:                     design=[]
+L181:                     for block in range(1,5):
+L182:                         caps=cfg['caps'];caps=caps[block-1:]+caps[:block-1]
+L183:                         for pos,cap in enumerate(caps,1):design.append((block,pos,'A',cap,packets[(block-1)*8:block*8],190400+block))
+L184:                 else:
+L185:                     executor=ProcessPoolExecutor(1,mp_context=multiprocessing.get_context('spawn'))
+L186:                     await asyncio.get_running_loop().run_in_executor(executor,worker_ready)
+L187:                     design=[(b,pos,m,cfg['base_cap'],packets[(b-1)*16:b*16],190500+b) for b,order in enumerate(ORDERS,1) for pos,m in enumerate(order,1)]
+L188:                 for block,pos,method,cap,ps,seed in design:
+L189:                     if code_hashes()!=initial_code:raise RuntimeError('source changed mid-run')
+L190:                     cc=copy.deepcopy(cfg);cc['base_cap']=cap;cc['workflow_count']=len(ps)
+L191:                     ns,materialize,proof=await instantiate(ps,tok,cc,seed,priors)
+L192:                     label=f'B{block}_{pos}_{method}'+(f'_F{cap}' if a.command=='profile' else '')
+L193:                     folder=out/label
+L194:                     summary,events=await execute(client,a.runtime,initial,cc,ns,folder,method,model,
+L195:                          executor=executor,materializer=materialize)
+L196:                     # Scoring labels are opened only after every request in this condition returned.
+L197:                     q=quality_evaluate(ns,a.dataset,summary['cohort_duration_s']);summary.update(q)
+L198:                     paired_bindings=sum(len(n.get('parent_response_bindings',{})) for n in ns.values())
+L199:                     expected_edges=sum(len(n['parents']) for n in ns.values())
+L200:                     if paired_bindings!=expected_edges:raise RuntimeError('semantic edge binding count mismatch')
+L201:                     for n in ns.values():
+L202:                         for pp in n['parents']:
+L203:                             entry=n['parent_response_bindings'][str(ns[pp]['step_position']+1)]
+L204:                             if entry['response']!=ns[pp]['stream']['text']:raise RuntimeError('child did not consume actual parent output')
+L205:                     if summary['native_next_batch_matches']!=summary['native_next_batch_checked']:raise RuntimeError('native next batch mismatch')
+L206:                     summary.update(dataset='MuSiQue-Ans-v1.0',known_DAG=True,semantic_edges_verified=paired_bindings,
+L207:                         output_work_forced_equal=False,source_questions=[p['id'] for p in ps],
+L208:                         subgraph_width_counts={str(w):sum(p['graph']['max_parallel_width']==w for p in ps) for w in (1,2,3,4)},
+L209:                         model_future_outputs_are_estimates=True)
+L210:                     atomic(folder/'semantic_proof.json',proof);atomic(folder/'quality.json',q)
+L211:                     atomic(folder/'typed_responses.json',q['typed_response_rows'])
+L212:                     atomic(folder/'summary.json',summary)
+L213:                     rows.append({'block':block,'position':pos,'method':method,'cap':cap,'folder':str(folder.resolve()),'summary':compact(summary)})
+L214:                     atomic(out/'index.json',rows)
+L215:                     print('TYPED_SEMANTIC_CONDITION_DONE='+json.dumps({'block':block,'position':pos,'method':method,'cap':cap,**compact(summary)},ensure_ascii=False),flush=True)
+
+SOURCE: spra_stage19_typed_handoff_v1/typed19/workflow.py
+L116:             prior=(output_prior or {}).get(str(len(p['steps'])),{})
+L117:             estimate=max(1,min(cfg['max_output_tokens'],int(prior.get('p75',cfg['initial_output_estimate']))))
+L118:             nodes[k]={'id':k,'wid':wid,'name':f'step{i+1}','dataset_id':p['id'],'step_position':i,
+L119:                 'parents':[keys[x] for x in step['parents']],
+L120:                 'compiled_groups':[[keys[x] for x in g] for g in p['graph']['antichains'] if len(g)>1],
+L121:                 'compiled_descendants':[keys[x] for x in p['graph']['descendants'][i]],
+L122:                 'compiled_successors':[keys[x] for x in p['graph']['successors'][i]],
+L123:                 'graph_shape':p['graph']['shape'],'hop_count':len(p['steps']),
+L124:                 'prompt':min(cfg['max_model_len']-cfg['max_output_tokens'],len(tokens)+len(step['parents'])*estimate),
+L125:                 'output':estimate,'output_is_estimate':True,'max_output_tokens':cfg['max_output_tokens'],
+L126:                 'tokens':tokens,'hash':token_hash(tokens),'prefix_hash':prefix_hash,'share':share,
+L127:                 'arrival_offset':offsets[wi],'state':'blocked','replica':None,'computed':0,'output_done':0,
+L128:                 'ready_at':None,'start':None,'finish':None,'semantic_mode':True,'typed_answer_mode':True,
+L129:                 'prompt_materialized':False,'source_subquestion_id':step['source_subquestion_id']}

@@ -1,0 +1,14 @@
+outputs/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+key.txt
+id_rsa
+id_ed25519
+*manonly*

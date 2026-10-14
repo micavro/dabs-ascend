@@ -1,0 +1,63 @@
+{
+  "scope": "synthetic original6-shaped fixture, not a measured snapshot",
+  "names": [
+    "a",
+    "b",
+    "c",
+    "d"
+  ],
+  "candidate_count": 17,
+  "previous_partial_split_shape_found": true,
+  "matching_actions": [
+    {
+      "family": "partial_join/join/2/to_1",
+      "placement": {
+        "a": 0,
+        "b": 0,
+        "c": 1,
+        "d": 1
+      },
+      "admit": [
+        "a",
+        "b",
+        "c",
+        "d"
+      ],
+      "order": [
+        "d",
+        "c",
+        "b",
+        "a"
+      ],
+      "caps": [
+        1024,
+        1024,
+        1024,
+        1024
+      ],
+      "resource_held": [],
+      "proposal": {
+        "kind": "partial_join_group",
+        "join": "join",
+        "moved_nodes": [
+          "d",
+          "c"
+        ],
+        "retained_nodes": [
+          "b",
+          "a"
+        ],
+        "destination": 1,
+        "prefix_hash": "h",
+        "remaining_tail_ms": {
+          "d": 3942.63828125,
+          "c": 3449.9388671875004,
+          "b": 1483.24609375,
+          "a": 1235.8921875
+        },
+        "is_prediction_not_future_measurement": true
+      }
+    }
+  ],
+  "gpu_requests": 0
+}

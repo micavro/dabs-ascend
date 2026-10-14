@@ -1,0 +1,270 @@
+test_age_validator_is_still_enforced (test_admission_repair.AdmissionRepairTests.test_age_validator_is_still_enforced) ... ok
+test_agecheck_is_not_a_performance_suite (test_admission_repair.AdmissionRepairTests.test_agecheck_is_not_a_performance_suite) ... ok
+test_binding_restores_original_even_on_failure (test_admission_repair.AdmissionRepairTests.test_binding_restores_original_even_on_failure) ... ok
+test_both_worker_versions_complete_under_pressure (test_admission_repair.AdmissionRepairTests.test_both_worker_versions_complete_under_pressure) ... ok
+test_bounded_admission_policy_is_not_overridden (test_admission_repair.AdmissionRepairTests.test_bounded_admission_policy_is_not_overridden) ... ok
+test_duplicate_or_overlapping_partition_rejected (test_admission_repair.AdmissionRepairTests.test_duplicate_or_overlapping_partition_rejected) ... ok
+test_input_snapshots_and_base_not_mutated (test_admission_repair.AdmissionRepairTests.test_input_snapshots_and_base_not_mutated) ... ok
+test_many_resource_limits_and_decision_indices (test_admission_repair.AdmissionRepairTests.test_many_resource_limits_and_decision_indices) ... ok
+test_old_resources_function_is_unchanged (test_admission_repair.AdmissionRepairTests.test_old_resources_function_is_unchanged) ... ok
+test_original_failure_reproduced_without_gpu (test_admission_repair.AdmissionRepairTests.test_original_failure_reproduced_without_gpu) ... ok
+test_original_no_pressure_action_is_exactly_unchanged (test_admission_repair.AdmissionRepairTests.test_original_no_pressure_action_is_exactly_unchanged) ... ok
+test_partial_partition_is_not_hidden (test_admission_repair.AdmissionRepairTests.test_partial_partition_is_not_hidden) ... ok
+test_real_spawn_process_pressure_case (test_admission_repair.AdmissionRepairTests.test_real_spawn_process_pressure_case) ... ok
+test_repaired_candidate_keeps_genuine_resource_holds (test_admission_repair.AdmissionRepairTests.test_repaired_candidate_keeps_genuine_resource_holds) ... ok
+test_rerouted_previously_held_request_is_reconsidered (test_admission_repair.AdmissionRepairTests.test_rerouted_previously_held_request_is_reconsidered) ... ok
+test_runner_imports_before_native_source_activation (test_admission_repair.AdmissionRepairTests.test_runner_imports_before_native_source_activation) ... ok
+test_sequence_limit_remains_enforced (test_admission_repair.AdmissionRepairTests.test_sequence_limit_remains_enforced) ... ok
+test_worker_failure_snapshot_is_preserved (test_admission_repair.AdmissionRepairTests.test_worker_failure_snapshot_is_preserved) ... ok
+test_zero_capacity_never_forces_an_aged_admission (test_admission_repair.AdmissionRepairTests.test_zero_capacity_never_forces_an_aged_admission) ... ok
+test_ablation_all_permutations (test_contracts.DesignTests.test_ablation_all_permutations) ... ok
+test_cfg_deep_copy (test_contracts.DesignTests.test_cfg_deep_copy) ... ok
+test_confirmation_carryover_balance (test_contracts.DesignTests.test_confirmation_carryover_balance) ... ok
+test_confirmation_position_balance (test_contracts.DesignTests.test_confirmation_position_balance) ... ok
+test_counts (test_contracts.DesignTests.test_counts) ... ok
+test_exact_four_blocks (test_contracts.DesignTests.test_exact_four_blocks) ... ok
+test_grid_all_cells (test_contracts.DesignTests.test_grid_all_cells) ... ok
+test_grid_no_duplicates (test_contracts.DesignTests.test_grid_no_duplicates) ... ok
+test_mirror_per_cellblock (test_contracts.DesignTests.test_mirror_per_cellblock) ... ok
+test_original_clock_guard (test_contracts.DesignTests.test_original_clock_guard) ... ok
+test_plan_no_oracle (test_contracts.DesignTests.test_plan_no_oracle) ... ok
+test_unknown_suite (test_contracts.DesignTests.test_unknown_suite) ... ok
+test_duplicate (test_contracts.ReportTests.test_duplicate) ... ok
+test_external_mismatch (test_contracts.ReportTests.test_external_mismatch) ... ok
+test_method_alias_wrong (test_contracts.ReportTests.test_method_alias_wrong) ... ok
+test_missing_not_complete (test_contracts.ReportTests.test_missing_not_complete) ... ok
+test_negative_results_retained (test_contracts.ReportTests.test_negative_results_retained) ... ok
+test_distinct_pair (test_contracts.RoutingTests.test_distinct_pair) ... ok
+test_negative_count (test_contracts.RoutingTests.test_negative_count) ... ok
+test_no_future_length_ranking (test_contracts.RoutingTests.test_no_future_length_ranking) ... ok
+test_no_native_reorder (test_contracts.RoutingTests.test_no_native_reorder) ... ok
+test_no_prefix_or_dag_dependency (test_contracts.RoutingTests.test_no_prefix_or_dag_dependency) ... ok
+test_one_replica_same_routes (test_contracts.RoutingTests.test_one_replica_same_routes) ... ok
+test_p2c_counts_new_placements (test_contracts.RoutingTests.test_p2c_counts_new_placements) ... ok
+test_p2c_idempotence (test_contracts.RoutingTests.test_p2c_idempotence) ... ok
+test_p2c_selects_lower_load (test_contracts.RoutingTests.test_p2c_selects_lower_load) ... ok
+test_reference_has_no_cursor_side_effect (test_contracts.RoutingTests.test_reference_has_no_cursor_side_effect) ... ok
+test_resource_held_fifo_prefix (test_contracts.RoutingTests.test_resource_held_fifo_prefix) ... ok
+test_round_robin (test_contracts.RoutingTests.test_round_robin) ... ok
+test_round_robin_resume_count (test_contracts.RoutingTests.test_round_robin_resume_count) ... ok
+test_unknown_baseline (test_contracts.RoutingTests.test_unknown_baseline) ... ok
+test_baseline_rejected_by_worker (test_contracts.SelectorTests.test_baseline_rejected_by_worker) ... ok
+test_binding_restored_on_exception (test_contracts.SelectorTests.test_binding_restored_on_exception) ... ok
+test_budget_function_not_called (test_contracts.SelectorTests.test_budget_function_not_called) ... ok
+test_complete_objective_equivalence_R1 (test_contracts.SelectorTests.test_complete_objective_equivalence_R1) ... ok
+test_complete_objective_equivalence_R2 (test_contracts.SelectorTests.test_complete_objective_equivalence_R2) ... ok
+test_complete_objective_equivalence_R3 (test_contracts.SelectorTests.test_complete_objective_equivalence_R3) ... ok
+test_complete_objective_equivalence_R4 (test_contracts.SelectorTests.test_complete_objective_equivalence_R4) ... ok
+test_expired_retains_reference (test_contracts.SelectorTests.test_expired_retains_reference) ... ok
+test_extra_file_tamper (test_contracts.SelectorTests.test_extra_file_tamper) ... ok
+test_file_tamper (test_contracts.SelectorTests.test_file_tamper) ... ok
+test_incomplete_never_ranked (test_contracts.SelectorTests.test_incomplete_never_ranked) ... ok
+test_inspect48_without_data_claim (test_contracts.SelectorTests.test_inspect48_without_data_claim) ... ok
+test_reject_adaptive_method (test_contracts.SelectorTests.test_reject_adaptive_method) ... ok
+test_reject_other_cap (test_contracts.SelectorTests.test_reject_other_cap) ... ok
+test_worker_lite_path (test_contracts.SelectorTests.test_worker_lite_path) ... ok
+test_worker_original_calls_original (test_contracts.SelectorTests.test_worker_original_calls_original) ... ok
+test_Affinity_R1 (test_native_path.NativePath.test_Affinity_R1) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1020709654936, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1020712394175, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpj_41aqa8/joint18v2/spra-vllm-0.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1020714983002, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1020717584608, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpj_41aqa8/joint18v2/spra-vllm-1.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1020720050219, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1020722637804, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpj_41aqa8/joint18v2/spra-vllm-2.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1020725377864, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1020727978904, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpj_41aqa8/joint18v2/spra-vllm-3.status.json"}
+ok
+test_Affinity_R2 (test_native_path.NativePath.test_Affinity_R2) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1021046963381, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1021049596175, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpxavka_6r/joint18v2/spra-vllm-0.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1021052155067, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1021054820930, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpxavka_6r/joint18v2/spra-vllm-1.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1021055104788, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1021057840737, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpxavka_6r/joint18v2/spra-vllm-2.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1021060295652, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1021062774673, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpxavka_6r/joint18v2/spra-vllm-3.status.json"}
+ok
+test_Affinity_R3 (test_native_path.NativePath.test_Affinity_R3) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1021379517718, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1021382316672, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmp_395rtfo/joint18v2/spra-vllm-0.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1021385318873, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1021388064767, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmp_395rtfo/joint18v2/spra-vllm-1.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1021390686173, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1021393240578, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmp_395rtfo/joint18v2/spra-vllm-2.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1021395748232, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1021398474271, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmp_395rtfo/joint18v2/spra-vllm-3.status.json"}
+ok
+test_Affinity_R4 (test_native_path.NativePath.test_Affinity_R4) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1021726377818, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1021729032234, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpryohapvs/joint18v2/spra-vllm-0.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1021729453190, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1021732615873, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpryohapvs/joint18v2/spra-vllm-1.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1021735394666, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1021737918335, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpryohapvs/joint18v2/spra-vllm-2.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1021740626081, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1021744786540, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpryohapvs/joint18v2/spra-vllm-3.status.json"}
+ok
+test_DAG_Lite_R1 (test_native_path.NativePath.test_DAG_Lite_R1) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1022110649549, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1022113420040, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmplu9fbkd1/joint18v2/spra-vllm-0.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1022113820865, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1022116864258, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmplu9fbkd1/joint18v2/spra-vllm-1.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1022119429939, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1022121990314, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmplu9fbkd1/joint18v2/spra-vllm-2.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1022124596622, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1022127156125, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmplu9fbkd1/joint18v2/spra-vllm-3.status.json"}
+ok
+test_DAG_Lite_R2 (test_native_path.NativePath.test_DAG_Lite_R2) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1022448361138, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1022452075774, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpz41xqvax/joint18v2/spra-vllm-0.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1022454773225, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1022457428171, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpz41xqvax/joint18v2/spra-vllm-1.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1022460301694, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1022462882102, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpz41xqvax/joint18v2/spra-vllm-2.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1022465559668, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1022468064979, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpz41xqvax/joint18v2/spra-vllm-3.status.json"}
+ok
+test_DAG_Lite_R3 (test_native_path.NativePath.test_DAG_Lite_R3) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1022787145241, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1022790428786, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpucwlvcp7/joint18v2/spra-vllm-0.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1022790795219, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1022793766533, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpucwlvcp7/joint18v2/spra-vllm-1.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1022796165113, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1022798692427, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpucwlvcp7/joint18v2/spra-vllm-2.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1022801289817, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1022803851793, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpucwlvcp7/joint18v2/spra-vllm-3.status.json"}
+ok
+test_DAG_Lite_R4 (test_native_path.NativePath.test_DAG_Lite_R4) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1023228678552, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1023231484055, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmp127eaibv/joint18v2/spra-vllm-0.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1023231821114, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1023235012250, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmp127eaibv/joint18v2/spra-vllm-1.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1023237731594, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1023240270486, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmp127eaibv/joint18v2/spra-vllm-2.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1023242994046, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1023245554910, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmp127eaibv/joint18v2/spra-vllm-3.status.json"}
+ok
+test_DAG_R1 (test_native_path.NativePath.test_DAG_R1) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1023604054536, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1023607179923, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpqubp2jc6/joint18v2/spra-vllm-0.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1023610053380, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1023612840827, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpqubp2jc6/joint18v2/spra-vllm-1.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1023613191606, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1023616462622, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpqubp2jc6/joint18v2/spra-vllm-2.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1023619409449, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1023621928371, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpqubp2jc6/joint18v2/spra-vllm-3.status.json"}
+ok
+test_DAG_R2 (test_native_path.NativePath.test_DAG_R2) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1023937851714, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1023940780423, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmp5t7h_qv8/joint18v2/spra-vllm-0.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1023943318183, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1023945787469, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmp5t7h_qv8/joint18v2/spra-vllm-1.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1023948294954, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1023950843600, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmp5t7h_qv8/joint18v2/spra-vllm-2.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1023953490164, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1023956104259, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmp5t7h_qv8/joint18v2/spra-vllm-3.status.json"}
+ok
+test_DAG_R3 (test_native_path.NativePath.test_DAG_R3) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1024309862500, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1024312603156, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmprjkootrx/joint18v2/spra-vllm-0.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1024315115708, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1024317728150, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmprjkootrx/joint18v2/spra-vllm-1.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1024320287872, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1024323019975, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmprjkootrx/joint18v2/spra-vllm-2.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1024325577185, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1024328075990, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmprjkootrx/joint18v2/spra-vllm-3.status.json"}
+ok
+test_DAG_R4 (test_native_path.NativePath.test_DAG_R4) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1024644586494, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1024647278226, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmp9tap25ce/joint18v2/spra-vllm-0.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1024649840062, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1024652394497, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmp9tap25ce/joint18v2/spra-vllm-1.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1024654913639, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1024657518099, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmp9tap25ce/joint18v2/spra-vllm-2.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1024660060786, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1024662617525, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmp9tap25ce/joint18v2/spra-vllm-3.status.json"}
+ok
+test_P2C_R1 (test_native_path.NativePath.test_P2C_R1) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1025007436668, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1025010437447, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpk1w06yzv/joint18v2/spra-vllm-0.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1025010860365, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1025014363477, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpk1w06yzv/joint18v2/spra-vllm-1.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1025016910851, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1025019550504, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpk1w06yzv/joint18v2/spra-vllm-2.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1025022072911, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1025024766115, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpk1w06yzv/joint18v2/spra-vllm-3.status.json"}
+ok
+test_P2C_R2 (test_native_path.NativePath.test_P2C_R2) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1025341975028, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1025344673260, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpycx9rhtk/joint18v2/spra-vllm-0.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1025347156107, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1025350036544, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpycx9rhtk/joint18v2/spra-vllm-1.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1025352583918, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1025355124972, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpycx9rhtk/joint18v2/spra-vllm-2.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1025357823229, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1025360469117, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpycx9rhtk/joint18v2/spra-vllm-3.status.json"}
+ok
+test_P2C_R3 (test_native_path.NativePath.test_P2C_R3) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1025687384323, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1025691699750, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpbdeqchad/joint18v2/spra-vllm-0.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1025695195720, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1025698032241, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpbdeqchad/joint18v2/spra-vllm-1.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1025700706316, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1025703498470, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpbdeqchad/joint18v2/spra-vllm-2.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1025706187147, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1025708781693, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpbdeqchad/joint18v2/spra-vllm-3.status.json"}
+ok
+test_P2C_R4 (test_native_path.NativePath.test_P2C_R4) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1026042614111, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1026045392193, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmplqgtjj46/joint18v2/spra-vllm-0.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1026045714650, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1026048655778, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmplqgtjj46/joint18v2/spra-vllm-1.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1026051089682, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1026053651478, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmplqgtjj46/joint18v2/spra-vllm-2.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1026056227626, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1026058782852, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmplqgtjj46/joint18v2/spra-vllm-3.status.json"}
+ok
+test_RR_R1 (test_native_path.NativePath.test_RR_R1) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1026381628986, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1026384312206, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmp4li6bx8p/joint18v2/spra-vllm-0.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1026386778698, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1026389309106, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmp4li6bx8p/joint18v2/spra-vllm-1.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1026391799264, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1026394391096, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmp4li6bx8p/joint18v2/spra-vllm-2.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1026396843687, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1026399374286, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmp4li6bx8p/joint18v2/spra-vllm-3.status.json"}
+ok
+test_RR_R2 (test_native_path.NativePath.test_RR_R2) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1026719128460, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1026721800372, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpu33mew2k/joint18v2/spra-vllm-0.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1026724299464, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1026726808681, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpu33mew2k/joint18v2/spra-vllm-1.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1026729251908, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1026731758651, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpu33mew2k/joint18v2/spra-vllm-2.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1026734440358, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1026736937757, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpu33mew2k/joint18v2/spra-vllm-3.status.json"}
+ok
+test_RR_R3 (test_native_path.NativePath.test_RR_R3) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1027084359384, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1027087111707, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmphx6uuqvd/joint18v2/spra-vllm-0.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1027089629387, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1027093110760, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmphx6uuqvd/joint18v2/spra-vllm-1.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1027095615080, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1027098429277, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmphx6uuqvd/joint18v2/spra-vllm-2.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1027100928558, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1027103516118, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmphx6uuqvd/joint18v2/spra-vllm-3.status.json"}
+ok
+test_RR_R4 (test_native_path.NativePath.test_RR_R4) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1027456142390, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1027458789455, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmprheh7q97/joint18v2/spra-vllm-0.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1027461458608, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1027464104917, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-1", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmprheh7q97/joint18v2/spra-vllm-1.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1027466662877, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1027469241418, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-2", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmprheh7q97/joint18v2/spra-vllm-2.status.json"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1027471710024, "phase": "scheduler_init_enter", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1027474332611, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2028, "pod": "spra-vllm-3", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmprheh7q97/joint18v2/spra-vllm-3.status.json"}
+ok
+test_both_worker_versions_in_actual_spawn (test_native_path.SpawnPath.test_both_worker_versions_in_actual_spawn) ... ok
+test_existing_output_cannot_overwrite (test_suite_orchestration.OrchestrationTests.test_existing_output_cannot_overwrite) ... Executing <Task pending name='Task-1162' coro=<OrchestrationTests.test_existing_output_cannot_overwrite() running at /mnt/data/DABS_GPU39_Repro_v1/source/spra_workflow_sched_v2_1/tests/test_suite_orchestration.py:107> wait_for=<Future pending cb=[_chain_future.<locals>._call_check_cancel() at /usr/lib/python3.13/asyncio/futures.py:384, Task.task_wakeup()] created at /usr/lib/python3.13/asyncio/base_events.py:459> cb=[_run_until_complete_cb() at /usr/lib/python3.13/asyncio/base_events.py:181] created at /usr/lib/python3.13/asyncio/runners.py:100> took 0.108 seconds
+Executing <Task finished name='Task-1162' coro=<OrchestrationTests.test_existing_output_cannot_overwrite() done, defined at /mnt/data/DABS_GPU39_Repro_v1/source/spra_workflow_sched_v2_1/tests/test_suite_orchestration.py:106> result=None created at /usr/lib/python3.13/asyncio/runners.py:100> took 0.177 seconds
+ok
+test_failed_attempt_not_retried (test_suite_orchestration.OrchestrationTests.test_failed_attempt_not_retried) ... ok
+test_index_summary_tamper (test_suite_orchestration.OrchestrationTests.test_index_summary_tamper) ... Executing <Task finished name='Task-1172' coro=<OrchestrationTests.test_index_summary_tamper() done, defined at /mnt/data/DABS_GPU39_Repro_v1/source/spra_workflow_sched_v2_1/tests/test_suite_orchestration.py:122> result=None created at /usr/lib/python3.13/asyncio/runners.py:100> took 0.178 seconds
+ok
+test_pause_resume_all_methods (test_suite_orchestration.OrchestrationTests.test_pause_resume_all_methods) ... Executing <Task pending name='Task-1177' coro=<OrchestrationTests.test_pause_resume_all_methods() running at /mnt/data/DABS_GPU39_Repro_v1/source/spra_workflow_sched_v2_1/tests/test_suite_orchestration.py:100> wait_for=<Future pending cb=[_chain_future.<locals>._call_check_cancel() at /usr/lib/python3.13/asyncio/futures.py:384, Task.task_wakeup()] created at /usr/lib/python3.13/asyncio/base_events.py:459> cb=[_run_until_complete_cb() at /usr/lib/python3.13/asyncio/base_events.py:181] created at /usr/lib/python3.13/asyncio/runners.py:100> took 0.277 seconds
+Executing <Task finished name='Task-1177' coro=<OrchestrationTests.test_pause_resume_all_methods() done, defined at /mnt/data/DABS_GPU39_Repro_v1/source/spra_workflow_sched_v2_1/tests/test_suite_orchestration.py:98> result=None created at /usr/lib/python3.13/asyncio/runners.py:100> took 0.327 seconds
+ok
+test_protocol_tamper (test_suite_orchestration.OrchestrationTests.test_protocol_tamper) ... Executing <Task finished name='Task-1182' coro=<OrchestrationTests.test_protocol_tamper() done, defined at /mnt/data/DABS_GPU39_Repro_v1/source/spra_workflow_sched_v2_1/tests/test_suite_orchestration.py:111> result=None created at /usr/lib/python3.13/asyncio/runners.py:100> took 0.203 seconds
+ok
+test_raw_time_tamper (test_suite_orchestration.OrchestrationTests.test_raw_time_tamper) ... Executing <Task finished name='Task-1187' coro=<OrchestrationTests.test_raw_time_tamper() done, defined at /mnt/data/DABS_GPU39_Repro_v1/source/spra_workflow_sched_v2_1/tests/test_suite_orchestration.py:116> result=None created at /usr/lib/python3.13/asyncio/runners.py:100> took 0.234 seconds
+ok
+test_replica_filter_keeps_full_plan (test_suite_orchestration.OrchestrationTests.test_replica_filter_keeps_full_plan) ... Executing <Task finished name='Task-1192' coro=<OrchestrationTests.test_replica_filter_keeps_full_plan() done, defined at /mnt/data/DABS_GPU39_Repro_v1/source/spra_workflow_sched_v2_1/tests/test_suite_orchestration.py:140> result=None created at /usr/lib/python3.13/asyncio/runners.py:100> took 0.266 seconds
+ok
+test_runtime_change_stops_resume (test_suite_orchestration.OrchestrationTests.test_runtime_change_stops_resume) ... Executing <Task finished name='Task-1197' coro=<OrchestrationTests.test_runtime_change_stops_resume() done, defined at /mnt/data/DABS_GPU39_Repro_v1/source/spra_workflow_sched_v2_1/tests/test_suite_orchestration.py:136> result=None created at /usr/lib/python3.13/asyncio/runners.py:100> took 0.172 seconds
+ok
+
+----------------------------------------------------------------------
+Ran 95 tests in 12.342s
+
+OK
+WF_CHECK={"source_check": {"revision": "workflow-D0-native-remeasurement-1", "source_files_verified": 48, "typed_source": "/mnt/data/DABS_GPU39_Repro_v1/source/spra_stage19_typed_handoff_v1", "scheduler_source": "/mnt/data/DABS_GPU39_Repro_v1/source/spra_stage19_musique_joint_v1", "prepared": "/mnt/data/DABS_GPU39_Repro_v1/source/spra_stage19_typed_handoff_v1/prepared/MUSIQUE_20261010T092711Z_be09912a", "dataset": "/mnt/data/DABS_GPU39_Repro_v1/source/spra_stage19_musique_joint_v1/dataset/compiled", "model_sha256": "59d0b89c632af99d79d4e53019190e6a5a813cceaf61cd1eb5f3c8a2f9097332", "priors_sha256": "017e2d5182260d351e5b886112d8a1b9f3a996bdc95709051e3fb1d3ff3d6842", "profile_manifest_sha256": "01ecc079475af81a12f6af8692b744c599590921a0eda6bdfe9e8298e67337c6", "dataset_manifest_sha256": "615f631f695d8401d0727aa4044427f11ba49d0a1eb01419a6bd9ff030907c12", "data_files": {"pilot.public.jsonl": "hash_match", "evaluation_gold.jsonl": "hash_match"}, "historical_run": "/mnt/data/DABS_GPU39_Repro_v1/source/spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e", "gpu_generation_requests": 0, "backend_accessed": false, "typed_dependency_identity_sha256": "fdc31f461462aa737c046cf9a2ed162df2005fdcc365b6de582cf92eb3c78ac9"}, "native_import_ok": true, "placeholder_backend": false, "new_generation_requests": 0}

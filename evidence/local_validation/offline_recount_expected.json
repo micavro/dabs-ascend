@@ -1,0 +1,21 @@
+{
+  "basis": "Uploaded historical checkpoint + explicitly logged R2 round two + B3 eight repeats",
+  "definitions": {
+    "RR": "RR / round-robin only; NOT Preble",
+    "DAG": "Main paper method Ours",
+    "gain": "mean of paired percentage gains, not ratio of group means"
+  },
+  "grid_plan": 640,
+  "grid_old_accepted": 320,
+  "grid_extra_console": 80,
+  "grid_total_observed": 400,
+  "grid_missing": 240,
+  "B3_confirmation": 32,
+  "ablation": 24,
+  "pilot_rows": 24,
+  "notes": [
+    "Historical checkpoint does not contain B3 confirmation full backend logs",
+    "Pilot latency/KV measurements are separate from the 8-repeat B3 performance run",
+    "R2 console values are rounded, not exact source timing records"
+  ]
+}

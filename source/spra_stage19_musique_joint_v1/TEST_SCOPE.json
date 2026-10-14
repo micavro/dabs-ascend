@@ -1,0 +1,15 @@
+{
+  "tests_passed": 195,
+  "python_syntax_target": "3.11",
+  "build_python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]",
+  "real_vllm_execution": false,
+  "real_gpu_requests": 0,
+  "live_runtime_access": false,
+  "native_hook_changed": false,
+  "official_full_dataset_import_tested": false,
+  "official_format_fixture_import_tested": true,
+  "semantic_A_D_B_Decoupled_Joint_fake_native_end_to_end": true,
+  "parent_output_binding_checked": true,
+  "gold_inference_separation_checked": true,
+  "benchmark_gain_claimed": false
+}

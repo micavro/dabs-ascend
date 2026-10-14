@@ -1,0 +1,1667 @@
+{
+  "schema": "workflow-grid-plan-2",
+  "suite": "port-cases",
+  "scope": "historically selected cases, fixed before target-card execution; not guaranteed top cases on target",
+  "conditions": [
+    {
+      "label": "R4_L2_T1_B3_RR",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 3,
+      "position": 1,
+      "method": "RR",
+      "seed": 190503,
+      "router_seed": 940103,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T1_B3_P2C",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 3,
+      "position": 2,
+      "method": "P2C",
+      "seed": 190503,
+      "router_seed": 940103,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T1_B3_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 3,
+      "position": 3,
+      "method": "DAG",
+      "seed": 190503,
+      "router_seed": 940103,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T1_B3_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 3,
+      "position": 4,
+      "method": "Affinity",
+      "seed": 190503,
+      "router_seed": 940103,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T1_B2_RR",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 2,
+      "position": 1,
+      "method": "RR",
+      "seed": 190502,
+      "router_seed": 940102,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T1_B2_P2C",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 2,
+      "position": 2,
+      "method": "P2C",
+      "seed": 190502,
+      "router_seed": 940102,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T1_B2_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 2,
+      "position": 3,
+      "method": "DAG",
+      "seed": 190502,
+      "router_seed": 940102,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T1_B2_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 2,
+      "position": 4,
+      "method": "Affinity",
+      "seed": 190502,
+      "router_seed": 940102,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T1_B4_RR",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 4,
+      "position": 1,
+      "method": "RR",
+      "seed": 190504,
+      "router_seed": 940104,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T1_B4_P2C",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 4,
+      "position": 2,
+      "method": "P2C",
+      "seed": 190504,
+      "router_seed": 940104,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T1_B4_DAG",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 4,
+      "position": 3,
+      "method": "DAG",
+      "seed": 190504,
+      "router_seed": 940104,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T1_B4_Affinity",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 4,
+      "position": 4,
+      "method": "Affinity",
+      "seed": 190504,
+      "router_seed": 940104,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T2_B4_P2C",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 2,
+      "block": 4,
+      "position": 1,
+      "method": "P2C",
+      "seed": 190504,
+      "router_seed": 940204,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T2_B4_Affinity",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 2,
+      "block": 4,
+      "position": 2,
+      "method": "Affinity",
+      "seed": 190504,
+      "router_seed": 940204,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T2_B4_RR",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 2,
+      "block": 4,
+      "position": 3,
+      "method": "RR",
+      "seed": 190504,
+      "router_seed": 940204,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T2_B4_DAG",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 2,
+      "block": 4,
+      "position": 4,
+      "method": "DAG",
+      "seed": 190504,
+      "router_seed": 940204,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T2_B2_P2C",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 2,
+      "block": 2,
+      "position": 1,
+      "method": "P2C",
+      "seed": 190502,
+      "router_seed": 940202,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T2_B2_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 2,
+      "block": 2,
+      "position": 2,
+      "method": "Affinity",
+      "seed": 190502,
+      "router_seed": 940202,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T2_B2_RR",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 2,
+      "block": 2,
+      "position": 3,
+      "method": "RR",
+      "seed": 190502,
+      "router_seed": 940202,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T2_B2_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 2,
+      "block": 2,
+      "position": 4,
+      "method": "DAG",
+      "seed": 190502,
+      "router_seed": 940202,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T2_B3_P2C",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 2,
+      "block": 3,
+      "position": 1,
+      "method": "P2C",
+      "seed": 190503,
+      "router_seed": 940203,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T2_B3_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 2,
+      "block": 3,
+      "position": 2,
+      "method": "Affinity",
+      "seed": 190503,
+      "router_seed": 940203,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T2_B3_RR",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 2,
+      "block": 3,
+      "position": 3,
+      "method": "RR",
+      "seed": 190503,
+      "router_seed": 940203,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T2_B3_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 2,
+      "block": 3,
+      "position": 4,
+      "method": "DAG",
+      "seed": 190503,
+      "router_seed": 940203,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T3_B3_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 3,
+      "block": 3,
+      "position": 1,
+      "method": "Affinity",
+      "seed": 190503,
+      "router_seed": 940303,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T3_B3_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 3,
+      "block": 3,
+      "position": 2,
+      "method": "DAG",
+      "seed": 190503,
+      "router_seed": 940303,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T3_B3_P2C",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 3,
+      "block": 3,
+      "position": 3,
+      "method": "P2C",
+      "seed": 190503,
+      "router_seed": 940303,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T3_B3_RR",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 3,
+      "block": 3,
+      "position": 4,
+      "method": "RR",
+      "seed": 190503,
+      "router_seed": 940303,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T3_B2_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 3,
+      "block": 2,
+      "position": 1,
+      "method": "Affinity",
+      "seed": 190502,
+      "router_seed": 940302,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T3_B2_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 3,
+      "block": 2,
+      "position": 2,
+      "method": "DAG",
+      "seed": 190502,
+      "router_seed": 940302,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T3_B2_P2C",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 3,
+      "block": 2,
+      "position": 3,
+      "method": "P2C",
+      "seed": 190502,
+      "router_seed": 940302,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T3_B2_RR",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 3,
+      "block": 2,
+      "position": 4,
+      "method": "RR",
+      "seed": 190502,
+      "router_seed": 940302,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T3_B4_Affinity",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 3,
+      "block": 4,
+      "position": 1,
+      "method": "Affinity",
+      "seed": 190504,
+      "router_seed": 940304,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T3_B4_DAG",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 3,
+      "block": 4,
+      "position": 2,
+      "method": "DAG",
+      "seed": 190504,
+      "router_seed": 940304,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T3_B4_P2C",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 3,
+      "block": 4,
+      "position": 3,
+      "method": "P2C",
+      "seed": 190504,
+      "router_seed": 940304,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T3_B4_RR",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 3,
+      "block": 4,
+      "position": 4,
+      "method": "RR",
+      "seed": 190504,
+      "router_seed": 940304,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T4_B4_DAG",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 4,
+      "block": 4,
+      "position": 1,
+      "method": "DAG",
+      "seed": 190504,
+      "router_seed": 940404,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T4_B4_RR",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 4,
+      "block": 4,
+      "position": 2,
+      "method": "RR",
+      "seed": 190504,
+      "router_seed": 940404,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T4_B4_Affinity",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 4,
+      "block": 4,
+      "position": 3,
+      "method": "Affinity",
+      "seed": 190504,
+      "router_seed": 940404,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T4_B4_P2C",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 4,
+      "block": 4,
+      "position": 4,
+      "method": "P2C",
+      "seed": 190504,
+      "router_seed": 940404,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T4_B2_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 4,
+      "block": 2,
+      "position": 1,
+      "method": "DAG",
+      "seed": 190502,
+      "router_seed": 940402,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T4_B2_RR",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 4,
+      "block": 2,
+      "position": 2,
+      "method": "RR",
+      "seed": 190502,
+      "router_seed": 940402,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T4_B2_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 4,
+      "block": 2,
+      "position": 3,
+      "method": "Affinity",
+      "seed": 190502,
+      "router_seed": 940402,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T4_B2_P2C",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 4,
+      "block": 2,
+      "position": 4,
+      "method": "P2C",
+      "seed": 190502,
+      "router_seed": 940402,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T4_B3_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 4,
+      "block": 3,
+      "position": 1,
+      "method": "DAG",
+      "seed": 190503,
+      "router_seed": 940403,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T4_B3_RR",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 4,
+      "block": 3,
+      "position": 2,
+      "method": "RR",
+      "seed": 190503,
+      "router_seed": 940403,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T4_B3_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 4,
+      "block": 3,
+      "position": 3,
+      "method": "Affinity",
+      "seed": 190503,
+      "router_seed": 940403,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T4_B3_P2C",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 4,
+      "block": 3,
+      "position": 4,
+      "method": "P2C",
+      "seed": 190503,
+      "router_seed": 940403,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T5_B3_RR",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 5,
+      "block": 3,
+      "position": 1,
+      "method": "RR",
+      "seed": 190503,
+      "router_seed": 940503,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T5_B3_P2C",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 5,
+      "block": 3,
+      "position": 2,
+      "method": "P2C",
+      "seed": 190503,
+      "router_seed": 940503,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T5_B3_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 5,
+      "block": 3,
+      "position": 3,
+      "method": "DAG",
+      "seed": 190503,
+      "router_seed": 940503,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T5_B3_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 5,
+      "block": 3,
+      "position": 4,
+      "method": "Affinity",
+      "seed": 190503,
+      "router_seed": 940503,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T5_B2_RR",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 5,
+      "block": 2,
+      "position": 1,
+      "method": "RR",
+      "seed": 190502,
+      "router_seed": 940502,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T5_B2_P2C",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 5,
+      "block": 2,
+      "position": 2,
+      "method": "P2C",
+      "seed": 190502,
+      "router_seed": 940502,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T5_B2_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 5,
+      "block": 2,
+      "position": 3,
+      "method": "DAG",
+      "seed": 190502,
+      "router_seed": 940502,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T5_B2_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 5,
+      "block": 2,
+      "position": 4,
+      "method": "Affinity",
+      "seed": 190502,
+      "router_seed": 940502,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T5_B4_RR",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 5,
+      "block": 4,
+      "position": 1,
+      "method": "RR",
+      "seed": 190504,
+      "router_seed": 940504,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T5_B4_P2C",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 5,
+      "block": 4,
+      "position": 2,
+      "method": "P2C",
+      "seed": 190504,
+      "router_seed": 940504,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T5_B4_DAG",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 5,
+      "block": 4,
+      "position": 3,
+      "method": "DAG",
+      "seed": 190504,
+      "router_seed": 940504,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T5_B4_Affinity",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 5,
+      "block": 4,
+      "position": 4,
+      "method": "Affinity",
+      "seed": 190504,
+      "router_seed": 940504,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T6_B4_P2C",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 6,
+      "block": 4,
+      "position": 1,
+      "method": "P2C",
+      "seed": 190504,
+      "router_seed": 940604,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T6_B4_Affinity",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 6,
+      "block": 4,
+      "position": 2,
+      "method": "Affinity",
+      "seed": 190504,
+      "router_seed": 940604,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T6_B4_RR",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 6,
+      "block": 4,
+      "position": 3,
+      "method": "RR",
+      "seed": 190504,
+      "router_seed": 940604,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T6_B4_DAG",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 6,
+      "block": 4,
+      "position": 4,
+      "method": "DAG",
+      "seed": 190504,
+      "router_seed": 940604,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T6_B2_P2C",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 6,
+      "block": 2,
+      "position": 1,
+      "method": "P2C",
+      "seed": 190502,
+      "router_seed": 940602,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T6_B2_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 6,
+      "block": 2,
+      "position": 2,
+      "method": "Affinity",
+      "seed": 190502,
+      "router_seed": 940602,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T6_B2_RR",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 6,
+      "block": 2,
+      "position": 3,
+      "method": "RR",
+      "seed": 190502,
+      "router_seed": 940602,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T6_B2_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 6,
+      "block": 2,
+      "position": 4,
+      "method": "DAG",
+      "seed": 190502,
+      "router_seed": 940602,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T6_B3_P2C",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 6,
+      "block": 3,
+      "position": 1,
+      "method": "P2C",
+      "seed": 190503,
+      "router_seed": 940603,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T6_B3_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 6,
+      "block": 3,
+      "position": 2,
+      "method": "Affinity",
+      "seed": 190503,
+      "router_seed": 940603,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T6_B3_RR",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 6,
+      "block": 3,
+      "position": 3,
+      "method": "RR",
+      "seed": 190503,
+      "router_seed": 940603,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T6_B3_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 6,
+      "block": 3,
+      "position": 4,
+      "method": "DAG",
+      "seed": 190503,
+      "router_seed": 940603,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T7_B3_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 7,
+      "block": 3,
+      "position": 1,
+      "method": "Affinity",
+      "seed": 190503,
+      "router_seed": 940703,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T7_B3_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 7,
+      "block": 3,
+      "position": 2,
+      "method": "DAG",
+      "seed": 190503,
+      "router_seed": 940703,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T7_B3_P2C",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 7,
+      "block": 3,
+      "position": 3,
+      "method": "P2C",
+      "seed": 190503,
+      "router_seed": 940703,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T7_B3_RR",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 7,
+      "block": 3,
+      "position": 4,
+      "method": "RR",
+      "seed": 190503,
+      "router_seed": 940703,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T7_B2_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 7,
+      "block": 2,
+      "position": 1,
+      "method": "Affinity",
+      "seed": 190502,
+      "router_seed": 940702,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T7_B2_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 7,
+      "block": 2,
+      "position": 2,
+      "method": "DAG",
+      "seed": 190502,
+      "router_seed": 940702,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T7_B2_P2C",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 7,
+      "block": 2,
+      "position": 3,
+      "method": "P2C",
+      "seed": 190502,
+      "router_seed": 940702,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T7_B2_RR",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 7,
+      "block": 2,
+      "position": 4,
+      "method": "RR",
+      "seed": 190502,
+      "router_seed": 940702,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T7_B4_Affinity",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 7,
+      "block": 4,
+      "position": 1,
+      "method": "Affinity",
+      "seed": 190504,
+      "router_seed": 940704,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T7_B4_DAG",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 7,
+      "block": 4,
+      "position": 2,
+      "method": "DAG",
+      "seed": 190504,
+      "router_seed": 940704,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T7_B4_P2C",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 7,
+      "block": 4,
+      "position": 3,
+      "method": "P2C",
+      "seed": 190504,
+      "router_seed": 940704,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T7_B4_RR",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 7,
+      "block": 4,
+      "position": 4,
+      "method": "RR",
+      "seed": 190504,
+      "router_seed": 940704,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T8_B4_DAG",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 8,
+      "block": 4,
+      "position": 1,
+      "method": "DAG",
+      "seed": 190504,
+      "router_seed": 940804,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T8_B4_RR",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 8,
+      "block": 4,
+      "position": 2,
+      "method": "RR",
+      "seed": 190504,
+      "router_seed": 940804,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T8_B4_Affinity",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 8,
+      "block": 4,
+      "position": 3,
+      "method": "Affinity",
+      "seed": 190504,
+      "router_seed": 940804,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R3_L2_T8_B4_P2C",
+      "replicas": 3,
+      "rate": 2.0,
+      "repeat": 8,
+      "block": 4,
+      "position": 4,
+      "method": "P2C",
+      "seed": 190504,
+      "router_seed": 940804,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T8_B2_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 8,
+      "block": 2,
+      "position": 1,
+      "method": "DAG",
+      "seed": 190502,
+      "router_seed": 940802,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T8_B2_RR",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 8,
+      "block": 2,
+      "position": 2,
+      "method": "RR",
+      "seed": 190502,
+      "router_seed": 940802,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T8_B2_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 8,
+      "block": 2,
+      "position": 3,
+      "method": "Affinity",
+      "seed": 190502,
+      "router_seed": 940802,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T8_B2_P2C",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 8,
+      "block": 2,
+      "position": 4,
+      "method": "P2C",
+      "seed": 190502,
+      "router_seed": 940802,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T8_B3_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 8,
+      "block": 3,
+      "position": 1,
+      "method": "DAG",
+      "seed": 190503,
+      "router_seed": 940803,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T8_B3_RR",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 8,
+      "block": 3,
+      "position": 2,
+      "method": "RR",
+      "seed": 190503,
+      "router_seed": 940803,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T8_B3_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 8,
+      "block": 3,
+      "position": 3,
+      "method": "Affinity",
+      "seed": 190503,
+      "router_seed": 940803,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T8_B3_P2C",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 8,
+      "block": 3,
+      "position": 4,
+      "method": "P2C",
+      "seed": 190503,
+      "router_seed": 940803,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    }
+  ],
+  "expected_conditions": 96,
+  "methods": [
+    "RR",
+    "P2C",
+    "Affinity",
+    "DAG"
+  ],
+  "workflows_per_condition": 16,
+  "sampling_contract": "original JSON answer-only, natural outputs; no forced equal work",
+  "input_namespace_contract": "original model-visible unique UUID per condition; prompts not identical across methods",
+  "cache_contract": "cold registered namespace initially; natural within-condition prefix reuse",
+  "arrival_contract": "original wave: 1s active at 2*lambda, 1s idle; finite N=16 truncation",
+  "replica_mapping": "first R verified dedicated service identities 0..R-1; unused pods remain running",
+  "engine_contract": "same native continuous batching, fixed prefill cap and total4096; no adaptive actions",
+  "dispatch_clock": "same original 200ms periodic loop for all methods; not unmodified Ray/NGINX end-to-end",
+  "primary": "mean of all paired-repeat JCT reductions within fixed R/lambda/Block; report all baselines, repeats and metrics",
+  "ordering": "two four-method Williams cycles per fixed case",
+  "budget_candidate_generation_removed_only_for": "DAG-Lite",
+  "admission_intent_revision": "wf-admission-intent-repair-1",
+  "original_frozen_source_modified": false,
+  "no_posthoc_version_selection": true,
+  "all_results_retained": true,
+  "automatic_retry": false,
+  "guaranteed_10_percent": false,
+  "observed_results_included": false,
+  "target_card_results_unknown": true,
+  "selection_fixed_before_target_execution": true,
+  "wrapper_revision": "workflow-port-wrapper-1"
+}

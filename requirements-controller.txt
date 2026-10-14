@@ -1,0 +1,5 @@
+# Control-side dependencies only. Python 3.11+ is required.
+# Reuse source-environment versions where available; this is not a vendor/serving lockfile.
+# Do not install a CUDA torch wheel merely to run the controller tests.
+httpx
+numpy

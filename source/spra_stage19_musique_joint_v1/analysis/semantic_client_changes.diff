@@ -1,0 +1,189 @@
+--- stage18/joint18v2/client.py
++++ stage19/joint18v2/client.py
+@@ -124,7 +124,7 @@
+     now_ns=int(now*1e9);live={};queue={};cache=[];inflight=[]
+     arrived={n['wid'] for n in nodes.values() if n.get('arrival') is not None}
+     completed={w for w in arrived if all(n['state']=='done' for n in nodes.values() if n['wid']==w)}
+-    ns={k:{kk:copy.deepcopy(v) for kk,v in n.items() if kk not in ('tokens','stream')} for k,n in nodes.items() if n['wid'] in arrived-completed}
++    ns={k:{kk:copy.deepcopy(v) for kk,v in n.items() if kk not in ('tokens','stream','parent_response_bindings','resolved_question')} for k,n in nodes.items() if n['wid'] in arrived-completed}
+     byhash={n['hash']:k for k,n in ns.items()}
+     for r,s in enumerate(ss):
+         queue[str(r)]=[]
+@@ -146,6 +146,8 @@
+             r,v=live[k]
+             if n.get('replica') is not None and n['replica']!=r:raise RuntimeError('actual route differs from submitted route')
+             n.update(computed=v['computed'],output_done=v['output_done'],accepted_at=v['accepted_s'],phase='prefill' if v['prefill'] else 'decode')
++            if n.get('semantic_mode') and n.get('output_is_estimate'):
++                n['output']=min(n['max_output_tokens'],max(n['output'],v['output_done']+8))
+             nodes[k]['native_seen']=True
+         elif n['state']=='submitted' and nodes[k].get('native_seen'):
+             # Native no longer owns this sequence. Keep its HTTP-tail cost in real JCT, not simulated GPU work.
+@@ -167,7 +169,7 @@
+             rem=max(.1,predict(model,r,p,d,dc,pc,credit)-elapsed)
+             if pre or dec:inflight.append({'replica':r,'prefill':pre,'decode':dec,'elapsed_ms':elapsed,'remaining_ms':rem,
+                                          'cap':it['prefill_cap'],'cache_overlap_proxy':credit,'duration_is_estimate':True})
+-    reserve=[sum(math.ceil((n['prompt']+n['output'])/cfg['block_size']) for n in ns.values() if n['state']=='submitted' and n.get('replica')==r) for r in range(len(ss))]
++    reserve=[sum(math.ceil((n['prompt']+n.get('max_output_tokens',n['output']))/cfg['block_size']) for n in ns.values() if n['state']=='submitted' and n.get('replica')==r) for r in range(len(ss))]
+     return {'nodes':ns,'ready':[k for k,n in ns.items() if n['state']=='ready'],'replicas':len(ss),'now':now,
+       'pressure':[len(s['running'])+2*len(s['waiting']) for s in ss],'reserved_blocks':reserve,
+       'capacity_blocks':[s['num_gpu_blocks'] for s in ss],'prefix_history':copy.deepcopy(history),'prefix_certificates':{},
+@@ -175,7 +177,11 @@
+       'decision_index':decision_index,'state_ages_s':[(now_ns-s['mono_ns'])/1e9 for s in ss],
+       'cache_unknown_count':sum(1 for n in ns.values() if n.get('prefix_hash') and not any(e['prefix_hash']==n['prefix_hash'] for e in cache))}
+ 
+-def process_plan(snapshot,model,cfg,method,deadline):return choose(snapshot,model,cfg,method,deadline)
++def process_plan(snapshot,model,cfg,method,deadline):
++    if cfg.get('semantic_selector'):
++        from semantic19.selector import choose as semantic_choose
++        return semantic_choose(snapshot,model,cfg,method,deadline)
++    return choose(snapshot,model,cfg,method,deadline)
+ 
+ class ForcedMechanism:
+     """Only the first target fork uses a forced complete action, then common A continues."""
+@@ -195,7 +201,7 @@
+                      'remote_prefix_state':known.get(1,{}).get('state'),'snapshot':copy.deepcopy(snap),'action':copy.deepcopy(a)}
+         return a,self.record
+ 
+-async def execute(client,runtime,initial,cfg,nodes,folder,method,model=None,executor=None,force_caps=None,force_total=None,mechanism=None,lifetime_probe=False):
++async def execute(client,runtime,initial,cfg,nodes,folder,method,model=None,executor=None,force_caps=None,force_total=None,mechanism=None,lifetime_probe=False,materializer=None):
+     folder=Path(folder);folder.mkdir(parents=True,exist_ok=False);case=folder.parent.name+'/'+folder.name;R=len(initial)
+     frozen=copy.deepcopy(nodes)
+     atomic(folder/'manifest.json',{'case':case,'method':method,'config':cfg,'input_nodes':frozen,
+@@ -214,14 +220,28 @@
+     for k,n in nodes.items():
+         n['arrival']=None
+         for parent in n['parents']:successors[parent].append(k)
++    async def prepare_node(k):
++        n=nodes[k]
++        try:
++            await materializer(k,nodes)
++            n.update(state='ready',input_prepare_end=time.monotonic(),prompt_materialized=True)
++            timeline.append({'event':'input_prepared','node':k,'at':n['input_prepare_end']})
++            wake.set()
++        except BaseException as ex:
++            if not isinstance(ex,asyncio.CancelledError):errors.append(ex);wake.set()
++            raise
+     def release(keys):
+         now=time.monotonic()
+         for k in keys:
+             n=nodes[k]
+-            if n['state']=='blocked' and n['arrival'] is not None and all(nodes[p]['state']=='done' for p in n['parents']):
++            if n['state']=='blocked' and not n.get('preparing') and n['arrival'] is not None and all(nodes[p]['state']=='done' for p in n['parents']):
+                 true_ready=max([n['arrival']]+[nodes[p]['finish'] for p in n['parents']])
+-                n.update(state='ready',ready_at=true_ready,ready_discovered_at=now)
++                n.update(ready_at=true_ready,ready_discovered_at=now)
+                 timeline.append({'event':'ready','node':k,'eligible_at':true_ready,'discovered_at':now})
++                if materializer:
++                    n.update(preparing=True,input_prepare_start=now)
++                    tasks.append(asyncio.create_task(prepare_node(k)))
++                else:n.update(state='ready')
+         wake.set()
+     async def arrive(keys):
+         at=start+nodes[keys[0]]['arrival_offset'];await asyncio.sleep(max(0,at-time.monotonic()));now=time.monotonic()
+@@ -230,7 +250,9 @@
+     async def do(k,r):
+         n=nodes[k]
+         try:
+-            await stream(client,ENDPOINTS[r],n,cfg['model']);n.update(finish=time.monotonic(),state='done',phase='done')
++            await stream(client,ENDPOINTS[r],n,cfg['model'])
++            if n.get('semantic_mode'):n.update(output=n['stream']['usage']['completion_tokens'],output_is_estimate=False)
++            n.update(finish=time.monotonic(),state='done',phase='done')
+             if n['prefix_hash']:
+                 hist=history.setdefault(n['prefix_hash'],[])
+                 if r not in hist:hist.append(r)
+@@ -470,6 +492,18 @@
+         'received_before_total_deadline':sum(bool(x.get('received_before_total_deadline')) for x in actions),
+         'reference_unrankable':sum(bool(x.get('reference_unrankable')) for x in actions),
+         'retained_backend_revision':REVISION}
++    summary['semantic_selector_coverage']={
++        'paired_packets_complete':sum(bool(x.get('paired_packet_complete')) for x in actions),
++        'paired_packets_attempted':sum(bool(x.get('paired_packet_attempted')) for x in actions),
++        'decisions_with_distinct_placement_and_budget':sum(bool(x.get('paired_has_distinct_placement_and_budget')) for x in actions),
++        'distinct_paired_packets_complete':sum(bool(x.get('paired_has_distinct_placement_and_budget')) and bool(x.get('paired_packet_complete')) for x in actions),
++        'decode_guard_rejections':sum(x.get('decode_guard_rejections',0) for x in actions),
++        'no_state_opportunity':sum(bool(x.get('no_state_opportunity')) for x in actions),
++        'known_dag_group_proposals':sum(bool(x.get('known_dag_group_proposed')) for x in actions),
++        'known_dag_alternatives_generated':sum(bool(x.get('known_dag_alternative_generated')) for x in actions),
++        'known_dag_partial_group_committed':sum('known_dag_partial_group' in x['action']['family'] and not x.get('commit_fallback') for x in actions),
++        'full_scores_not_token_ratio':True,
++        'compiled_DAG_used':bool(cfg.get('semantic_selector'))}
+     planned={x['plan_id']:x for x in publisher.records}
+     def matches(x):
+         if x['plan_id'] not in planned:return False
+--- stage18/joint18v2/transport.py
++++ stage19/joint18v2/transport.py
+@@ -5,10 +5,13 @@
+ async def stream(client,endpoint,node,model):
+     """No retries; exact fixed output usage is mandatory. Client receive events are not token ITL."""
+     t0=time.monotonic();rec={"request_start":t0,"header":None,"first":None,"last":None,"return":None,
+-                            "usage":None,"server_id":None,"text_events":0,"error":None,"done":None,"content_event_times":[]}
++                            "usage":None,"server_id":None,"text_events":0,"error":None,"done":None,"content_event_times":[],"text":"","finish_reason":None}
+     payload={"model":model,"prompt":node["tokens"],"max_tokens":node["output"],"min_tokens":node["output"],
+       "ignore_eos":True,"temperature":0.0,"seed":0,"stream":True,
+       "stream_options":{"include_usage":True},"add_special_tokens":False}
++    if node.get('semantic_mode'):
++        payload.pop('min_tokens',None);payload.pop('ignore_eos',None)
++        payload['max_tokens']=node['max_output_tokens']
+     try:
+         async with client.stream("POST",endpoint+"/v1/completions",json=payload) as response:
+             response.raise_for_status();rec["header"]=time.monotonic()
+@@ -22,14 +25,18 @@
+                 if obj.get("error"):raise RuntimeError(str(obj["error"]))
+                 for c in obj.get("choices",[]):
+                     text=c.get("text")
++                    if c.get("finish_reason") is not None:rec["finish_reason"]=c["finish_reason"]
+                     if text:
+                         t=time.monotonic()
+                         if rec["first"] is None:rec["first"]=t
+-                        rec["last"]=t;rec["text_events"]+=1;rec["content_event_times"].append(t)
++                        rec["last"]=t;rec["text"]+=text;rec["text_events"]+=1;rec["content_event_times"].append(t)
+             if not got_done:raise RuntimeError("stream ended without DONE")
+         rec["return"]=time.monotonic()
+         if rec["usage"] is None:raise RuntimeError("missing token usage, not substituted by0")
+-        if rec["usage"].get("completion_tokens")!=node["output"]:raise RuntimeError("output work mismatch")
++        count=rec["usage"].get("completion_tokens")
++        if node.get('semantic_mode'):
++            if type(count)is not int or not 0<=count<=node['max_output_tokens']:raise RuntimeError('invalid natural output count')
++        elif count!=node["output"]:raise RuntimeError("output work mismatch")
+         if rec["usage"].get("prompt_tokens")!=node["prompt"]:raise RuntimeError("prompt token work mismatch")
+     except BaseException as ex:
+         rec["return"]=time.monotonic();rec["error"]=type(ex).__name__+": "+str(ex)
+@@ -55,7 +62,8 @@
+             first=x["first"] if x["first"] is not None else x["return"]
+             lasttime=x["last"] if x["last"] is not None else first
+             times={"dependency_release":q["ready_at"]-previous,
+-             "central_queue_and_admission":x["request_start"]-q["ready_at"],
++             "central_queue_and_admission":x["request_start"]-q.get("input_prepare_end",q["ready_at"]),
++             "input_prepare":q.get("input_prepare_end",q["ready_at"])-q["ready_at"],
+              "header_wait":x["header"]-x["request_start"],
+              "postprocess":q["finish"]-x["return"]}
+             if x["first"] is None:
+@@ -76,12 +84,15 @@
+     for t,d in events:area+=backlog*(t-prev);backlog+=d;curve.append([t-start,backlog]);prev=t
+     if abs(area*1000-sum(jcts))>.01:raise RuntimeError("unfinished-workflow area identity failed")
+     output=sum(n["stream"]["usage"]["completion_tokens"] for n in nodes.values())
+-    earliest=min(n["arrival"] for n in nodes.values());duration=finish-earliest
++    earliest=min(n["arrival"] for n in nodes.values());actual_finish=max(n["finish"] for n in nodes.values());duration=actual_finish-earliest
+     return {"condition_valid":True,"workflows":len(groups),"requests":len(nodes),"output_tokens":output,
+       "mean_jct_ms":statistics.mean(jcts),"p95_jct_ms":quantile(jcts,.95),
+       "planned_arrival_mean_jct_ms":statistics.mean(jcts)+statistics.mean(lags),
+       "max_arrival_lag_ms":max(lags),"cohort_duration_s":duration,
+-      "cohort_workflows_s":len(groups)/duration,"cohort_tokens_s":output/duration,
++      "cohort_workflows_s":len(groups)/duration,
++      "runner_observation_lag_s":max(0.,finish-actual_finish),
++      "legacy_runner_duration_s":finish-earliest,
++      "cohort_end_boundary":"last actual request completion, not loop exit","cohort_tokens_s":output/duration,
+       "maximum_capacity_established":False,"semantic_quality":None,
+       "mean_critical_path_components_ms":{k:sum(w["critical_path_components_ms"].get(k,0) for w in workflow_rows)/len(workflow_rows) for k in phases},
+       "requests_without_visible_content":sum(n["stream"]["first"] is None for n in nodes.values()),
+--- stage18/joint18v2/actions.py
++++ stage19/joint18v2/actions.py
+@@ -66,7 +66,7 @@
+     a["resource_held"]=[]
+     admitted=[]
+     for k in sorted(a["admit"],key=lambda k:(ns[k]["ready_at"],k)):
+-        r=a["placement"][k];need=math.ceil((ns[k]["prompt"]+ns[k]["output"])/cfg["block_size"])
++        r=a["placement"][k];need=math.ceil((ns[k]["prompt"]+ns[k].get("max_output_tokens",ns[k]["output"]))/cfg["block_size"])
+         if counts[r]>=cfg["max_num_seqs"] or used[r]+need>limit[r]:
+             a["resource_held"].append(k)
+         else:

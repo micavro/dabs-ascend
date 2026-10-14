@@ -1,0 +1,5 @@
+# For offline tables and figures only; serving runtime dependencies are separately managed.
+# See requirements-controller.txt for the original handoff.
+numpy>=1.24,<3
+pandas>=2.0,<3
+matplotlib>=3.8,<4

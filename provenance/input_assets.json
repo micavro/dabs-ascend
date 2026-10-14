@@ -1,0 +1,20 @@
+{
+  "schema": "workflow-input-asset-list-1",
+  "dataset_relative": "source/spra_stage19_musique_joint_v1/dataset/compiled",
+  "files": {
+    "smoke.public.jsonl": "e0ba600d764aaa62a0236308ac7ef2b4c446975c4802d3d075368e3702ee3da9",
+    "profile.public.jsonl": "b527ffe4b0232df59a96996a3c568437e9618b3e43e54b69b834f1f28417e86b",
+    "pilot.public.jsonl": "23d46b8c2266c3a00c74d15d3e07bda90894cc40e749f8e62f6dc12ca865e745",
+    "evaluation_gold.jsonl": "7373581403cc9b84f03dd9c0f887eaf6b12fe98c592f6edbd4758b55cdee7890",
+    "ATTRIBUTION.txt": "5697bf579121cfb137de89deab853c359c3edb2d4076878e97683e1a0e3082e9"
+  },
+  "source_dataset_manifest_sha256": "615f631f695d8401d0727aa4044427f11ba49d0a1eb01419a6bd9ff030907c12",
+  "dataset_files_not_present_in_uploaded_source_archive": [
+    "smoke.public.jsonl",
+    "profile.public.jsonl",
+    "pilot.public.jsonl",
+    "evaluation_gold.jsonl"
+  ],
+  "model_weights_included": false,
+  "vendor_framework_binaries_included": false
+}

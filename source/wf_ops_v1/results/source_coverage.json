@@ -1,0 +1,3056 @@
+{
+  "sources": [
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "bytes": 10359942,
+      "sha256": "3e47b17457f3619cb4db04b85b9ed669b872e6a85cbeada0270d787e6e9f96b1"
+    },
+    {
+      "suite": "agecheck_v2_1",
+      "file": "Pasted text (2).txt",
+      "bytes": 505640,
+      "sha256": "07f0c879e27303170736f5350d1693000045e4def3c3830e0f541ce83d877e7e"
+    }
+  ],
+  "malformed": [
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12461,
+      "kind": "CONDITION_DONE",
+      "error": "Expecting property name enclosed in double quotes: line 1 column 2041 (char 2040)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "dbea62d68387da65c012190ebc48f61b5e5414565319fa438f06dba27f35bbb0"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12462,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting value: line 1 column 396 (char 395)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "44f3ab61cfb14415cf07224c569e513b1a9becf8683c179467ec53b4d38d8941"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12463,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting property name enclosed in double quotes: line 1 column 534 (char 533)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "c7b68d384da8b8e131a5be695e4bcfcff4f9a8f027a43e5c9cbd77abc6badec3"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12464,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting value: line 1 column 260 (char 259)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "614508b7aee0d98708485b769c73070ed98db23688c94fe21286f0714ab08da4"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12465,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 821 (char 820)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "f2e540c425aec3636299942b8ab63fa0b64c2ec81e84db683dadb87efec6b08e"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12467,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 399 (char 398)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "b492912b9161de3b3d64e027ef9cc273b8b1acebfed66d009020e552cf133603"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12468,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 535 (char 534)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "ab37947e185f19e6f97185125793c996abbb6e40259857f42c725534520dbe28"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12469,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ':' delimiter: line 1 column 260 (char 259)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "b8babf3871a48728124bdcb33b26af796640ea1a7f7244afd14cea90a07903a5"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12470,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ':' delimiter: line 1 column 260 (char 259)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "97aa085daa98449cbd1fd92bc5e396d2ebc0e460968a77db5d6738668989486e"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12471,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ':' delimiter: line 1 column 399 (char 398)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "fd2b2b1627e068b934fc61c385a68cd2a81eb7422f4abda6b8746b9d6f305c92"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12472,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 262 (char 261)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "fed65b77d8706024ac07ac784fbc2af8c33d10e1dbf28d4203fcc6a3bcc0b214"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12473,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ':' delimiter: line 1 column 397 (char 396)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "33de5b2f8dc55fbf0971208e880793cd8a43efa98bc6b15ca6ac895ca9c3ca88"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12474,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 262 (char 261)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "47dcbcf8ce0792dd6bafeba67135926990a5c158f6fe66ade249bdfc2921cfa3"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12476,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 260 (char 259)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "b5f9dcc704567a8ae95e75d1f8a66fa7bb23972d9b7ded0095592659a3238545"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12477,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 536 (char 535)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "98e6bce6ce408452ce610325df080c754af27aa9c89d95c1074f9d8cdf8f2cae"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12478,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting value: line 1 column 396 (char 395)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "8420cb2b4c7abc6446713d637f5b2c36a451b681cdc5e582f7b36e0462ce29f1"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12479,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting value: line 1 column 533 (char 532)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "881a81d10232fe7eb6cb73448de0f6fd163077718da8325a0b98460be865e495"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12481,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 262 (char 261)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "5eda36e498f9eb5b53c1e893248e5f6f66726a55b30b37be56f36240ea132523"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12483,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ':' delimiter: line 1 column 263 (char 262)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "c1d27d0387e39830cd811eab7c46c9307b5758223c18a8159d9067c124e3687c"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12484,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ':' delimiter: line 1 column 265 (char 264)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "744b225891d9db52faca7413abc2b2a1c08b3fba2ff67d973f6f235f15aabd71"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12485,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting value: line 1 column 806 (char 805)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "1949cffdc577d0625f25351b4b5dd17b461842138a2bf37566663eac5d59b32a"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12486,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting value: line 1 column 260 (char 259)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "61eb23b18d1309ee14d028c0cbfa4ce911b00b5b8e3511d618e1a7989fb60b34"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12488,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 263 (char 262)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "f07d132c240084dfa0e1b485e5fd119e1f0580288fa0847073b2df46236fe910"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12489,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting property name enclosed in double quotes: line 1 column 671 (char 670)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "8871a3c02f6860afe0e48582607e91407fb3820b0f82b0f520a8096a60c5b4eb"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12491,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 547 (char 546)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "0a74b339afd393c5083264ef1b416b2bb51b0f55bd97b803eb46ecd67c89d743"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12492,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting property name enclosed in double quotes: line 1 column 260 (char 259)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "7ecf841faf114d1c458170e3b9200d03ff482fb9636522463c699579106daa32"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12494,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 537 (char 536)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "726ce5b82d161bec697409784a328b454a490fdcddb7728663ec8f80f5e7d4c4"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12495,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting property name enclosed in double quotes: line 1 column 260 (char 259)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "14fa9e67cf2f0bbd3ce41a9ef07bee0da4b37e7d4965c2c8239490e47b705995"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12497,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 262 (char 261)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "3eca035bae12a0d216076b9feef5491441e0756d46aeb0a2bfd79909f118d1bf"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12498,
+      "kind": "TYPED_RESPONSE",
+      "error": "Unterminated string starting at: line 1 column 380 (char 379)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "79a395d6aa3b4e02f410382fcd96399818818f68a600f9795839fa49a0d0fc59"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12499,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting value: line 1 column 260 (char 259)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "564c8ccc37b7060f5318b1e532820ed9942ac3216e97e108b19e03c448d29fc7"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12500,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting property name enclosed in double quotes: line 1 column 397 (char 396)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "85d5e03fd296333468b508904cc4c5e4c04f4f5996952abcd23c3299b7c70854"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12501,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ':' delimiter: line 1 column 678 (char 677)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "43d522ab13afed5a9a1d68c4b736182318917e77a5abe25d9d18a6f99f75296e"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12502,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting property name enclosed in double quotes: line 1 column 260 (char 259)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "d58ad859b60aec89230b22af8ce171fec7e74c01c402f808152f2af78e070f3a"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12505,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 262 (char 261)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "d99f02baf475b3140ab25f4d38a9cd27b6afbda6b7b11c9ae2a2f8493af74c02"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12506,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 263 (char 262)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "7b19c84271392379979c970de12a22d12ef00f08c8c233a68ecb05f1373af314"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12507,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 399 (char 398)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "8ede6bcf5024db2d696447ef978c789dec1ffe3a08544a92b8518594fb17e5d0"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12508,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting value: line 1 column 534 (char 533)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "94939228a64bad907abfc13df09492dc28610919ca0835e314ce4b59615d9b68"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12509,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 261 (char 260)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "91154d05eeec8374d73fb0c44b1f8206c810033639b6fb7090f0640a94b382b8"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12510,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting property name enclosed in double quotes: line 1 column 260 (char 259)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "483098b9e746d6547be57e034ffac9a4e11ac7d0a2a3cff45d069535be19ec19"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12513,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 534 (char 533)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "96e4a64df242c42e6bf50560a183aa2eb52506fb8aac5d9da8afdb3211ecaae7"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12514,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ':' delimiter: line 1 column 262 (char 261)",
+      "context_label": "R1_L1_T2_B1_DAG",
+      "source_line_sha256": "24fe6854ebad6c5843918e13abdfd7ae4054c4f439dfe3f31a289f20c1811ba2"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12517,
+      "kind": "CONDITION_DONE",
+      "error": "Expecting property name enclosed in double quotes: line 1 column 397 (char 396)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "e1a09016c90a4496886f88dc25ea0eab0040fcb6ad1183de4b59f9711c0f4faf"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12518,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting value: line 1 column 396 (char 395)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "44f3ab61cfb14415cf07224c569e513b1a9becf8683c179467ec53b4d38d8941"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12519,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting property name enclosed in double quotes: line 1 column 534 (char 533)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "c7b68d384da8b8e131a5be695e4bcfcff4f9a8f027a43e5c9cbd77abc6badec3"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12520,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting value: line 1 column 260 (char 259)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "614508b7aee0d98708485b769c73070ed98db23688c94fe21286f0714ab08da4"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12521,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 821 (char 820)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "f2e540c425aec3636299942b8ab63fa0b64c2ec81e84db683dadb87efec6b08e"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12523,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 399 (char 398)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "b492912b9161de3b3d64e027ef9cc273b8b1acebfed66d009020e552cf133603"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12524,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 535 (char 534)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "ab37947e185f19e6f97185125793c996abbb6e40259857f42c725534520dbe28"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12525,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ':' delimiter: line 1 column 264 (char 263)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "cecd9fae8d028e4779ad005b11202e17cedbfe3a1373331c49c7a3419d5af7b7"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12526,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ':' delimiter: line 1 column 260 (char 259)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "97aa085daa98449cbd1fd92bc5e396d2ebc0e460968a77db5d6738668989486e"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12527,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ':' delimiter: line 1 column 399 (char 398)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "fd2b2b1627e068b934fc61c385a68cd2a81eb7422f4abda6b8746b9d6f305c92"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12528,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 262 (char 261)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "fed65b77d8706024ac07ac784fbc2af8c33d10e1dbf28d4203fcc6a3bcc0b214"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12529,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ':' delimiter: line 1 column 397 (char 396)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "33de5b2f8dc55fbf0971208e880793cd8a43efa98bc6b15ca6ac895ca9c3ca88"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12530,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 262 (char 261)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "47dcbcf8ce0792dd6bafeba67135926990a5c158f6fe66ade249bdfc2921cfa3"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12532,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 260 (char 259)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "b5f9dcc704567a8ae95e75d1f8a66fa7bb23972d9b7ded0095592659a3238545"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12533,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 536 (char 535)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "98e6bce6ce408452ce610325df080c754af27aa9c89d95c1074f9d8cdf8f2cae"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12534,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting value: line 1 column 396 (char 395)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "8420cb2b4c7abc6446713d637f5b2c36a451b681cdc5e582f7b36e0462ce29f1"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12535,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting value: line 1 column 533 (char 532)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "881a81d10232fe7eb6cb73448de0f6fd163077718da8325a0b98460be865e495"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12537,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 262 (char 261)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "5eda36e498f9eb5b53c1e893248e5f6f66726a55b30b37be56f36240ea132523"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12539,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ':' delimiter: line 1 column 263 (char 262)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "c1d27d0387e39830cd811eab7c46c9307b5758223c18a8159d9067c124e3687c"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12540,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting value: line 1 column 260 (char 259)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "f1badfcc2bdd9c5549130efa53aa7e309b4ac73cedf78aac5422b6eb38029117"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12541,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 821 (char 820)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "7296df089f1cef7aeee71f76a89050def559c530cac73d07d6a47dfb2334c18c"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12542,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting value: line 1 column 260 (char 259)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "61eb23b18d1309ee14d028c0cbfa4ce911b00b5b8e3511d618e1a7989fb60b34"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12544,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting property name enclosed in double quotes: line 1 column 261 (char 260)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "3564722e94867e33339e22568f7f484bd79f14f6969cd573e4088ac35224a6c0"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12545,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 534 (char 533)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "a8286c24d375e78bc563b67d3c3c6ec1af7ae2a7d9352ddb9a52480fb3814a81"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12547,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 547 (char 546)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "0a74b339afd393c5083264ef1b416b2bb51b0f55bd97b803eb46ecd67c89d743"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12548,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting property name enclosed in double quotes: line 1 column 260 (char 259)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "7ecf841faf114d1c458170e3b9200d03ff482fb9636522463c699579106daa32"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12550,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 537 (char 536)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "726ce5b82d161bec697409784a328b454a490fdcddb7728663ec8f80f5e7d4c4"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12551,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting property name enclosed in double quotes: line 1 column 260 (char 259)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "14fa9e67cf2f0bbd3ce41a9ef07bee0da4b37e7d4965c2c8239490e47b705995"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12553,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 262 (char 261)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "3eca035bae12a0d216076b9feef5491441e0756d46aeb0a2bfd79909f118d1bf"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12554,
+      "kind": "TYPED_RESPONSE",
+      "error": "Unterminated string starting at: line 1 column 380 (char 379)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "79a395d6aa3b4e02f410382fcd96399818818f68a600f9795839fa49a0d0fc59"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12555,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting value: line 1 column 260 (char 259)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "564c8ccc37b7060f5318b1e532820ed9942ac3216e97e108b19e03c448d29fc7"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12556,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting property name enclosed in double quotes: line 1 column 397 (char 396)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "85d5e03fd296333468b508904cc4c5e4c04f4f5996952abcd23c3299b7c70854"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12557,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ':' delimiter: line 1 column 678 (char 677)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "43d522ab13afed5a9a1d68c4b736182318917e77a5abe25d9d18a6f99f75296e"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12558,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting property name enclosed in double quotes: line 1 column 260 (char 259)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "d58ad859b60aec89230b22af8ce171fec7e74c01c402f808152f2af78e070f3a"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12561,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 262 (char 261)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "d99f02baf475b3140ab25f4d38a9cd27b6afbda6b7b11c9ae2a2f8493af74c02"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12562,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 263 (char 262)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "7b19c84271392379979c970de12a22d12ef00f08c8c233a68ecb05f1373af314"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12563,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 399 (char 398)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "8ede6bcf5024db2d696447ef978c789dec1ffe3a08544a92b8518594fb17e5d0"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12564,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting value: line 1 column 534 (char 533)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "94939228a64bad907abfc13df09492dc28610919ca0835e314ce4b59615d9b68"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12565,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 261 (char 260)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "91154d05eeec8374d73fb0c44b1f8206c810033639b6fb7090f0640a94b382b8"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12566,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting property name enclosed in double quotes: line 1 column 260 (char 259)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "483098b9e746d6547be57e034ffac9a4e11ac7d0a2a3cff45d069535be19ec19"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12569,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ',' delimiter: line 1 column 534 (char 533)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "96e4a64df242c42e6bf50560a183aa2eb52506fb8aac5d9da8afdb3211ecaae7"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12570,
+      "kind": "TYPED_RESPONSE",
+      "error": "Expecting ':' delimiter: line 1 column 262 (char 261)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "24fe6854ebad6c5843918e13abdfd7ae4054c4f439dfe3f31a289f20c1811ba2"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12571,
+      "kind": "WF_CONDITION_ACCEPTED",
+      "error": "Expecting property name enclosed in double quotes: line 1 column 527 (char 526)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "409622ecb6e0f31cbf3062b5eb29ca6de19f71b06d92f132b5eaf9e5620bcd2d"
+    },
+    {
+      "suite": "grid_v2_1",
+      "file": "Pasted text.txt",
+      "line": 12572,
+      "kind": "WF_CONDITION_START",
+      "error": "Expecting ':' delimiter: line 1 column 130 (char 129)",
+      "context_label": "R1_L1_T2_B1_Affinity",
+      "source_line_sha256": "8ed732094e004f4f501d69d486314db10fc5fc123d23211c0d2e178117c8f740"
+    }
+  ],
+  "strict_conditions": 248,
+  "record_audit": [
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L1_T1_B1_DAG",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L1_T1_B1_DAG-Lite",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L1_T1_B1_RR",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L1_T1_B1_P2C",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L1_T1_B1_Affinity",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L1_T1_B2_DAG-Lite",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L1_T1_B2_RR",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L1_T1_B2_P2C",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L1_T1_B2_Affinity",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L1_T1_B2_DAG",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L1_T1_B3_RR",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L1_T1_B3_P2C",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L1_T1_B3_Affinity",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L1_T1_B3_DAG",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L1_T1_B3_DAG-Lite",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L1_T1_B4_P2C",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L1_T1_B4_Affinity",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L1_T1_B4_DAG",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L1_T1_B4_DAG-Lite",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L1_T1_B4_RR",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L2_T1_B1_DAG-Lite",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L2_T1_B1_RR",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L2_T1_B1_P2C",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L2_T1_B1_Affinity",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L2_T1_B1_DAG",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L2_T1_B2_RR",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L2_T1_B2_P2C",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L2_T1_B2_Affinity",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L2_T1_B2_DAG",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L2_T1_B2_DAG-Lite",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L2_T1_B3_P2C",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L2_T1_B3_Affinity",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L2_T1_B3_DAG",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L2_T1_B3_DAG-Lite",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L2_T1_B3_RR",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L2_T1_B4_Affinity",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L2_T1_B4_DAG",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L2_T1_B4_DAG-Lite",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L2_T1_B4_RR",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L2_T1_B4_P2C",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L4_T1_B1_RR",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L4_T1_B1_P2C",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L4_T1_B1_Affinity",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L4_T1_B1_DAG",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L4_T1_B1_DAG-Lite",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L4_T1_B2_P2C",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L4_T1_B2_Affinity",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L4_T1_B2_DAG",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L4_T1_B2_DAG-Lite",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L4_T1_B2_RR",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L4_T1_B3_Affinity",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L4_T1_B3_DAG",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L4_T1_B3_DAG-Lite",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L4_T1_B3_RR",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L4_T1_B3_P2C",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L4_T1_B4_DAG",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L4_T1_B4_DAG-Lite",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L4_T1_B4_RR",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L4_T1_B4_P2C",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L4_T1_B4_Affinity",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L8_T1_B1_P2C",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L8_T1_B1_Affinity",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L8_T1_B1_DAG",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L8_T1_B1_DAG-Lite",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L8_T1_B1_RR",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L8_T1_B2_Affinity",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L8_T1_B2_DAG",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L8_T1_B2_DAG-Lite",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L8_T1_B2_RR",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L8_T1_B2_P2C",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L8_T1_B3_DAG",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L8_T1_B3_DAG-Lite",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L8_T1_B3_RR",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L8_T1_B3_P2C",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L8_T1_B3_Affinity",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L8_T1_B4_DAG-Lite",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L8_T1_B4_RR",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L8_T1_B4_P2C",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L8_T1_B4_Affinity",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R3_L8_T1_B4_DAG",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T1_B1_RR",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T1_B1_P2C",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T1_B1_Affinity",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T1_B1_DAG",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T1_B1_DAG-Lite",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T1_B2_P2C",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T1_B2_Affinity",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T1_B2_DAG",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T1_B2_DAG-Lite",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T1_B2_RR",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T1_B3_Affinity",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T1_B3_DAG",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T1_B3_DAG-Lite",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T1_B3_RR",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T1_B3_P2C",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T1_B4_DAG",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T1_B4_DAG-Lite",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T1_B4_RR",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T1_B4_P2C",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T1_B4_Affinity",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T1_B1_P2C",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T1_B1_Affinity",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T1_B1_DAG",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T1_B1_DAG-Lite",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T1_B1_RR",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T1_B2_Affinity",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T1_B2_DAG",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T1_B2_DAG-Lite",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T1_B2_RR",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T1_B2_P2C",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T1_B3_DAG",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T1_B3_DAG-Lite",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T1_B3_RR",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T1_B3_P2C",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T1_B3_Affinity",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T1_B4_DAG-Lite",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T1_B4_RR",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T1_B4_P2C",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T1_B4_Affinity",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T1_B4_DAG",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T1_B1_Affinity",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T1_B1_DAG",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T1_B1_DAG-Lite",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T1_B1_RR",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T1_B1_P2C",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T1_B2_DAG",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T1_B2_DAG-Lite",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T1_B2_RR",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T1_B2_P2C",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T1_B2_Affinity",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T1_B3_DAG-Lite",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T1_B3_RR",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T1_B3_P2C",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T1_B3_Affinity",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T1_B3_DAG",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T1_B4_RR",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T1_B4_P2C",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T1_B4_Affinity",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T1_B4_DAG",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T1_B4_DAG-Lite",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T1_B1_DAG",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T1_B1_DAG-Lite",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T1_B1_RR",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T1_B1_P2C",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T1_B1_Affinity",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T1_B2_DAG-Lite",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T1_B2_RR",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T1_B2_P2C",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T1_B2_Affinity",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T1_B2_DAG",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T1_B3_RR",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T1_B3_P2C",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T1_B3_Affinity",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T1_B3_DAG",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T1_B3_DAG-Lite",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T1_B4_P2C",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T1_B4_Affinity",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T1_B4_DAG",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T1_B4_DAG-Lite",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T1_B4_RR",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T2_B1_Affinity",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T2_B1_P2C",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T2_B1_RR",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T2_B1_DAG-Lite",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T2_B1_DAG",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T2_B2_DAG",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T2_B2_Affinity",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T2_B2_P2C",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T2_B2_RR",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T2_B2_DAG-Lite",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T2_B3_DAG-Lite",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T2_B3_DAG",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T2_B3_Affinity",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T2_B3_P2C",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T2_B3_RR",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T2_B4_RR",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T2_B4_DAG-Lite",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T2_B4_DAG",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T2_B4_Affinity",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L8_T2_B4_P2C",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T2_B1_P2C",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T2_B1_RR",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T2_B1_DAG-Lite",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T2_B1_DAG",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T2_B1_Affinity",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T2_B2_Affinity",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T2_B2_P2C",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T2_B2_RR",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T2_B2_DAG-Lite",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T2_B2_DAG",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T2_B3_DAG",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T2_B3_Affinity",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T2_B3_P2C",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T2_B3_RR",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T2_B3_DAG-Lite",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T2_B4_DAG-Lite",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T2_B4_DAG",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T2_B4_Affinity",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T2_B4_P2C",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L4_T2_B4_RR",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T2_B1_RR",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T2_B1_DAG-Lite",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T2_B1_DAG",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T2_B1_Affinity",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T2_B1_P2C",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T2_B2_P2C",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T2_B2_RR",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T2_B2_DAG-Lite",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T2_B2_DAG",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T2_B2_Affinity",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T2_B3_Affinity",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T2_B3_P2C",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T2_B3_RR",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T2_B3_DAG-Lite",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T2_B3_DAG",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T2_B4_DAG",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T2_B4_Affinity",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T2_B4_P2C",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T2_B4_RR",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L2_T2_B4_DAG-Lite",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T2_B1_DAG-Lite",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T2_B1_DAG",
+      "issues": [
+        "missing_or_malformed_done"
+      ],
+      "response_count": 12,
+      "binding_count": 0,
+      "raw_timestamps_reaudited": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T2_B1_Affinity",
+      "issues": [
+        "missing_or_malformed_accept",
+        "missing_or_malformed_done"
+      ],
+      "response_count": 12,
+      "binding_count": 0,
+      "raw_timestamps_reaudited": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T2_B1_P2C",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T2_B1_RR",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T2_B2_RR",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T2_B2_DAG-Lite",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T2_B2_DAG",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T2_B2_Affinity",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T2_B2_P2C",
+      "issues": [],
+      "response_count": 55,
+      "binding_count": 39,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T2_B3_P2C",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T2_B3_RR",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T2_B3_DAG-Lite",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T2_B3_DAG",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T2_B3_Affinity",
+      "issues": [],
+      "response_count": 52,
+      "binding_count": 36,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T2_B4_Affinity",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T2_B4_P2C",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T2_B4_RR",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T2_B4_DAG-Lite",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "grid_v2_1",
+      "label": "R1_L1_T2_B4_DAG",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "agecheck_v2_1",
+      "label": "R1_L4_T1_B1_Affinity",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "agecheck_v2_1",
+      "label": "R1_L4_T1_B1_DAG",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "agecheck_v2_1",
+      "label": "R1_L4_T1_B1_DAG-Lite",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "agecheck_v2_1",
+      "label": "R1_L4_T1_B1_RR",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "agecheck_v2_1",
+      "label": "R1_L4_T1_B1_P2C",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "agecheck_v2_1",
+      "label": "R1_L8_T1_B1_DAG",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "agecheck_v2_1",
+      "label": "R1_L8_T1_B1_DAG-Lite",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "agecheck_v2_1",
+      "label": "R1_L8_T1_B1_RR",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "agecheck_v2_1",
+      "label": "R1_L8_T1_B1_P2C",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    },
+    {
+      "suite": "agecheck_v2_1",
+      "label": "R1_L8_T1_B1_Affinity",
+      "issues": [],
+      "response_count": 53,
+      "binding_count": 37,
+      "raw_timestamps_reaudited": false,
+      "final_quality_recomputed": false
+    }
+  ],
+  "gpu_completion_statement_from_user": {
+    "replicas": [
+      1,
+      2,
+      3
+    ],
+    "not_independently_verified": true
+  }
+}

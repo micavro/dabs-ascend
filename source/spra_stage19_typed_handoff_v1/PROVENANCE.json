@@ -1,0 +1,15 @@
+{
+  "revision": "stage19-typed-handoff-1",
+  "source": "uploaded Stage19 MuSiQue code and uploaded completed input-probe console",
+  "real_dataset_included_in_this_package": false,
+  "dataset_reuse": "existing Stage19 dataset/compiled; no download, recompile, or answer-based selection",
+  "old_run_modified": false,
+  "old_application_source_modified": false,
+  "backend_modified": false,
+  "online_joint_algorithm_modified": false,
+  "new_common_application_contract": ["native complete chat tokenization", "one native guided JSON answer", "typed parent handoff"],
+  "native_guided_decoding_tested_here": false,
+  "real_gpu_requests_here": 0,
+  "new_quality_or_joint_gain_claimed": false,
+  "root_em_or_format_success_is_not_a_dataset_wide_claim": true
+}

@@ -1,0 +1,5 @@
+block,workflows,nodes,intra_prefix_unique,within_prefix_mean,intra_prefix_min,intra_prefix_max,cross_all_lcp_tokens,cross_full_blocks,root_nodes
+1,16,53,16,2619.4716981132074,1760,2832,148,9,24
+2,16,55,16,2653.3818181818183,2032,2832,152,9,25
+3,16,52,16,2660.6153846153848,2048,2832,148,9,23
+4,16,53,16,2650.867924528302,1824,2832,153,9,24

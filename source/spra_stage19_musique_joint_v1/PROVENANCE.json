@@ -1,0 +1,14 @@
+{
+  "revision": "stage19-musique-known-plan-1",
+  "derived_client_package": "spra_stage18_v2_selector_repair_v1",
+  "source_package_sha256": "972d82ea15e252bf02164f756d9fa96acd7e0c7156fc2570f9b817e5171cd975",
+  "backend_hook_sha256": "78ca1d716c5701a9f83ba7dc0b22669b6b50a38bd54626a56642130cd1684418",
+  "backend_changes": false,
+  "runtime_restarts_required": false,
+  "official_dataset_bundled": false,
+  "dataset_acquisition": "CPU-side official MuSiQue-Ans v1.0 with recorded checksum and separated labels",
+  "dataset_scope": "known annotation plan, label-blind clipped supplied context, actual parent outputs; not organic production traffic",
+  "user_advice_sha256": "9c433ee471583c4675e1def5fb96c0bc6fffc45445afb97be5b03e385a3cd632",
+  "performance_claim": null,
+  "gpu_validation_performed": false
+}

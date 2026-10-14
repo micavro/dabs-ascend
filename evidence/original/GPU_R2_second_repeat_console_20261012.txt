@@ -1,0 +1,241 @@
+(spra-exp) [wqx@GPU-cvknode39 spra_workflow_accept_v1]$ cd /home/wmy/sci/spra_paper_experiments_github/spra_workflow_sched_v2_1
+(spra-exp) [wqx@GPU-cvknode39 spra_workflow_sched_v2_1]$
+(spra-exp) [wqx@GPU-cvknode39 spra_workflow_sched_v2_1]$ bash run.sh report --out runs/grid_v2_1
+LOG=/home/wmy/sci/spra_paper_experiments_github/spra_workflow_sched_v2_1/logs/workflow_20261012T105229Z_dAYWsr.log
+
+WF_REPORT=runs/grid_v2_1/analysis/REPORT.md
+(spra-exp) [wqx@GPU-cvknode39 spra_workflow_sched_v2_1]$ bash run.sh gate
+LOG=/home/wmy/sci/spra_paper_experiments_github/spra_workflow_sched_v2_1/logs/workflow_20261012T105355Z_bSuZVe.log
+WF_GATE={"ready": true, "new_generation_requests": 0, "services": [{"pod": "spra-vllm-0", "hook_source_sha256": "78ca1d716c5701a9f83ba7dc0b22669b6b50a38bd54626a56642130cd1684418", "scheduler_source_sha256": "99cfe49101dec65171b98ff24f8e8c098ac217e9a493d10fdacea4d5111f0bcf", "nvidia_visible_devices": "GPU-4881e4e3-459c-b03c-0b2f-4a448e9883fc", "hard_total": 4096, "max_model_len": 4096, "max_num_seqs": 64, "block_size": 16, "num_gpu_blocks": 4096, "num_scheduler_steps": 1, "prefix_caching": true, "chunked_prefill": true, "native_cache_allocator": "v2"}, {"pod": "spra-vllm-1", "hook_source_sha256": "78ca1d716c5701a9f83ba7dc0b22669b6b50a38bd54626a56642130cd1684418", "scheduler_source_sha256": "99cfe49101dec65171b98ff24f8e8c098ac217e9a493d10fdacea4d5111f0bcf", "nvidia_visible_devices": "GPU-a46c2bc3-b710-7992-9dab-d8b40e4a8c55", "hard_total": 4096, "max_model_len": 4096, "max_num_seqs": 64, "block_size": 16, "num_gpu_blocks": 4096, "num_scheduler_steps": 1, "prefix_caching": true, "chunked_prefill": true, "native_cache_allocator": "v2"}, {"pod": "spra-vllm-2", "hook_source_sha256": "78ca1d716c5701a9f83ba7dc0b22669b6b50a38bd54626a56642130cd1684418", "scheduler_source_sha256": "99cfe49101dec65171b98ff24f8e8c098ac217e9a493d10fdacea4d5111f0bcf", "nvidia_visible_devices": "GPU-51de083e-e242-d14f-f710-7025fc2383ef", "hard_total": 4096, "max_model_len": 4096, "max_num_seqs": 64, "block_size": 16, "num_gpu_blocks": 4096, "num_scheduler_steps": 1, "prefix_caching": true, "chunked_prefill": true, "native_cache_allocator": "v2"}, {"pod": "spra-vllm-3", "hook_source_sha256": "78ca1d716c5701a9f83ba7dc0b22669b6b50a38bd54626a56642130cd1684418", "scheduler_source_sha256": "99cfe49101dec65171b98ff24f8e8c098ac217e9a493d10fdacea4d5111f0bcf", "nvidia_visible_devices": "GPU-6c57034e-714b-04ee-6d37-2726d4350fe6", "hard_total": 4096, "max_model_len": 4096, "max_num_seqs": 64, "block_size": 16, "num_gpu_blocks": 4096, "num_scheduler_steps": 1, "prefix_caching": true, "chunked_prefill": true, "native_cache_allocator": "v2"}]}
+(spra-exp) [wqx@GPU-cvknode39 spra_workflow_sched_v2_1]$ ROOT="/home/wmy/sci/spra_paper_experiments_github"
+  --replicas 2 3 \
+  --max-conditions 80 \
+  --confirm-gpu-use(spra-exp) [wqx@GPU-cvknode39 spra_workflow_sched_v2_1]$
+(spra-exp) [wqx@GPU-cvknode39 spra_workflow_sched_v2_1]$ python -I "$ROOT/wf_ops_v1/ops.py" logged \
+>   --app "$ROOT/spra_workflow_sched_v2_1" -- \
+>   run \
+>   --suite grid \
+>   --out runs/grid_v2_1 \
+>   --resume \
+>   --replicas 2 3 \
+>   --max-conditions 80 \
+>   --confirm-gpu-use
+SIDECAR_DIR=/home/wmy/sci/spra_paper_experiments_github/wf_ops_output/LOG_20261012T105424Z_33ff316e
+LOG=/home/wmy/sci/spra_paper_experiments_github/spra_workflow_sched_v2_1/logs/workflow_20261012T105424Z_Y8uLqV.log
+WARMUP requests=2 JCT=788.90 ms (not measured)
+WARMUP requests=2 JCT=1481.28 ms (not measured)
+WARMUP requests=2 JCT=462.66 ms (not measured)
+START R2_L8_T2_B1_P2C
+DONE +001 R2_L8_T2_B1_P2C | JCT=5359.49ms P95=6196.46ms TTFT=919.76ms WF/s=2.214 out=424
+START R2_L8_T2_B1_RR
+DONE +002 R2_L8_T2_B1_RR | JCT=5410.48ms P95=6127.21ms TTFT=904.30ms WF/s=2.211 out=421
+START R2_L8_T2_B1_DAG-Lite
+DONE +003 R2_L8_T2_B1_DAG-Lite | JCT=5038.10ms P95=6214.53ms TTFT=924.79ms WF/s=2.282 out=424
+START R2_L8_T2_B1_DAG
+DONE +004 R2_L8_T2_B1_DAG | JCT=4984.08ms P95=6154.30ms TTFT=898.98ms WF/s=2.324 out=422
+PAIR R2 L8 T2 B1 DAG/RR: JCT +7.88% (single pair)
+PAIR R2 L8 T2 B1 DAG/P2C: JCT +7.00% (single pair)
+START R2_L8_T2_B1_Affinity
+DONE +005 R2_L8_T2_B1_Affinity | JCT=4883.00ms P95=5637.03ms TTFT=828.41ms WF/s=2.420 out=421
+PAIR R2 L8 T2 B1 DAG/Affinity: JCT -2.07% (single pair)
+START R2_L8_T2_B2_Affinity
+DONE +006 R2_L8_T2_B2_Affinity | JCT=5686.45ms P95=7135.02ms TTFT=893.10ms WF/s=1.893 out=516
+START R2_L8_T2_B2_P2C
+DONE +007 R2_L8_T2_B2_P2C | JCT=6544.80ms P95=8143.10ms TTFT=875.80ms WF/s=1.805 out=570
+START R2_L8_T2_B2_RR
+DONE +008 R2_L8_T2_B2_RR | JCT=6031.66ms P95=7087.41ms TTFT=848.41ms WF/s=1.991 out=526
+START R2_L8_T2_B2_DAG-Lite
+DONE +009 R2_L8_T2_B2_DAG-Lite | JCT=5654.13ms P95=7725.89ms TTFT=844.59ms WF/s=1.912 out=554
+START R2_L8_T2_B2_DAG
+DONE +010 R2_L8_T2_B2_DAG | JCT=5701.20ms P95=6876.67ms TTFT=820.17ms WF/s=1.992 out=514
+PAIR R2 L8 T2 B2 DAG/RR: JCT +5.48% (single pair)
+PAIR R2 L8 T2 B2 DAG/P2C: JCT +12.89% (single pair)
+PAIR R2 L8 T2 B2 DAG/Affinity: JCT -0.26% (single pair)
+START R2_L8_T2_B3_DAG
+DONE +011 R2_L8_T2_B3_DAG | JCT=6110.08ms P95=8859.30ms TTFT=790.13ms WF/s=1.498 out=620
+START R2_L8_T2_B3_Affinity
+DONE +012 R2_L8_T2_B3_Affinity | JCT=6160.19ms P95=8389.05ms TTFT=794.52ms WF/s=1.553 out=606
+PAIR R2 L8 T2 B3 DAG/Affinity: JCT +0.81% (single pair)
+START R2_L8_T2_B3_P2C
+DONE +013 R2_L8_T2_B3_P2C | JCT=5925.08ms P95=6973.91ms TTFT=813.70ms WF/s=2.031 out=495
+PAIR R2 L8 T2 B3 DAG/P2C: JCT -3.12% (single pair)
+START R2_L8_T2_B3_RR
+DONE +014 R2_L8_T2_B3_RR | JCT=6467.29ms P95=8515.28ms TTFT=837.46ms WF/s=1.425 out=595
+PAIR R2 L8 T2 B3 DAG/RR: JCT +5.52% (single pair)
+START R2_L8_T2_B3_DAG-Lite
+DONE +015 R2_L8_T2_B3_DAG-Lite | JCT=6309.82ms P95=7944.86ms TTFT=855.92ms WF/s=1.552 out=599
+START R2_L8_T2_B4_DAG-Lite
+DONE +016 R2_L8_T2_B4_DAG-Lite | JCT=5316.60ms P95=6338.83ms TTFT=899.55ms WF/s=2.231 out=450
+START R2_L8_T2_B4_DAG
+DONE +017 R2_L8_T2_B4_DAG | JCT=5190.09ms P95=6469.16ms TTFT=872.55ms WF/s=2.237 out=445
+START R2_L8_T2_B4_Affinity
+DONE +018 R2_L8_T2_B4_Affinity | JCT=5314.03ms P95=6142.75ms TTFT=887.84ms WF/s=2.341 out=441
+PAIR R2 L8 T2 B4 DAG/Affinity: JCT +2.33% (single pair)
+START R2_L8_T2_B4_P2C
+DONE +019 R2_L8_T2_B4_P2C | JCT=5566.80ms P95=6495.62ms TTFT=920.61ms WF/s=2.218 out=446
+PAIR R2 L8 T2 B4 DAG/P2C: JCT +6.77% (single pair)
+START R2_L8_T2_B4_RR
+DONE +020 R2_L8_T2_B4_RR | JCT=5398.64ms P95=6478.09ms TTFT=803.72ms WF/s=2.174 out=446
+PAIR R2 L8 T2 B4 DAG/RR: JCT +3.86% (single pair)
+START R2_L4_T2_B1_RR
+DONE +021 R2_L4_T2_B1_RR | JCT=4539.93ms P95=5607.98ms TTFT=629.67ms WF/s=2.216 out=422
+START R2_L4_T2_B1_DAG-Lite
+DONE +022 R2_L4_T2_B1_DAG-Lite | JCT=4097.29ms P95=5091.65ms TTFT=590.34ms WF/s=2.292 out=422
+START R2_L4_T2_B1_DAG
+DONE +023 R2_L4_T2_B1_DAG | JCT=4167.18ms P95=5582.67ms TTFT=687.27ms WF/s=2.169 out=428
+PAIR R2 L4 T2 B1 DAG/RR: JCT +8.21% (single pair)
+START R2_L4_T2_B1_Affinity
+DONE +024 R2_L4_T2_B1_Affinity | JCT=4348.47ms P95=5763.03ms TTFT=711.03ms WF/s=2.269 out=421
+PAIR R2 L4 T2 B1 DAG/Affinity: JCT +4.17% (single pair)
+START R2_L4_T2_B1_P2C
+DONE +025 R2_L4_T2_B1_P2C | JCT=4421.44ms P95=5822.00ms TTFT=612.49ms WF/s=2.223 out=430
+PAIR R2 L4 T2 B1 DAG/P2C: JCT +5.75% (single pair)
+START R2_L4_T2_B2_P2C
+DONE +026 R2_L4_T2_B2_P2C | JCT=5243.62ms P95=6690.89ms TTFT=685.30ms WF/s=1.772 out=530
+START R2_L4_T2_B2_RR
+DONE +027 R2_L4_T2_B2_RR | JCT=5271.66ms P95=7154.61ms TTFT=633.85ms WF/s=1.811 out=526
+START R2_L4_T2_B2_DAG-Lite
+DONE +028 R2_L4_T2_B2_DAG-Lite | JCT=5014.16ms P95=6932.86ms TTFT=679.87ms WF/s=1.914 out=556
+START R2_L4_T2_B2_DAG
+DONE +029 R2_L4_T2_B2_DAG | JCT=4579.52ms P95=6169.02ms TTFT=625.94ms WF/s=1.951 out=514
+PAIR R2 L4 T2 B2 DAG/RR: JCT +13.13% (single pair)
+PAIR R2 L4 T2 B2 DAG/P2C: JCT +12.66% (single pair)
+START R2_L4_T2_B2_Affinity
+DONE +030 R2_L4_T2_B2_Affinity | JCT=5788.81ms P95=9007.55ms TTFT=890.02ms WF/s=1.421 out=513
+PAIR R2 L4 T2 B2 DAG/Affinity: JCT +20.89% (single pair)
+START R2_L4_T2_B3_Affinity
+DONE +031 R2_L4_T2_B3_Affinity | JCT=5186.07ms P95=7494.12ms TTFT=613.84ms WF/s=1.538 out=622
+START R2_L4_T2_B3_P2C
+DONE +032 R2_L4_T2_B3_P2C | JCT=5660.39ms P95=8580.36ms TTFT=604.07ms WF/s=1.403 out=655
+START R2_L4_T2_B3_RR
+DONE +033 R2_L4_T2_B3_RR | JCT=6067.74ms P95=10114.07ms TTFT=599.45ms WF/s=1.237 out=670
+START R2_L4_T2_B3_DAG-Lite
+DONE +034 R2_L4_T2_B3_DAG-Lite | JCT=5186.48ms P95=7401.38ms TTFT=600.83ms WF/s=1.583 out=627
+START R2_L4_T2_B3_DAG
+DONE +035 R2_L4_T2_B3_DAG | JCT=5103.16ms P95=7754.02ms TTFT=604.51ms WF/s=1.472 out=625
+PAIR R2 L4 T2 B3 DAG/RR: JCT +15.90% (single pair)
+PAIR R2 L4 T2 B3 DAG/P2C: JCT +9.84% (single pair)
+PAIR R2 L4 T2 B3 DAG/Affinity: JCT +1.60% (single pair)
+START R2_L4_T2_B4_DAG
+DONE +036 R2_L4_T2_B4_DAG | JCT=4624.65ms P95=6075.99ms TTFT=704.90ms WF/s=2.104 out=445
+START R2_L4_T2_B4_Affinity
+DONE +037 R2_L4_T2_B4_Affinity | JCT=4576.99ms P95=5988.25ms TTFT=713.87ms WF/s=2.165 out=443
+PAIR R2 L4 T2 B4 DAG/Affinity: JCT -1.04% (single pair)
+START R2_L4_T2_B4_P2C
+DONE +038 R2_L4_T2_B4_P2C | JCT=4777.10ms P95=6269.24ms TTFT=699.71ms WF/s=2.088 out=449
+PAIR R2 L4 T2 B4 DAG/P2C: JCT +3.19% (single pair)
+START R2_L4_T2_B4_RR
+DONE +039 R2_L4_T2_B4_RR | JCT=4609.49ms P95=5970.00ms TTFT=629.28ms WF/s=2.161 out=448
+PAIR R2 L4 T2 B4 DAG/RR: JCT -0.33% (single pair)
+START R2_L4_T2_B4_DAG-Lite
+DONE +040 R2_L4_T2_B4_DAG-Lite | JCT=4838.25ms P95=6509.16ms TTFT=751.64ms WF/s=1.950 out=454
+START R2_L2_T2_B1_DAG-Lite
+DONE +041 R2_L2_T2_B1_DAG-Lite | JCT=2597.44ms P95=3567.38ms TTFT=393.30ms WF/s=1.679 out=421
+START R2_L2_T2_B1_DAG
+DONE +042 R2_L2_T2_B1_DAG | JCT=2339.83ms P95=3261.10ms TTFT=329.69ms WF/s=1.791 out=424
+START R2_L2_T2_B1_Affinity
+DONE +043 R2_L2_T2_B1_Affinity | JCT=2445.62ms P95=3431.89ms TTFT=378.00ms WF/s=1.754 out=421
+PAIR R2 L2 T2 B1 DAG/Affinity: JCT +4.33% (single pair)
+START R2_L2_T2_B1_P2C
+DONE +044 R2_L2_T2_B1_P2C | JCT=2724.65ms P95=3549.28ms TTFT=404.34ms WF/s=1.713 out=424
+PAIR R2 L2 T2 B1 DAG/P2C: JCT +14.12% (single pair)
+START R2_L2_T2_B1_RR
+DONE +045 R2_L2_T2_B1_RR | JCT=2321.92ms P95=3169.62ms TTFT=315.55ms WF/s=1.792 out=421
+PAIR R2 L2 T2 B1 DAG/RR: JCT -0.77% (single pair)
+START R2_L2_T2_B2_RR
+DONE +046 R2_L2_T2_B2_RR | JCT=3151.29ms P95=5235.87ms TTFT=352.22ms WF/s=1.619 out=513
+START R2_L2_T2_B2_DAG-Lite
+DONE +047 R2_L2_T2_B2_DAG-Lite | JCT=3559.30ms P95=5538.61ms TTFT=484.61ms WF/s=1.578 out=513
+START R2_L2_T2_B2_DAG
+DONE +048 R2_L2_T2_B2_DAG | JCT=3241.33ms P95=4474.83ms TTFT=432.94ms WF/s=1.565 out=526
+PAIR R2 L2 T2 B2 DAG/RR: JCT -2.86% (single pair)
+START R2_L2_T2_B2_Affinity
+DONE +049 R2_L2_T2_B2_Affinity | JCT=3578.60ms P95=6200.05ms TTFT=446.89ms WF/s=1.517 out=513
+PAIR R2 L2 T2 B2 DAG/Affinity: JCT +9.42% (single pair)
+START R2_L2_T2_B2_P2C
+DONE +050 R2_L2_T2_B2_P2C | JCT=3716.42ms P95=6699.19ms TTFT=443.92ms WF/s=1.424 out=588
+PAIR R2 L2 T2 B2 DAG/P2C: JCT +12.78% (single pair)
+START R2_L2_T2_B3_P2C
+DONE +051 R2_L2_T2_B3_P2C | JCT=3576.62ms P95=4937.68ms TTFT=416.77ms WF/s=1.382 out=533
+START R2_L2_T2_B3_RR
+DONE +052 R2_L2_T2_B3_RR | JCT=4158.43ms P95=6292.25ms TTFT=387.23ms WF/s=1.240 out=626
+START R2_L2_T2_B3_DAG-Lite
+DONE +053 R2_L2_T2_B3_DAG-Lite | JCT=3229.03ms P95=4441.31ms TTFT=387.52ms WF/s=1.406 out=524
+START R2_L2_T2_B3_DAG
+DONE +054 R2_L2_T2_B3_DAG | JCT=3653.85ms P95=6013.17ms TTFT=395.99ms WF/s=1.318 out=625
+PAIR R2 L2 T2 B3 DAG/RR: JCT +12.13% (single pair)
+PAIR R2 L2 T2 B3 DAG/P2C: JCT -2.16% (single pair)
+START R2_L2_T2_B3_Affinity
+DONE +055 R2_L2_T2_B3_Affinity | JCT=3812.13ms P95=6016.33ms TTFT=396.93ms WF/s=1.336 out=624
+PAIR R2 L2 T2 B3 DAG/Affinity: JCT +4.15% (single pair)
+START R2_L2_T2_B4_Affinity
+DONE +056 R2_L2_T2_B4_Affinity | JCT=2689.61ms P95=3926.56ms TTFT=370.10ms WF/s=1.767 out=443
+START R2_L2_T2_B4_P2C
+DONE +057 R2_L2_T2_B4_P2C | JCT=2839.54ms P95=4167.49ms TTFT=372.87ms WF/s=1.763 out=457
+START R2_L2_T2_B4_RR
+DONE +058 R2_L2_T2_B4_RR | JCT=2749.13ms P95=3803.26ms TTFT=357.84ms WF/s=1.782 out=439
+START R2_L2_T2_B4_DAG-Lite
+DONE +059 R2_L2_T2_B4_DAG-Lite | JCT=2662.99ms P95=3736.34ms TTFT=384.18ms WF/s=1.761 out=430
+START R2_L2_T2_B4_DAG
+DONE +060 R2_L2_T2_B4_DAG | JCT=2930.97ms P95=4322.35ms TTFT=442.28ms WF/s=1.780 out=448
+PAIR R2 L2 T2 B4 DAG/RR: JCT -6.61% (single pair)
+PAIR R2 L2 T2 B4 DAG/P2C: JCT -3.22% (single pair)
+PAIR R2 L2 T2 B4 DAG/Affinity: JCT -8.97% (single pair)
+START R2_L1_T2_B1_DAG
+DONE +061 R2_L1_T2_B1_DAG | JCT=1689.90ms P95=2295.82ms TTFT=259.53ms WF/s=1.000 out=432
+START R2_L1_T2_B1_Affinity
+DONE +062 R2_L1_T2_B1_Affinity | JCT=1641.63ms P95=2093.11ms TTFT=232.98ms WF/s=1.000 out=424
+PAIR R2 L1 T2 B1 DAG/Affinity: JCT -2.94% (single pair)
+START R2_L1_T2_B1_P2C
+DONE +063 R2_L1_T2_B1_P2C | JCT=1748.13ms P95=2439.91ms TTFT=284.34ms WF/s=1.000 out=422
+PAIR R2 L1 T2 B1 DAG/P2C: JCT +3.33% (single pair)
+START R2_L1_T2_B1_RR
+DONE +064 R2_L1_T2_B1_RR | JCT=1673.51ms P95=2488.53ms TTFT=247.94ms WF/s=0.992 out=415
+PAIR R2 L1 T2 B1 DAG/RR: JCT -0.98% (single pair)
+START R2_L1_T2_B1_DAG-Lite
+DONE +065 R2_L1_T2_B1_DAG-Lite | JCT=1660.87ms P95=2208.22ms TTFT=247.95ms WF/s=1.000 out=417
+START R2_L1_T2_B2_DAG-Lite
+DONE +066 R2_L1_T2_B2_DAG-Lite | JCT=2253.03ms P95=3852.00ms TTFT=284.09ms WF/s=0.948 out=554
+START R2_L1_T2_B2_DAG
+DONE +067 R2_L1_T2_B2_DAG | JCT=2105.11ms P95=3023.24ms TTFT=287.45ms WF/s=0.948 out=513
+START R2_L1_T2_B2_Affinity
+DONE +068 R2_L1_T2_B2_Affinity | JCT=2105.61ms P95=3056.12ms TTFT=278.16ms WF/s=0.948 out=509
+PAIR R2 L1 T2 B2 DAG/Affinity: JCT +0.02% (single pair)
+START R2_L1_T2_B2_P2C
+DONE +069 R2_L1_T2_B2_P2C | JCT=2146.99ms P95=3072.29ms TTFT=283.49ms WF/s=0.959 out=517
+PAIR R2 L1 T2 B2 DAG/P2C: JCT +1.95% (single pair)
+START R2_L1_T2_B2_RR
+DONE +070 R2_L1_T2_B2_RR | JCT=2157.30ms P95=3184.40ms TTFT=275.49ms WF/s=0.959 out=514
+PAIR R2 L1 T2 B2 DAG/RR: JCT +2.42% (single pair)
+START R2_L1_T2_B3_RR
+DONE +071 R2_L1_T2_B3_RR | JCT=2814.44ms P95=5796.03ms TTFT=272.19ms WF/s=0.809 out=655
+START R2_L1_T2_B3_DAG-Lite
+DONE +072 R2_L1_T2_B3_DAG-Lite | JCT=2559.13ms P95=5550.89ms TTFT=267.17ms WF/s=0.817 out=652
+START R2_L1_T2_B3_DAG
+DONE +073 R2_L1_T2_B3_DAG | JCT=2514.75ms P95=4768.83ms TTFT=281.40ms WF/s=0.858 out=625
+PAIR R2 L1 T2 B3 DAG/RR: JCT +10.65% (single pair)
+START R2_L1_T2_B3_Affinity
+DONE +074 R2_L1_T2_B3_Affinity | JCT=2519.26ms P95=4387.32ms TTFT=279.96ms WF/s=0.867 out=624
+PAIR R2 L1 T2 B3 DAG/Affinity: JCT +0.18% (single pair)
+START R2_L1_T2_B3_P2C
+DONE +075 R2_L1_T2_B3_P2C | JCT=2580.22ms P95=5023.04ms TTFT=299.47ms WF/s=0.849 out=614
+PAIR R2 L1 T2 B3 DAG/P2C: JCT +2.54% (single pair)
+START R2_L1_T2_B4_P2C
+DONE +076 R2_L1_T2_B4_P2C | JCT=1986.63ms P95=3105.89ms TTFT=302.00ms WF/s=0.997 out=446
+START R2_L1_T2_B4_RR
+DONE +077 R2_L1_T2_B4_RR | JCT=1778.55ms P95=2647.15ms TTFT=240.16ms WF/s=0.997 out=443
+START R2_L1_T2_B4_DAG-Lite
+DONE +078 R2_L1_T2_B4_DAG-Lite | JCT=1901.13ms P95=2623.17ms TTFT=286.55ms WF/s=1.003 out=450
+START R2_L1_T2_B4_DAG
+DONE +079 R2_L1_T2_B4_DAG | JCT=1859.65ms P95=2716.44ms TTFT=264.94ms WF/s=1.003 out=456
+PAIR R2 L1 T2 B4 DAG/RR: JCT -4.56% (single pair)
+PAIR R2 L1 T2 B4 DAG/P2C: JCT +6.39% (single pair)
+START R2_L1_T2_B4_Affinity
+DONE +080 R2_L1_T2_B4_Affinity | JCT=1793.76ms P95=2632.00ms TTFT=234.11ms WF/s=1.003 out=455
+PAIR R2 L1 T2 B4 DAG/Affinity: JCT -3.67% (single pair)
+CLEANUP {"backend_drained": true, "source_files_unchanged": true, "backend_code_changed": false, "old_results_overwritten": false, "new_method_sources_in_separate_directory": true}
+WF_RUN_DIR=/home/wmy/sci/spra_paper_experiments_github/spra_workflow_sched_v2_1/runs/grid_v2_1
+WF_RUN_STATUS=paused
+LOG_RECEIPT={"schema": "workflow-archive-logging-sidecar-1", "child_returncode": 0, "signals_forwarded": [], "accepted_lines_this_invocation": 80, "suppressed_response_lines": 4260, "parse_warnings": 0, "source_unchanged": true, "raw_console_sha256": "437e3ed5c5d008e761dc973d99a2f05afb0942a7e54f6b325e417a3bfca291e0", "summary_console_sha256": "51d2ce2319250a13807e17a02b17c52cfaf317413942c840450a3425932afd2e", "same_algorithm_not_identical_timing_guarantee": true, "completed_utc": "2026-10-12T11:12:47.222791+00:00"}
+FULL_LOG=/home/wmy/sci/spra_paper_experiments_github/wf_ops_output/LOG_20261012T105424Z_33ff316e/full.log
+SUMMARY_LOG=/home/wmy/sci/spra_paper_experiments_github/wf_ops_output/LOG_20261012T105424Z_33ff316e/summary.log

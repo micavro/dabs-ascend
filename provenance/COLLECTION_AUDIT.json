@@ -1,0 +1,31 @@
+{
+  "schema": "dabs-reproduction-source-collection-v1",
+  "created_utc": "2026-10-13T13:32:35.285782+00:00",
+  "source_packages": {
+    "port_handoff_zip": "d2166323bd6a127268fbc9324e110462e14b3255fe6ef0760f2621e815911785",
+    "checkpoint_review_zip": "3508137516438bf542336adde3af79c05e11229dfe93a9864156422b89f2ff42",
+    "available_evidence_zip": "78f90dcbd9e495ce1ab75b793bd643a7df5725d7d2299cd44969e8c8f975c00e"
+  },
+  "added_original_nonrun_files_count": 44,
+  "exact_legacy_experiment_apps": [
+    "spra_workflow_sched_v2",
+    "spra_workflow_sched_v2_1",
+    "wf_ops_v1",
+    "spra_workflow_d0_repro_v1"
+  ],
+  "method_truth": {
+    "RR": "round-robin request-level routing",
+    "P2C": "power of two choices",
+    "Affinity": "reference cache affinity",
+    "DAG": "Ours, experimental source ID",
+    "DAG-Lite": "implementation ablation",
+    "Preble": "NOT IMPLEMENTED IN THESE SOURCES"
+  },
+  "missing_items": [
+    "Model weights/tokenizer and exact service build",
+    "Running vLLM native-hook deployment",
+    "Raw GPU logs and full output of case_confirm_v1 (32 row terminal summaries are present)",
+    "Raw R2 second repeat per-request traces (console summaries only)",
+    "R3 second repetition / R4 full grid results not supplied"
+  ]
+}

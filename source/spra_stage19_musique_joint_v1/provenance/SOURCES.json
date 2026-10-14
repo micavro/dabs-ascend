@@ -1,0 +1,35 @@
+{
+  "checked_on": "2026-10-09",
+  "sources": [
+    {
+      "purpose": "MuSiQue official repository, release attribution and license",
+      "url": "https://github.com/StonyBrookNLP/musique"
+    },
+    {
+      "purpose": "Official v1.0 data download file ID",
+      "url": "https://raw.githubusercontent.com/StonyBrookNLP/musique/main/download_data.sh"
+    },
+    {
+      "purpose": "Official decomposition and paragraph format, ordinal placeholders",
+      "url": "https://raw.githubusercontent.com/StonyBrookNLP/musique/main/raw_data_to_official_format.py"
+    },
+    {
+      "purpose": "Official answer normalization / token F1 reference",
+      "url": "https://raw.githubusercontent.com/StonyBrookNLP/musique/main/metrics/answer.py"
+    },
+    {
+      "purpose": "MuSiQue TACL 2022 paper abstract",
+      "url": "https://arxiv.org/abs/2108.00573"
+    },
+    {
+      "purpose": "vLLM0.6.3 prefill/decode trade-off and native batching",
+      "url": "https://docs.vllm.ai/en/v0.6.3/models/performance.html"
+    },
+    {
+      "purpose": "Qwen exact chat template",
+      "url": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct/blob/main/tokenizer_config.json"
+    }
+  ],
+  "official_dataset_bytes_downloaded_in_build_runtime": false,
+  "network_archive_compatibility": "CPU-side download/import supported, full publisher bytes not tested in build runtime"
+}

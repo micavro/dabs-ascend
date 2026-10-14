@@ -1,0 +1,35 @@
+{
+  "release": "spra_workflow_sched_v2",
+  "frozen_original": "D0 / MUSIQUE_20261010T092711Z_be09912a",
+  "original_source_files_matched": 48,
+  "bundled_reference_files": 56,
+  "tests": {
+    "unit_and_contract": 47,
+    "real_retained_client_hook_CPU_fake_and_spawn": 21,
+    "mocked_runner_transaction": 8,
+    "total_passed": 76
+  },
+  "test_log": "review/ALL_TESTS.txt",
+  "CPU_benchmark": "review/CPU_BENCHMARK.json",
+  "CPU_benchmark_repeated_to_select_faster": false,
+  "CPU_benchmark_outliers_removed": false,
+  "new_GPU_performance_runs": 0,
+  "native_adapter_placeholders": false,
+  "original_source_modified": false,
+  "backend_libraries_upgraded": false,
+  "suite_condition_counts": {
+    "smoke": 5,
+    "ablation": 72,
+    "grid": 640,
+    "confirm": 3200
+  },
+  "current_GPU_state_not_assumed_from_past_logs": true,
+  "limits": [
+    "same historical64 development questions",
+    "original model-visible UUID retained",
+    "shared original200ms periodic loop",
+    "default-inspired policy kernels not complete serving product reproductions",
+    "small CPU benchmark does not show mean speedup",
+    "no promised10percentJCTgain"
+  ]
+}

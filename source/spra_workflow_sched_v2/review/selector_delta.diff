@@ -1,0 +1,26 @@
+--- frozen D0 choose
++++ DAG-Lite choose
+@@ -1,4 +1,6 @@
+-def choose(s,model,cfg,method,deadline=None):
++def choose_lite(s,model,cfg,method,deadline=None):
++    if method != 'D' or cfg.get('base_cap') != 4096:
++        raise ValueError('DAG-Lite accepts fixed-4096 D only')
+     begin=time.monotonic();deadline=deadline or begin+cfg['planning_soft_limit_s'];base=reference(s,cfg)
+     result={'action':base,'evaluations':[],'model_selection':False,'wall_ms':0.,'joint_cross_candidates_evaluated':0,
+         'complete_distinct_evaluations':0,'paired_packet_attempted':False,'paired_packet_complete':False,
+@@ -13,10 +15,11 @@
+     schedule=base if method=='B' else schedule_alternative(s,model,cfg,base)
+     result['known_dag_group_proposed']=bool(schedule.get('proposal',{}).get('compiled_native_group'))
+     result['known_dag_alternative_generated']=action_key(schedule)!=action_key(base)
+-    capvec,local=budget_alternative(s,model,cfg,schedule)
+-    cells={'00':copy.deepcopy(base),'10':copy.deepcopy(schedule),'01':copy.deepcopy(base),'11':copy.deepcopy(schedule)}
+-    cells['01']['caps']=list(capvec);cells['11']['caps']=list(capvec)
+-    cells['01']['family']='known_dag_budget_only';cells['11']['family']='joint/'+schedule['family']
++    # D never scores or executes 01/11. Omit only this unreachable budget work.
++    # Keep proposal, scorer, guards, deadline splitting and 00/10 tie rule intact.
++    capvec,local=list(base['caps']),[]
++    cells={'00':copy.deepcopy(base),'10':copy.deepcopy(schedule)}
++    result['budget_candidate_generation_skipped']=True
+     result['local_budget_proposals']=local;memo={};scores={};guards={};counted=set()
+     result['paired_distinct_actions']=len({action_key(a) for a in cells.values()})
+     result['paired_has_distinct_placement_and_budget']=action_key(cells['00'])!=action_key(cells['10']) and capvec!=base['caps']

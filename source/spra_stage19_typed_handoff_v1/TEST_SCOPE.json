@@ -1,0 +1,11 @@
+{
+  "python_runtime": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]",
+  "python_3_11_syntax_files_checked": 9,
+  "test_count": 53,
+  "tests": "CPU parser/adapter, mocked HTTP, actual inherited client+hook against fake engine for five methods; fixture profile preparation",
+  "native_vllm_guided_decoding_executed": false,
+  "actual_MuSiQue_answers_generated_here": false,
+  "gpu_requests_here": 0,
+  "server_or_pod_contact_here": false,
+  "profile_and_pilot_real_system_validated": false
+}

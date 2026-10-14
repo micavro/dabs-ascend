@@ -1,0 +1,620 @@
+{
+  "schema": "dabs-musique-scheduling-checkpoint-1",
+  "created_date": "2026-10-10",
+  "checkpoint_id": "MUSIQUE_SCHEDULING_D0_20261010",
+  "source_run": "/home/wmy/sci/spra_paper_experiments_github/spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e",
+  "status": "development_scheduling_result_frozen; adaptive_increment_pending",
+  "scope": {
+    "observed_conditions": 20,
+    "unique_questions": 64,
+    "executed_workflows": 320,
+    "llm_requests": 1065,
+    "output_tokens": 9712,
+    "true_independent_repeats_of_same_questions": false,
+    "block_definition": "four disjoint groups of sixteen questions, each run under all five methods"
+  },
+  "weighting": {
+    "primary_jct_gain": "mean of four within-block percentage reductions, lower JCT better",
+    "absolute_table_means": "unweighted mean of four condition means, not pooled request-level distributions",
+    "quality_relative_gain": "100*(aggregate method quality / aggregate A quality - 1); baseline zero => undefined",
+    "quality_absolute_change": "100*(aggregate method quality - aggregate A quality), percentage points",
+    "p95": "average of four condition P95 values, not pooled P95",
+    "tpot": "client per-request proxy, not CUDA timestamps or per-token ITL"
+  },
+  "methods": {
+    "A": {
+      "condition_means": {
+        "mean_jct_ms": 2339.2769885249436,
+        "p95_jct_ms": 3486.0656554810703,
+        "mean_request_ttft_ms": 313.99685598716684,
+        "p95_request_ttft_ms": 557.6464205980301,
+        "mean_client_tpot_proxy_ms": 45.76249473455631,
+        "p95_client_tpot_proxy_ms": 73.77323079854249,
+        "mean_node_time_to_first_content_ms": 449.98920695222876,
+        "cohort_tokens_s": 52.66701203917054,
+        "cohort_workflows_s": 1.7558342004631275
+      },
+      "paired_gain_percent_vs_A": {
+        "mean_jct_ms": 0.0,
+        "p95_jct_ms": 0.0,
+        "mean_request_ttft_ms": 0.0,
+        "p95_request_ttft_ms": 0.0,
+        "mean_client_tpot_proxy_ms": 0.0,
+        "p95_client_tpot_proxy_ms": 0.0,
+        "mean_node_time_to_first_content_ms": 0.0,
+        "cohort_tokens_s": 0.0,
+        "cohort_workflows_s": 0.0
+      },
+      "per_block_paired_gain_percent_vs_A": [
+        {
+          "block": 1,
+          "mean_jct_ms": 0.0,
+          "p95_jct_ms": 0.0,
+          "mean_request_ttft_ms": 0.0,
+          "p95_request_ttft_ms": 0.0,
+          "mean_client_tpot_proxy_ms": 0.0,
+          "p95_client_tpot_proxy_ms": 0.0,
+          "mean_node_time_to_first_content_ms": 0.0,
+          "cohort_tokens_s": 0.0,
+          "cohort_workflows_s": 0.0
+        },
+        {
+          "block": 2,
+          "mean_jct_ms": 0.0,
+          "p95_jct_ms": 0.0,
+          "mean_request_ttft_ms": 0.0,
+          "p95_request_ttft_ms": 0.0,
+          "mean_client_tpot_proxy_ms": 0.0,
+          "p95_client_tpot_proxy_ms": 0.0,
+          "mean_node_time_to_first_content_ms": 0.0,
+          "cohort_tokens_s": 0.0,
+          "cohort_workflows_s": 0.0
+        },
+        {
+          "block": 3,
+          "mean_jct_ms": 0.0,
+          "p95_jct_ms": 0.0,
+          "mean_request_ttft_ms": 0.0,
+          "p95_request_ttft_ms": 0.0,
+          "mean_client_tpot_proxy_ms": 0.0,
+          "p95_client_tpot_proxy_ms": 0.0,
+          "mean_node_time_to_first_content_ms": 0.0,
+          "cohort_tokens_s": 0.0,
+          "cohort_workflows_s": 0.0
+        },
+        {
+          "block": 4,
+          "mean_jct_ms": 0.0,
+          "p95_jct_ms": 0.0,
+          "mean_request_ttft_ms": 0.0,
+          "p95_request_ttft_ms": 0.0,
+          "mean_client_tpot_proxy_ms": 0.0,
+          "p95_client_tpot_proxy_ms": 0.0,
+          "mean_node_time_to_first_content_ms": 0.0,
+          "cohort_tokens_s": 0.0,
+          "cohort_workflows_s": 0.0
+        }
+      ],
+      "quality": {
+        "final_em": 0.171875,
+        "final_f1": 0.2564732142857143,
+        "correct_final_questions": 11,
+        "questions": 64,
+        "relative_gain_percent_vs_A": {
+          "final_em": 0.0,
+          "final_f1": 0.0
+        },
+        "absolute_gain_percentage_points_vs_A": {
+          "final_em": 0.0,
+          "final_f1": 0.0
+        }
+      },
+      "mean_critical_path_components_ms": {
+        "dependency_release": 0.0,
+        "central_queue_and_admission": 296.69567954260856,
+        "input_prepare": 85.25198488496244,
+        "header_wait": 108.45250484999269,
+        "postprocess": 0.14913431368768215,
+        "first_content_wait": 755.4415744962171,
+        "content_receive": 999.1967956302688,
+        "response_tail": 94.08931480720639
+      },
+      "action_totals": {
+        "routing_deviations_from_snapshot_affinity": 0,
+        "policy_deferred_ready_decisions": 0,
+        "queue_reorder_iterations": 0,
+        "budget_switches_total": 0,
+        "native_cap_binding_candidates": 0,
+        "native_skipped_query_tokens": 325278
+      },
+      "output_tokens": 1938,
+      "positive_JCT_blocks_vs_A": 0
+    },
+    "D": {
+      "condition_means": {
+        "mean_jct_ms": 1994.4966727634892,
+        "p95_jct_ms": 2728.198719676584,
+        "mean_request_ttft_ms": 263.5462403170119,
+        "p95_request_ttft_ms": 431.9799826480447,
+        "mean_client_tpot_proxy_ms": 39.96365618257923,
+        "p95_client_tpot_proxy_ms": 60.27613005412387,
+        "mean_node_time_to_first_content_ms": 384.4408398197487,
+        "cohort_tokens_s": 52.492954889511964,
+        "cohort_workflows_s": 1.7487541014167691
+      },
+      "paired_gain_percent_vs_A": {
+        "mean_jct_ms": 13.303823038299074,
+        "p95_jct_ms": 20.842542861495655,
+        "mean_request_ttft_ms": 14.462701384430106,
+        "p95_request_ttft_ms": 20.461804390214155,
+        "mean_client_tpot_proxy_ms": 10.953693268845583,
+        "p95_client_tpot_proxy_ms": 13.167340046380172,
+        "mean_node_time_to_first_content_ms": 13.393554832121085,
+        "cohort_tokens_s": -0.38295741055158217,
+        "cohort_workflows_s": -0.17443546268222365
+      },
+      "per_block_paired_gain_percent_vs_A": [
+        {
+          "block": 1,
+          "mean_jct_ms": 6.5530234280217865,
+          "p95_jct_ms": 14.90395790313357,
+          "mean_request_ttft_ms": 4.787657310802562,
+          "p95_request_ttft_ms": 3.931214939360117,
+          "mean_client_tpot_proxy_ms": 2.4141358495202936,
+          "p95_client_tpot_proxy_ms": -10.640741441934454,
+          "mean_node_time_to_first_content_ms": 3.750037338447487,
+          "cohort_tokens_s": -3.6556256019626865,
+          "cohort_workflows_s": -2.0305397687427895
+        },
+        {
+          "block": 2,
+          "mean_jct_ms": 21.387563248232656,
+          "p95_jct_ms": 32.461578501893726,
+          "mean_request_ttft_ms": 22.36902898209221,
+          "p95_request_ttft_ms": 31.90076973329766,
+          "mean_client_tpot_proxy_ms": 18.65646001577719,
+          "p95_client_tpot_proxy_ms": 23.749935137582213,
+          "mean_node_time_to_first_content_ms": 21.707929425198046,
+          "cohort_tokens_s": 7.979982673998998,
+          "cohort_workflows_s": 6.939713091397848
+        },
+        {
+          "block": 3,
+          "mean_jct_ms": 21.978478369478072,
+          "p95_jct_ms": 18.369474230885487,
+          "mean_request_ttft_ms": 30.98225308308209,
+          "p95_request_ttft_ms": 36.611537259684034,
+          "mean_client_tpot_proxy_ms": 25.65438993845931,
+          "p95_client_tpot_proxy_ms": 39.63119826427859,
+          "mean_node_time_to_first_content_ms": 25.252561684851926,
+          "cohort_tokens_s": -0.5477444798698383,
+          "cohort_workflows_s": -0.7259743284722231
+        },
+        {
+          "block": 4,
+          "mean_jct_ms": 3.2962271074637783,
+          "p95_jct_ms": 17.635160810069838,
+          "mean_request_ttft_ms": -0.28813383825643246,
+          "p95_request_ttft_ms": 9.403695628514807,
+          "mean_client_tpot_proxy_ms": -2.9102127283744617,
+          "p95_client_tpot_proxy_ms": -0.071031774405661,
+          "mean_node_time_to_first_content_ms": 2.86369087998688,
+          "cohort_tokens_s": -5.3084422343728015,
+          "cohort_workflows_s": -4.88094084491173
+        }
+      ],
+      "quality": {
+        "final_em": 0.1875,
+        "final_f1": 0.2773065476190476,
+        "correct_final_questions": 12,
+        "questions": 64,
+        "relative_gain_percent_vs_A": {
+          "final_em": 9.090909090909083,
+          "final_f1": 8.123005512039438
+        },
+        "absolute_gain_percentage_points_vs_A": {
+          "final_em": 1.5625,
+          "final_f1": 2.0833333333333313
+        }
+      },
+      "mean_critical_path_components_ms": {
+        "dependency_release": 0.0,
+        "central_queue_and_admission": 280.7276016101241,
+        "input_prepare": 57.19929828774184,
+        "header_wait": 77.58566830307245,
+        "postprocess": 0.14623103197664022,
+        "first_content_wait": 631.7244694801047,
+        "content_receive": 861.2891857046634,
+        "response_tail": 85.824218345806
+      },
+      "action_totals": {
+        "routing_deviations_from_snapshot_affinity": 31,
+        "policy_deferred_ready_decisions": 0,
+        "queue_reorder_iterations": 1,
+        "budget_switches_total": 0,
+        "native_cap_binding_candidates": 0,
+        "native_skipped_query_tokens": 318106
+      },
+      "output_tokens": 1935,
+      "positive_JCT_blocks_vs_A": 4
+    },
+    "B": {
+      "condition_means": {
+        "mean_jct_ms": 2395.3469017287716,
+        "p95_jct_ms": 3560.4038038291037,
+        "mean_request_ttft_ms": 317.16479253506054,
+        "p95_request_ttft_ms": 500.74333883821953,
+        "mean_client_tpot_proxy_ms": 46.35684694294169,
+        "p95_client_tpot_proxy_ms": 70.62032738412242,
+        "mean_node_time_to_first_content_ms": 462.4179987934336,
+        "cohort_tokens_s": 52.05548465535696,
+        "cohort_workflows_s": 1.736838594976388
+      },
+      "paired_gain_percent_vs_A": {
+        "mean_jct_ms": -1.7939079571303667,
+        "p95_jct_ms": -1.4353994607401228,
+        "mean_request_ttft_ms": -0.274373175780965,
+        "p95_request_ttft_ms": 10.163425345841842,
+        "mean_client_tpot_proxy_ms": -0.7593013744624375,
+        "p95_client_tpot_proxy_ms": 3.1825337103759512,
+        "mean_node_time_to_first_content_ms": -2.6194474215029517,
+        "cohort_tokens_s": -1.1542605170682423,
+        "cohort_workflows_s": -1.342228074433477
+      },
+      "per_block_paired_gain_percent_vs_A": [
+        {
+          "block": 1,
+          "mean_jct_ms": -0.3836655885803619,
+          "p95_jct_ms": 5.567773090260298,
+          "mean_request_ttft_ms": -1.0547975331161474,
+          "p95_request_ttft_ms": -0.6627505969410752,
+          "mean_client_tpot_proxy_ms": 4.524133865321267,
+          "p95_client_tpot_proxy_ms": 10.230199663194494,
+          "mean_node_time_to_first_content_ms": -4.865991220731947,
+          "cohort_tokens_s": -1.90063245419968,
+          "cohort_workflows_s": -0.24594432692113255
+        },
+        {
+          "block": 2,
+          "mean_jct_ms": 13.396291771115909,
+          "p95_jct_ms": 21.904554957209076,
+          "mean_request_ttft_ms": 10.969824729131084,
+          "p95_request_ttft_ms": 18.87133874193384,
+          "mean_client_tpot_proxy_ms": 15.215326834249032,
+          "p95_client_tpot_proxy_ms": 25.31651454016214,
+          "mean_node_time_to_first_content_ms": 9.760398426595994,
+          "cohort_tokens_s": 6.702886569933031,
+          "cohort_workflows_s": 6.910884399504047
+        },
+        {
+          "block": 3,
+          "mean_jct_ms": -17.12399054780589,
+          "p95_jct_ms": -32.591542787593,
+          "mean_request_ttft_ms": -14.562148180337232,
+          "p95_request_ttft_ms": 3.1624372608657136,
+          "mean_client_tpot_proxy_ms": -14.592078165697387,
+          "p95_client_tpot_proxy_ms": 4.731658876431844,
+          "mean_node_time_to_first_content_ms": -11.620685367195671,
+          "cohort_tokens_s": -9.293790234706666,
+          "cohort_workflows_s": -12.133288975185419
+        },
+        {
+          "block": 4,
+          "mean_jct_ms": -3.0642674632511246,
+          "p95_jct_ms": -0.6223831028368654,
+          "mean_request_ttft_ms": 3.549628281198436,
+          "p95_request_ttft_ms": 19.28267597750889,
+          "mean_client_tpot_proxy_ms": -8.184588031722662,
+          "p95_client_tpot_proxy_ms": -27.54823823828467,
+          "mean_node_time_to_first_content_ms": -3.7515115246801845,
+          "cohort_tokens_s": -0.12550594929965353,
+          "cohort_workflows_s": 0.09943660486859685
+        }
+      ],
+      "quality": {
+        "final_em": 0.171875,
+        "final_f1": 0.27053571428571427,
+        "correct_final_questions": 11,
+        "questions": 64,
+        "relative_gain_percent_vs_A": {
+          "final_em": 0.0,
+          "final_f1": 5.483028720626626
+        },
+        "absolute_gain_percentage_points_vs_A": {
+          "final_em": 0.0,
+          "final_f1": 1.4062499999999978
+        }
+      },
+      "mean_critical_path_components_ms": {
+        "dependency_release": 0.0,
+        "central_queue_and_admission": 329.27278615534306,
+        "input_prepare": 80.14766417909414,
+        "header_wait": 104.71480328124017,
+        "postprocess": 0.13517006300389767,
+        "first_content_wait": 757.5756931910291,
+        "content_receive": 1015.7961115473881,
+        "response_tail": 107.7046733116731
+      },
+      "action_totals": {
+        "routing_deviations_from_snapshot_affinity": 0,
+        "policy_deferred_ready_decisions": 0,
+        "queue_reorder_iterations": 0,
+        "budget_switches_total": 37,
+        "native_cap_binding_candidates": 16,
+        "native_skipped_query_tokens": 327961
+      },
+      "output_tokens": 1947,
+      "positive_JCT_blocks_vs_A": 1
+    },
+    "Decoupled": {
+      "condition_means": {
+        "mean_jct_ms": 1991.577077191323,
+        "p95_jct_ms": 2710.656371433288,
+        "mean_request_ttft_ms": 266.94025261952356,
+        "p95_request_ttft_ms": 441.393114812672,
+        "mean_client_tpot_proxy_ms": 40.048147640612264,
+        "p95_client_tpot_proxy_ms": 62.88461427647797,
+        "mean_node_time_to_first_content_ms": 391.3452275009264,
+        "cohort_tokens_s": 52.17124270282734,
+        "cohort_workflows_s": 1.7392863462785764
+      },
+      "paired_gain_percent_vs_A": {
+        "mean_jct_ms": 13.743944273851763,
+        "p95_jct_ms": 21.033001382058046,
+        "mean_request_ttft_ms": 13.894291843724668,
+        "p95_request_ttft_ms": 18.876336406818847,
+        "mean_client_tpot_proxy_ms": 10.7988238357805,
+        "p95_client_tpot_proxy_ms": 9.121179488921966,
+        "mean_node_time_to_first_content_ms": 12.257779727741136,
+        "cohort_tokens_s": -0.9592884276626273,
+        "cohort_workflows_s": -0.8444153337549221
+      },
+      "per_block_paired_gain_percent_vs_A": [
+        {
+          "block": 1,
+          "mean_jct_ms": 6.547247291043801,
+          "p95_jct_ms": 14.402107129505659,
+          "mean_request_ttft_ms": 6.442473713571905,
+          "p95_request_ttft_ms": 9.218834112631624,
+          "mean_client_tpot_proxy_ms": -1.5341297976881663,
+          "p95_client_tpot_proxy_ms": -21.5267758688372,
+          "mean_node_time_to_first_content_ms": 6.0711070060251116,
+          "cohort_tokens_s": -2.083376191773545,
+          "cohort_workflows_s": -2.083376191773556
+        },
+        {
+          "block": 2,
+          "mean_jct_ms": 19.137288601154033,
+          "p95_jct_ms": 33.519647319373306,
+          "mean_request_ttft_ms": 13.79604758169335,
+          "p95_request_ttft_ms": 5.529964682009114,
+          "mean_client_tpot_proxy_ms": 16.211777031681663,
+          "p95_client_tpot_proxy_ms": 11.445425024282585,
+          "mean_node_time_to_first_content_ms": 14.373205089645701,
+          "cohort_tokens_s": 2.050273160108773,
+          "cohort_workflows_s": 2.249201567828285
+        },
+        {
+          "block": 3,
+          "mean_jct_ms": 20.8476558791043,
+          "p95_jct_ms": 21.49704846109577,
+          "mean_request_ttft_ms": 27.471331452847693,
+          "p95_request_ttft_ms": 37.39098138917084,
+          "mean_client_tpot_proxy_ms": 26.108154245977477,
+          "p95_client_tpot_proxy_ms": 40.3091474853848,
+          "mean_node_time_to_first_content_ms": 21.970935606696017,
+          "cohort_tokens_s": -0.8692559599853378,
+          "cohort_workflows_s": -1.0469096231394803
+        },
+        {
+          "block": 4,
+          "mean_jct_ms": 8.44358532410492,
+          "p95_jct_ms": 14.713202618257448,
+          "mean_request_ttft_ms": 7.867314626785726,
+          "p95_request_ttft_ms": 23.365565443463808,
+          "mean_client_tpot_proxy_ms": 2.4094938631510243,
+          "p95_client_tpot_proxy_ms": 6.256921314857678,
+          "mean_node_time_to_first_content_ms": 6.615871208597712,
+          "cohort_tokens_s": -2.9347947190004,
+          "cohort_workflows_s": -2.496577087934937
+        }
+      ],
+      "quality": {
+        "final_em": 0.1875,
+        "final_f1": 0.2773065476190476,
+        "correct_final_questions": 12,
+        "questions": 64,
+        "relative_gain_percent_vs_A": {
+          "final_em": 9.090909090909083,
+          "final_f1": 8.123005512039438
+        },
+        "absolute_gain_percentage_points_vs_A": {
+          "final_em": 1.5625,
+          "final_f1": 2.0833333333333313
+        }
+      },
+      "mean_critical_path_components_ms": {
+        "dependency_release": 0.0,
+        "central_queue_and_admission": 304.0024541551247,
+        "input_prepare": 48.21716248989105,
+        "header_wait": 76.33944600820541,
+        "postprocess": 0.135855283588171,
+        "first_content_wait": 643.1388241471723,
+        "content_receive": 838.265968603082,
+        "response_tail": 81.47736650425941
+      },
+      "action_totals": {
+        "routing_deviations_from_snapshot_affinity": 34,
+        "policy_deferred_ready_decisions": 0,
+        "queue_reorder_iterations": 1,
+        "budget_switches_total": 2,
+        "native_cap_binding_candidates": 1,
+        "native_skipped_query_tokens": 307996
+      },
+      "output_tokens": 1936,
+      "positive_JCT_blocks_vs_A": 4
+    },
+    "Joint": {
+      "condition_means": {
+        "mean_jct_ms": 2051.3640589779243,
+        "p95_jct_ms": 2945.1720560900867,
+        "mean_request_ttft_ms": 269.6491939917395,
+        "p95_request_ttft_ms": 449.2254419252275,
+        "mean_client_tpot_proxy_ms": 40.4017083798589,
+        "p95_client_tpot_proxy_ms": 61.53437797346018,
+        "mean_node_time_to_first_content_ms": 401.1419906741005,
+        "cohort_tokens_s": 52.914483977089894,
+        "cohort_workflows_s": 1.7456552870013513
+      },
+      "paired_gain_percent_vs_A": {
+        "mean_jct_ms": 10.987641365907022,
+        "p95_jct_ms": 14.643968918935096,
+        "mean_request_ttft_ms": 13.017961185912066,
+        "p95_request_ttft_ms": 19.807927651906432,
+        "mean_client_tpot_proxy_ms": 10.07507302414083,
+        "p95_client_tpot_proxy_ms": 10.215279007084673,
+        "mean_node_time_to_first_content_ms": 9.83065933019519,
+        "cohort_tokens_s": 0.415228176194149,
+        "cohort_workflows_s": -0.42075521232873014
+      },
+      "per_block_paired_gain_percent_vs_A": [
+        {
+          "block": 1,
+          "mean_jct_ms": 7.192336695416102,
+          "p95_jct_ms": 10.9969746090806,
+          "mean_request_ttft_ms": 6.147023658910089,
+          "p95_request_ttft_ms": 22.60871308509894,
+          "mean_client_tpot_proxy_ms": 1.4246036753980618,
+          "p95_client_tpot_proxy_ms": -19.28695440592001,
+          "mean_node_time_to_first_content_ms": 5.901789383277167,
+          "cohort_tokens_s": -3.0890543113126334,
+          "cohort_workflows_s": -1.4544118539130846
+        },
+        {
+          "block": 2,
+          "mean_jct_ms": 17.086039024197362,
+          "p95_jct_ms": 23.00226788788423,
+          "mean_request_ttft_ms": 19.739320173794738,
+          "p95_request_ttft_ms": 29.031333798871493,
+          "mean_client_tpot_proxy_ms": 16.91453719704864,
+          "p95_client_tpot_proxy_ms": 23.956876330082366,
+          "mean_node_time_to_first_content_ms": 17.49192091416616,
+          "cohort_tokens_s": 9.502959265027577,
+          "cohort_workflows_s": 6.397960420083515
+        },
+        {
+          "block": 3,
+          "mean_jct_ms": 20.086711169382532,
+          "p95_jct_ms": 16.030595739996134,
+          "mean_request_ttft_ms": 23.837592967371034,
+          "p95_request_ttft_ms": 17.493619414225314,
+          "mean_client_tpot_proxy_ms": 24.333393990603767,
+          "p95_client_tpot_proxy_ms": 42.95214238429704,
+          "mean_node_time_to_first_content_ms": 20.107845203315588,
+          "cohort_tokens_s": -0.9400604494635867,
+          "cohort_workflows_s": -2.169527784310654
+        },
+        {
+          "block": 4,
+          "mean_jct_ms": -0.4145214253679086,
+          "p95_jct_ms": 8.546037438779418,
+          "mean_request_ttft_ms": 2.3479079435724026,
+          "p95_request_ttft_ms": 10.098044309429977,
+          "mean_client_tpot_proxy_ms": -2.3722427664871537,
+          "p95_client_tpot_proxy_ms": -6.760948280120704,
+          "mean_node_time_to_first_content_ms": -4.178918179978153,
+          "cohort_tokens_s": -3.8129317994747614,
+          "cohort_workflows_s": -4.457041631174697
+        }
+      ],
+      "quality": {
+        "final_em": 0.1875,
+        "final_f1": 0.2835565476190476,
+        "correct_final_questions": 12,
+        "questions": 64,
+        "relative_gain_percent_vs_A": {
+          "final_em": 9.090909090909083,
+          "final_f1": 10.559907165651271
+        },
+        "absolute_gain_percentage_points_vs_A": {
+          "final_em": 1.5625,
+          "final_f1": 2.7083333333333295
+        }
+      },
+      "mean_critical_path_components_ms": {
+        "dependency_release": 0.0,
+        "central_queue_and_admission": 321.5685645118356,
+        "input_prepare": 46.770558692514896,
+        "header_wait": 73.40156997088343,
+        "postprocess": 0.1448772381991148,
+        "first_content_wait": 645.5545207718387,
+        "content_receive": 881.8895341828465,
+        "response_tail": 82.034433609806
+      },
+      "action_totals": {
+        "routing_deviations_from_snapshot_affinity": 44,
+        "policy_deferred_ready_decisions": 0,
+        "queue_reorder_iterations": 1,
+        "budget_switches_total": 8,
+        "native_cap_binding_candidates": 2,
+        "native_skipped_query_tokens": 292876
+      },
+      "output_tokens": 1956,
+      "positive_JCT_blocks_vs_A": 3
+    }
+  },
+  "joint_comparisons": {
+    "Joint_vs_A": {
+      "mean_paired_jct_reduction_percent": 10.987641365907022,
+      "per_block_jct_reduction_percent": [
+        7.192336695416102,
+        17.086039024197362,
+        20.086711169382532,
+        -0.4145214253679086
+      ]
+    },
+    "Joint_vs_D": {
+      "mean_paired_jct_reduction_percent": -2.76239295837013,
+      "per_block_jct_reduction_percent": [
+        0.6841454810492253,
+        -5.471811333896337,
+        -2.4246735523233864,
+        -3.8372324283100223
+      ]
+    },
+    "Joint_vs_Decoupled": {
+      "mean_paired_jct_reduction_percent": -3.120703862565741,
+      "per_block_jct_reduction_percent": [
+        0.6902840052034898,
+        -2.5367064020882513,
+        -0.9613672446131316,
+        -9.67502580876507
+      ]
+    }
+  },
+  "D_minus_A_critical_path_accounting_ms": {
+    "dependency_release": 0.0,
+    "central_queue_and_admission": -15.968077932484448,
+    "input_prepare": -28.0526865972206,
+    "header_wait": -30.86683654692024,
+    "postprocess": -0.0029032817110419273,
+    "first_content_wait": -123.71710501611233,
+    "content_receive": -137.90760992560536,
+    "response_tail": -8.26509646140039
+  },
+  "D_cache_skipped_query_count_reduction_percent": 2.204883207594732,
+  "mechanism_evidence": {
+    "observed": "D changes placement 31 times, with one queue-reorder iteration, zero policy deferrals and zero budget switches",
+    "interpretation": "consistent with cache/competition-aware placement guided by remaining DAG completion; not evidence of increased total prefix skipping",
+    "not_identified": "No matched DAG-information-blind load/cache-aware router ablation; the entire 13.30% cannot be isolated as causal value of DAG information alone"
+  },
+  "remote_archive_status": "server run, models, exact dataset manifest and raw backend files NOT copied by this tool",
+  "claim_limits": [
+    "development estimates, not an independent final confirmation",
+    "Joint F1 highest, final EM tied with D/Decoupled",
+    "quality is not a demonstrated causal scheduling benefit",
+    "batching increment and Joint superiority over Decoupled not established",
+    "natural outputs differ; all questions and conditions retained",
+    "JCT gain is not sustainable-capacity gain"
+  ]
+}

@@ -1,0 +1,273 @@
+{
+  "schema": "workflow-archive-logging-sidecar-1",
+  "repo": "/home/wmy/sci/spra_paper_experiments_github",
+  "runs": [
+    {
+      "run_id": "spra_workflow_sched_v2/runs/ablation_v2",
+      "kind": "native_suite",
+      "status": "complete",
+      "path": "/home/wmy/sci/spra_paper_experiments_github/spra_workflow_sched_v2/runs/ablation_v2",
+      "accepted": 72,
+      "expected": 72,
+      "run_uuid": "aad548c94b6c48818f3841f260fefcdc",
+      "protocol_sha256": "324a2d9425dd4e1eca094bef5171548f59d08663127b51ea1fb108984556a137",
+      "suite": "ablation",
+      "coverage": [
+        {
+          "replicas": 4,
+          "accepted": 72,
+          "expected": 72,
+          "by_repeat": {
+            "1": {
+              "accepted": 12,
+              "expected": 12
+            },
+            "2": {
+              "accepted": 12,
+              "expected": 12
+            },
+            "3": {
+              "accepted": 12,
+              "expected": 12
+            },
+            "4": {
+              "accepted": 12,
+              "expected": 12
+            },
+            "5": {
+              "accepted": 12,
+              "expected": 12
+            },
+            "6": {
+              "accepted": 12,
+              "expected": 12
+            }
+          }
+        }
+      ]
+    },
+    {
+      "run_id": "spra_workflow_sched_v2/runs/grid_v2",
+      "kind": "native_suite",
+      "status": "failed",
+      "path": "/home/wmy/sci/spra_paper_experiments_github/spra_workflow_sched_v2/runs/grid_v2",
+      "accepted": 41,
+      "expected": 640,
+      "run_uuid": "1705b5a9190540adb95f0f2c335fd5df",
+      "protocol_sha256": "c6b606e4e332affbe87190eb31c728fb374de2cd2205b699f69e43d358e5b9fc",
+      "suite": "grid",
+      "coverage": [
+        {
+          "replicas": 1,
+          "accepted": 41,
+          "expected": 160,
+          "by_repeat": {
+            "1": {
+              "accepted": 41,
+              "expected": 80
+            },
+            "2": {
+              "accepted": 0,
+              "expected": 80
+            }
+          }
+        },
+        {
+          "replicas": 2,
+          "accepted": 0,
+          "expected": 160,
+          "by_repeat": {
+            "1": {
+              "accepted": 0,
+              "expected": 80
+            },
+            "2": {
+              "accepted": 0,
+              "expected": 80
+            }
+          }
+        },
+        {
+          "replicas": 3,
+          "accepted": 0,
+          "expected": 160,
+          "by_repeat": {
+            "1": {
+              "accepted": 0,
+              "expected": 80
+            },
+            "2": {
+              "accepted": 0,
+              "expected": 80
+            }
+          }
+        },
+        {
+          "replicas": 4,
+          "accepted": 0,
+          "expected": 160,
+          "by_repeat": {
+            "1": {
+              "accepted": 0,
+              "expected": 80
+            },
+            "2": {
+              "accepted": 0,
+              "expected": 80
+            }
+          }
+        }
+      ]
+    },
+    {
+      "run_id": "spra_workflow_sched_v2/runs/smoke_v2",
+      "kind": "native_suite",
+      "status": "complete",
+      "path": "/home/wmy/sci/spra_paper_experiments_github/spra_workflow_sched_v2/runs/smoke_v2",
+      "accepted": 5,
+      "expected": 5,
+      "run_uuid": "049108c22c5f4635946de6404b238de6",
+      "protocol_sha256": "691b086bc57e5ccbc30b64346aba690d913fbb096f339563789c90b93bead69a",
+      "suite": "smoke",
+      "coverage": [
+        {
+          "replicas": 4,
+          "accepted": 5,
+          "expected": 5,
+          "by_repeat": {
+            "1": {
+              "accepted": 5,
+              "expected": 5
+            }
+          }
+        }
+      ]
+    },
+    {
+      "run_id": "spra_workflow_sched_v2_1/runs/agecheck_v2_1",
+      "kind": "native_suite",
+      "status": "complete",
+      "path": "/home/wmy/sci/spra_paper_experiments_github/spra_workflow_sched_v2_1/runs/agecheck_v2_1",
+      "accepted": 10,
+      "expected": 10,
+      "run_uuid": "1c54f47c85de4ed3ae2da33b356034a4",
+      "protocol_sha256": "6feed6f08aac13edd49f21799c87432f8357d6aafe7258eeaa7f3a6469968509",
+      "suite": "agecheck",
+      "coverage": [
+        {
+          "replicas": 1,
+          "accepted": 10,
+          "expected": 10,
+          "by_repeat": {
+            "1": {
+              "accepted": 10,
+              "expected": 10
+            }
+          }
+        }
+      ]
+    },
+    {
+      "run_id": "spra_workflow_sched_v2_1/runs/grid_v2_1",
+      "kind": "native_suite",
+      "status": "paused",
+      "path": "/home/wmy/sci/spra_paper_experiments_github/spra_workflow_sched_v2_1/runs/grid_v2_1",
+      "accepted": 320,
+      "expected": 640,
+      "run_uuid": "26d5bc0ed8de4f75adb38dc6db5395e0",
+      "protocol_sha256": "e0d9453ea602f05e0d4c645f1a1944b09b74c93a4137917a5895e8362dcc12b4",
+      "suite": "grid",
+      "coverage": [
+        {
+          "replicas": 1,
+          "accepted": 160,
+          "expected": 160,
+          "by_repeat": {
+            "1": {
+              "accepted": 80,
+              "expected": 80
+            },
+            "2": {
+              "accepted": 80,
+              "expected": 80
+            }
+          }
+        },
+        {
+          "replicas": 2,
+          "accepted": 80,
+          "expected": 160,
+          "by_repeat": {
+            "1": {
+              "accepted": 80,
+              "expected": 80
+            },
+            "2": {
+              "accepted": 0,
+              "expected": 80
+            }
+          }
+        },
+        {
+          "replicas": 3,
+          "accepted": 80,
+          "expected": 160,
+          "by_repeat": {
+            "1": {
+              "accepted": 80,
+              "expected": 80
+            },
+            "2": {
+              "accepted": 0,
+              "expected": 80
+            }
+          }
+        },
+        {
+          "replicas": 4,
+          "accepted": 0,
+          "expected": 160,
+          "by_repeat": {
+            "1": {
+              "accepted": 0,
+              "expected": 80
+            },
+            "2": {
+              "accepted": 0,
+              "expected": 80
+            }
+          }
+        }
+      ]
+    },
+    {
+      "run_id": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e",
+      "kind": "legacy_or_unrecognized",
+      "status": "raw_preserved_not_recomputed",
+      "path": "/home/wmy/sci/spra_paper_experiments_github/spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e",
+      "accepted": null,
+      "expected": null
+    },
+    {
+      "run_id": "spra_stage19_typed_handoff_v1/runs/PILOT_20261011T185607Z_8e964348",
+      "kind": "legacy_or_unrecognized",
+      "status": "raw_preserved_not_recomputed",
+      "path": "/home/wmy/sci/spra_paper_experiments_github/spra_stage19_typed_handoff_v1/runs/PILOT_20261011T185607Z_8e964348",
+      "accepted": null,
+      "expected": null
+    },
+    {
+      "run_id": "spra_stage19_typed_handoff_v1/runs/PILOT_20261011T185806Z_fc5b583b",
+      "kind": "legacy_or_unrecognized",
+      "status": "raw_preserved_not_recomputed",
+      "path": "/home/wmy/sci/spra_paper_experiments_github/spra_stage19_typed_handoff_v1/runs/PILOT_20261011T185806Z_fc5b583b",
+      "accepted": null,
+      "expected": null
+    }
+  ],
+  "errors": [],
+  "scope": "workflow request-scheduling lineage plus 3 known typed pilots; not all unrelated joint experiments",
+  "source_missing": [],
+  "model_weight_exclusions": [],
+  "archive_mode": "full"
+}

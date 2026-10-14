@@ -1,0 +1,3 @@
+$ /home/wmy/anaconda3/envs/spra-exp/bin/python3 --version
+Python 3.11.13
+

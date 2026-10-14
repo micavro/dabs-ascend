@@ -1,0 +1,10 @@
+{
+  "scope": "local CPU, synthetic states, frozen real service model; not GPU performance",
+  "pairs": 48,
+  "all_actions_matched": true,
+  "GPU_requests": 0,
+  "DAG_mean_cpu_ms": 1.2754110833270715,
+  "DAG_Lite_mean_cpu_ms": 2.0881494374975773,
+  "JCT_gain_established": false,
+  "real_deadline_trace_equivalence_claimed": false
+}

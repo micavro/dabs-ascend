@@ -1,0 +1,238 @@
+STAGE19 LOCAL VALIDATION
+Python 3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]
+195 tests passed; 49 Python files parse with Python3.11 grammar.
+No real GPU, Kubernetes, external model endpoint or full MuSiQue archive was used.
+Google archive transport not tested in build runtime; archive import tested on explicitly synthetic fixtures.
+Retained fake E2E test adds35ms fake-stream wait for deterministic idle-cache observation.
+Native hook unmodified.
+
+test_missing_status_does_not_send_request (test_bootstrap_metrics_fix.GateTests.test_missing_status_does_not_send_request) ... ok
+test_mechanism_cli_needs_no_model_or_worker (test_bootstrap_metrics_fix.MechanismNoSearchTests.test_mechanism_cli_needs_no_model_or_worker) ... RESULT=/tmp/tmpzvpbxb_n/runs/MECHANISM_20261009T125721Z_ae91c9a4
+MECHANISM_REPORT={"paired": [{"block": 1, "L_ms": {"concentrate_protect": 100.0, "concentrate_aggressive": 100.0, "split_protect": 100.0, "split_aggressive": 100.0}, "placement_gain_ms_protect": 0.0, "placement_gain_ms_aggressive": 0.0, "interaction_difference_ms": 0.0, "placement_ranking_reverses": false, "all_background_workflows_counted": true, "trigger_satisfied_in_all_cells": false, "forced_action_had_prefill_in_all_cells": false, "forced_window_activity": {"concentrate_protect": {}, "split_protect": {}, "split_aggressive": {}, "concentrate_aggressive": {}}, "request_latency_by_cell": {"concentrate_protect": {"mean_request_ttft_ms": null, "p95_request_ttft_ms": null, "mean_client_tpot_proxy_ms": null, "p95_client_tpot_proxy_ms": null, "mean_node_time_to_first_content_ms": null, "p95_node_time_to_first_content_ms": null, "request_ttft_samples": null, "client_tpot_proxy_samples": null, "tpot_exclusions": {}, "exact_gpu_itl_available": false}, "split_protect": {"mean_request_ttft_ms": null, "p95_request_ttft_ms": null, "mean_client_tpot_proxy_ms": null, "p95_client_tpot_proxy_ms": null, "mean_node_time_to_first_content_ms": null, "p95_node_time_to_first_content_ms": null, "request_ttft_samples": null, "client_tpot_proxy_samples": null, "tpot_exclusions": {}, "exact_gpu_itl_available": false}, "split_aggressive": {"mean_request_ttft_ms": null, "p95_request_ttft_ms": null, "mean_client_tpot_proxy_ms": null, "p95_client_tpot_proxy_ms": null, "mean_node_time_to_first_content_ms": null, "p95_node_time_to_first_content_ms": null, "request_ttft_samples": null, "client_tpot_proxy_samples": null, "tpot_exclusions": {}, "exact_gpu_itl_available": false}, "concentrate_aggressive": {"mean_request_ttft_ms": null, "p95_request_ttft_ms": null, "mean_client_tpot_proxy_ms": null, "p95_client_tpot_proxy_ms": null, "mean_node_time_to_first_content_ms": null, "p95_node_time_to_first_content_ms": null, "request_ttft_samples": null, "client_tpot_proxy_samples": null, "tpot_exclusions": {}, "exact_gpu_itl_available": false}}, "online_search_calls_by_cell": {"concentrate_protect": 0, "split_protect": 0, "split_aggressive": 0, "concentrate_aggressive": 0}}, {"block": 2, "L_ms": {"concentrate_protect": 100.0, "concentrate_aggressive": 100.0, "split_protect": 100.0, "split_aggressive": 100.0}, "placement_gain_ms_protect": 0.0, "placement_gain_ms_aggressive": 0.0, "interaction_difference_ms": 0.0, "placement_ranking_reverses": false, "all_background_workflows_counted": true, "trigger_satisfied_in_all_cells": false, "forced_action_had_prefill_in_all_cells": false, "forced_window_activity": {"concentrate_aggressive": {}, "split_aggressive": {}, "split_protect": {}, "concentrate_protect": {}}, "request_latency_by_cell": {"concentrate_aggressive": {"mean_request_ttft_ms": null, "p95_request_ttft_ms": null, "mean_client_tpot_proxy_ms": null, "p95_client_tpot_proxy_ms": null, "mean_node_time_to_first_content_ms": null, "p95_node_time_to_first_content_ms": null, "request_ttft_samples": null, "client_tpot_proxy_samples": null, "tpot_exclusions": {}, "exact_gpu_itl_available": false}, "split_aggressive": {"mean_request_ttft_ms": null, "p95_request_ttft_ms": null, "mean_client_tpot_proxy_ms": null, "p95_client_tpot_proxy_ms": null, "mean_node_time_to_first_content_ms": null, "p95_node_time_to_first_content_ms": null, "request_ttft_samples": null, "client_tpot_proxy_samples": null, "tpot_exclusions": {}, "exact_gpu_itl_available": false}, "split_protect": {"mean_request_ttft_ms": null, "p95_request_ttft_ms": null, "mean_client_tpot_proxy_ms": null, "p95_client_tpot_proxy_ms": null, "mean_node_time_to_first_content_ms": null, "p95_node_time_to_first_content_ms": null, "request_ttft_samples": null, "client_tpot_proxy_samples": null, "tpot_exclusions": {}, "exact_gpu_itl_available": false}, "concentrate_protect": {"mean_request_ttft_ms": null, "p95_request_ttft_ms": null, "mean_client_tpot_proxy_ms": null, "p95_client_tpot_proxy_ms": null, "mean_node_time_to_first_content_ms": null, "p95_node_time_to_first_content_ms": null, "request_ttft_samples": null, "client_tpot_proxy_samples": null, "tpot_exclusions": {}, "exact_gpu_itl_available": false}}, "online_search_calls_by_cell": {"concentrate_aggressive": 0, "split_aggressive": 0, "split_protect": 0, "concentrate_protect": 0}}], "no_reversal_requirement": true, "scope": "predeclared two-placement/two-vector physical intervention; not online-policy efficacy", "snapshot_exact_restore_claimed": false, "fresh_namespace_rule": "equal token work and dependency graph; condition salt differs", "mode": "predeclared_complete_actions_with_no_online_solver", "cost_boundary": "no search in the measured path; publication, communication, event/epoch waits and policy admission remain measured", "zero_total_control_cost_claimed": false, "metric_boundary": "all requests including background; separate workflow-JCT and request-TTFT/TPOT-proxy distributions"}
+ok
+test_child_eligibility_from_max_parent_finish (test_bootstrap_metrics_fix.MetricTests.test_child_eligibility_from_max_parent_finish) ... ok
+test_empty_input_missing_not_zero (test_bootstrap_metrics_fix.MetricTests.test_empty_input_missing_not_zero) ... ok
+test_failed_request_not_latency_zero (test_bootstrap_metrics_fix.MetricTests.test_failed_request_not_latency_zero) ... ok
+test_missing_parent_does_not_use_ready_at (test_bootstrap_metrics_fix.MetricTests.test_missing_parent_does_not_use_ready_at) ... ok
+test_missing_visible_content_is_missing (test_bootstrap_metrics_fix.MetricTests.test_missing_visible_content_is_missing) ... ok
+test_multitoken_jump_not_interpolated (test_bootstrap_metrics_fix.MetricTests.test_multitoken_jump_not_interpolated) ... ok
+test_negative_timeline_not_clamped (test_bootstrap_metrics_fix.MetricTests.test_negative_timeline_not_clamped) ... ok
+test_no_usage_does_not_use_requested_count (test_bootstrap_metrics_fix.MetricTests.test_no_usage_does_not_use_requested_count) ... ok
+test_node_start_is_dependency_eligible_not_discovered (test_bootstrap_metrics_fix.MetricTests.test_node_start_is_dependency_eligible_not_discovered) ... ok
+test_old_backend_trace_has_no_token_times (test_bootstrap_metrics_fix.MetricTests.test_old_backend_trace_has_no_token_times) ... ok
+test_one_token_tpot_not_zero (test_bootstrap_metrics_fix.MetricTests.test_one_token_tpot_not_zero) ... ok
+test_recount_keeps_original_files (test_bootstrap_metrics_fix.MetricTests.test_recount_keeps_original_files) ... ok
+test_recount_rejects_output_inside_source (test_bootstrap_metrics_fix.MetricTests.test_recount_rejects_output_inside_source) ... ok
+test_request_ttft_includes_header (test_bootstrap_metrics_fix.MetricTests.test_request_ttft_includes_header) ... ok
+test_request_weighting_not_workflow_path_sum (test_bootstrap_metrics_fix.MetricTests.test_request_weighting_not_workflow_path_sum) ... ok
+test_single_event_is_not_free_decode (test_bootstrap_metrics_fix.MetricTests.test_single_event_is_not_free_decode) ... ok
+test_tail_inclusive_tpot_and_content_boundary_are_separate (test_bootstrap_metrics_fix.MetricTests.test_tail_inclusive_tpot_and_content_boundary_are_separate) ... ok
+test_token_output_progress_host_label (test_bootstrap_metrics_fix.MetricTests.test_token_output_progress_host_label) ... ok
+test_direct_engine_flag_preserved (test_bootstrap_metrics_fix.SpawnTests.test_direct_engine_flag_preserved) ... ok
+test_engine_failure_keeps_traceback (test_bootstrap_metrics_fix.SpawnTests.test_engine_failure_keeps_traceback) ... ok
+test_importing_launcher_does_not_install (test_bootstrap_metrics_fix.SpawnTests.test_importing_launcher_does_not_install) ... ok
+test_old_runpy_launcher_reenters_under_spawn (test_bootstrap_metrics_fix.SpawnTests.test_old_runpy_launcher_reenters_under_spawn) ... ok
+test_spawn_has_single_server_and_child_hook (test_bootstrap_metrics_fix.SpawnTests.test_spawn_has_single_server_and_child_hook) ... ok
+test_cli_plan_no_runtime (test_deployment_and_reports.DeploymentTests.test_cli_plan_no_runtime) ... ok
+test_stage_and_restore_exact_launcher (test_deployment_and_reports.DeploymentTests.test_stage_and_restore_exact_launcher) ... ok
+test_staging_refuses_recorded_work (test_deployment_and_reports.DeploymentTests.test_staging_refuses_recorded_work) ... ok
+test_dev_evidence_supported (test_deployment_and_reports.NativeVersionTests.test_dev_evidence_supported) ... ok
+test_dev_metadata_absent_rejected (test_deployment_and_reports.NativeVersionTests.test_dev_metadata_absent_rejected) ... ok
+test_dev_wrong_hash_rejected (test_deployment_and_reports.NativeVersionTests.test_dev_wrong_hash_rejected) ... ok
+test_other_version_not_silently_accepted (test_deployment_and_reports.NativeVersionTests.test_other_version_not_silently_accepted) ... ok
+test_model_before_activation_uses_actual_continuation (test_deployment_and_reports.PublisherTests.test_model_before_activation_uses_actual_continuation) ... ok
+test_mechanism_missing_trigger_retained (test_deployment_and_reports.ReportTests.test_mechanism_missing_trigger_retained) ... ok
+test_mechanism_reports_reversal_not_requires_it (test_deployment_and_reports.ReportTests.test_mechanism_reports_reversal_not_requires_it) ... ok
+test_pair_comparison (test_deployment_and_reports.ReportTests.test_pair_comparison) ... ok
+test_A_whole_DAG (test_end_to_end.EndToEnd.test_A_whole_DAG) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1831952606887, "phase": "scheduler_init_enter", "pid": 2207, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1831955362133, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2207, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpa1_dsr3j/joint18v2/spra-vllm-0.status.json"}
+ok
+test_B_whole_DAG (test_end_to_end.EndToEnd.test_B_whole_DAG) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1832346054726, "phase": "scheduler_init_enter", "pid": 2207, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1832348794318, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2207, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpz9gigs8b/joint18v2/spra-vllm-0.status.json"}
+ok
+test_D_whole_DAG (test_end_to_end.EndToEnd.test_D_whole_DAG) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1832737994947, "phase": "scheduler_init_enter", "pid": 2207, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1832740653818, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2207, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpg5ag46mb/joint18v2/spra-vllm-0.status.json"}
+ok
+test_Decoupled_whole_DAG (test_end_to_end.EndToEnd.test_Decoupled_whole_DAG) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1833130973721, "phase": "scheduler_init_enter", "pid": 2207, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1833133765512, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2207, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmp282l5iy7/joint18v2/spra-vllm-0.status.json"}
+ok
+test_Forced_no_model_whole_DAG (test_end_to_end.EndToEnd.test_Forced_no_model_whole_DAG) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1833522904657, "phase": "scheduler_init_enter", "pid": 2207, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1833525550107, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2207, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpgzy8322u/joint18v2/spra-vllm-0.status.json"}
+ok
+test_Joint_whole_DAG (test_end_to_end.EndToEnd.test_Joint_whole_DAG) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1833911622123, "phase": "scheduler_init_enter", "pid": 2207, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1833914269186, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2207, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpfoeoqoto/joint18v2/spra-vllm-0.status.json"}
+ok
+test_failure_keeps_source_trace (test_end_to_end.EndToEnd.test_failure_keeps_source_trace) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1834304058820, "phase": "scheduler_init_enter", "pid": 2207, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1834307204984, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2207, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmppztvcyle/joint18v2/spra-vllm-0.status.json"}
+ok
+test_absent_trigger_does_not_pass (test_finite_admission_fix.EvidenceTests.test_absent_trigger_does_not_pass) ... ok
+test_all_continuation_not_accepted (test_finite_admission_fix.EvidenceTests.test_all_continuation_not_accepted) ... ok
+test_arrival_regression (test_finite_admission_fix.EvidenceTests.test_arrival_regression) ... ok
+test_binding_required (test_finite_admission_fix.EvidenceTests.test_binding_required) ... ok
+test_bootstrap_frames_cannot_substitute (test_finite_admission_fix.EvidenceTests.test_bootstrap_frames_cannot_substitute) ... ok
+test_cap_after_expiry_rejected (test_finite_admission_fix.EvidenceTests.test_cap_after_expiry_rejected) ... ok
+test_idle_frames_cannot_substitute (test_finite_admission_fix.EvidenceTests.test_idle_frames_cannot_substitute) ... ok
+test_native_fallback_not_continuation (test_finite_admission_fix.EvidenceTests.test_native_fallback_not_continuation) ... ok
+test_no_heartbeat_evidence_rejected (test_finite_admission_fix.EvidenceTests.test_no_heartbeat_evidence_rejected) ... ok
+test_renewed_deadline_rejected (test_finite_admission_fix.EvidenceTests.test_renewed_deadline_rejected) ... ok
+test_started_before_ready_rejected (test_finite_admission_fix.EvidenceTests.test_started_before_ready_rejected) ... ok
+test_unbounded_window_rejected (test_finite_admission_fix.EvidenceTests.test_unbounded_window_rejected) ... ok
+test_valid_one_shot (test_finite_admission_fix.EvidenceTests.test_valid_one_shot) ... ok
+test_window_not_republished (test_finite_admission_fix.EvidenceTests.test_window_not_republished) ... ok
+test_delayed_arrival_exercises_pulse_then_expires (test_finite_admission_fix.RealClientFixture.test_delayed_arrival_exercises_pulse_then_expires) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1834425080794, "phase": "scheduler_init_enter", "pid": 2207, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1834427683961, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2207, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpjubl8i7q/joint18v2/spra-vllm-0.status.json"}
+ok
+test_changed_config_rejected (test_finite_admission_fix.ReuseTests.test_changed_config_rejected) ... ok
+test_changed_hook_rejected (test_finite_admission_fix.ReuseTests.test_changed_hook_rejected) ... ok
+test_changed_launch_rejected_even_same_pid (test_finite_admission_fix.ReuseTests.test_changed_launch_rejected_even_same_pid) ... ok
+test_changed_process_rejected (test_finite_admission_fix.ReuseTests.test_changed_process_rejected) ... ok
+test_incomplete_cache_evidence_rejected (test_finite_admission_fix.ReuseTests.test_incomplete_cache_evidence_rejected) ... ok
+test_passed_subcondition_of_failed_suite_reused (test_finite_admission_fix.ReuseTests.test_passed_subcondition_of_failed_suite_reused) ... ok
+test_caps_alone_cannot_pass_without_lifetime_evidence (test_finite_admission_fix.RunnerTests.test_caps_alone_cannot_pass_without_lifetime_evidence) ... ok
+test_reuses_cache_only_runs_one_failed_probe (test_finite_admission_fix.RunnerTests.test_reuses_cache_only_runs_one_failed_probe) ... ok
+test_cap_near_but_total_tighter (test_integration_contracts.AuditTests.test_cap_near_but_total_tighter) ... ok
+test_decode_does_not_consume_prefill_cap (test_integration_contracts.AuditTests.test_decode_does_not_consume_prefill_cap) ... ok
+test_decode_only_not_binding (test_integration_contracts.AuditTests.test_decode_only_not_binding) ... ok
+test_real_prefill_competition_binding_candidate (test_integration_contracts.AuditTests.test_real_prefill_competition_binding_candidate) ... ok
+test_writer_atomic_replace (test_integration_contracts.AuditTests.test_writer_atomic_replace) ... ok
+test_writer_records_all (test_integration_contracts.AuditTests.test_writer_records_all) ... ok
+test_absent_is_measured_zero (test_integration_contracts.CacheTests.test_absent_is_measured_zero) ... ok
+test_completed_freed_blocks_remain_reusable (test_integration_contracts.CacheTests.test_completed_freed_blocks_remain_reusable) ... ok
+test_does_not_change_refcounts (test_integration_contracts.CacheTests.test_does_not_change_refcounts) ... ok
+test_eviction_observed (test_integration_contracts.CacheTests.test_eviction_observed) ... ok
+test_prefix_gap_not_skipped (test_integration_contracts.CacheTests.test_prefix_gap_not_skipped) ... ok
+test_query_hash_verified (test_integration_contracts.CacheTests.test_query_hash_verified) ... ok
+test_uncomputed_block_not_credited (test_integration_contracts.CacheTests.test_uncomputed_block_not_credited) ... ok
+test_unknown_allocator_not_reported_cold (test_integration_contracts.CacheTests.test_unknown_allocator_not_reported_cold) ... ok
+test_cutoff_no_rank (test_integration_contracts.CausalTests.test_cutoff_no_rank) ... ok
+test_expiry_preserves_placement_and_prefix (test_integration_contracts.CausalTests.test_expiry_preserves_placement_and_prefix) ... ok
+test_future_only_cap_has_no_current_effect (test_integration_contracts.CausalTests.test_future_only_cap_has_no_current_effect) ... ok
+test_incomplete_search_cannot_choose_bad_score (test_integration_contracts.CausalTests.test_incomplete_search_cannot_choose_bad_score) ... ok
+test_inflight_not_restarted (test_integration_contracts.CausalTests.test_inflight_not_restarted) ... ok
+test_post_placement_budget_follows_destination (test_integration_contracts.CausalTests.test_post_placement_budget_follows_destination) ... ok
+test_relabel (test_integration_contracts.CausalTests.test_relabel) ... ok
+test_shared_capacity (test_integration_contracts.CausalTests.test_shared_capacity) ... ok
+test_action_expiry_not_transport_expiry (test_integration_contracts.TimeContractTests.test_action_expiry_not_transport_expiry) ... ok
+test_before_activation_uses_continuation (test_integration_contracts.TimeContractTests.test_before_activation_uses_continuation) ... ok
+test_current_action (test_integration_contracts.TimeContractTests.test_current_action) ... ok
+test_engine_identity (test_integration_contracts.TimeContractTests.test_engine_identity) ... ok
+test_heartbeat_cannot_renew_action (test_integration_contracts.TimeContractTests.test_heartbeat_cannot_renew_action) ... ok
+test_lease_expiration (test_integration_contracts.TimeContractTests.test_lease_expiration) ... ok
+test_overlong_action_rejected (test_integration_contracts.TimeContractTests.test_overlong_action_rejected) ... ok
+test_decode_after_cap_exhausted (test_retained_contracts.BudgetTests.test_decode_after_cap_exhausted) ... ok
+test_decode_not_prefill (test_retained_contracts.BudgetTests.test_decode_not_prefill) ... ok
+test_duplicate (test_retained_contracts.BudgetTests.test_duplicate) ... ok
+test_prefill_limit (test_retained_contracts.BudgetTests.test_prefill_limit) ... ok
+test_sequence_ceiling (test_retained_contracts.BudgetTests.test_sequence_ceiling) ... ok
+test_subtract (test_retained_contracts.BudgetTests.test_subtract) ... ok
+test_total_ceiling (test_retained_contracts.BudgetTests.test_total_ceiling) ... ok
+test_uncapped_native (test_retained_contracts.BudgetTests.test_uncapped_native) ... ok
+test_alignment (test_retained_contracts.LeaseTests.test_alignment) ... ok
+test_bad_pid (test_retained_contracts.LeaseTests.test_bad_pid) ... ok
+test_boolean_budget (test_retained_contracts.LeaseTests.test_boolean_budget) ... ok
+test_disabled (test_retained_contracts.LeaseTests.test_disabled) ... ok
+test_duplicate_order (test_retained_contracts.LeaseTests.test_duplicate_order) ... ok
+test_expired (test_retained_contracts.LeaseTests.test_expired) ... ok
+test_hard_limit (test_retained_contracts.LeaseTests.test_hard_limit) ... ok
+test_valid (test_retained_contracts.LeaseTests.test_valid) ... ok
+test_age_fifo (test_retained_contracts.OrderingTests.test_age_fifo) ... ok
+test_decode_position (test_retained_contracts.OrderingTests.test_decode_position) ... ok
+test_unknown_stable (test_retained_contracts.OrderingTests.test_unknown_stable) ... ok
+test_arrivals_fixed_work (test_retained_contracts.WorkloadTests.test_arrivals_fixed_work) ... ok
+test_context_guard (test_retained_contracts.WorkloadTests.test_context_guard) ... ok
+test_counts_and_tokens (test_retained_contracts.WorkloadTests.test_counts_and_tokens) ... ok
+test_edges_not_names_control (test_retained_contracts.WorkloadTests.test_edges_not_names_control) ... ok
+test_all_cap_levels_remain_proposable (test_selector_repair.CandidateRepairTests.test_all_cap_levels_remain_proposable) ... ok
+test_candidate_specific_vectors_match_declared_mechanism (test_selector_repair.CandidateRepairTests.test_candidate_specific_vectors_match_declared_mechanism) ... ok
+test_mechanism_partial_pair_in_complete_library (test_selector_repair.CandidateRepairTests.test_mechanism_partial_pair_in_complete_library) ... ok
+test_native_cache_prefix_not_route_history (test_selector_repair.CandidateRepairTests.test_native_cache_prefix_not_route_history) ... ok
+test_no_join_has_no_invented_join_candidate (test_selector_repair.CandidateRepairTests.test_no_join_has_no_invented_join_candidate) ... ok
+test_no_prefill_does_not_create_budget_variants (test_selector_repair.CandidateRepairTests.test_no_prefill_does_not_create_budget_variants) ... ok
+test_no_rewrite_of_submitted_nodes (test_selector_repair.CandidateRepairTests.test_no_rewrite_of_submitted_nodes) ... ok
+test_packet_contains_proper_pair_without_forced_names (test_selector_repair.CandidateRepairTests.test_packet_contains_proper_pair_without_forced_names) ... ok
+test_proper_subsets_and_all_destinations (test_selector_repair.CandidateRepairTests.test_proper_subsets_and_all_destinations) ... ok
+test_renaming_nodes_does_not_erase_partial_pair (test_selector_repair.CandidateRepairTests.test_renaming_nodes_does_not_erase_partial_pair) ... ok
+test_clamped_short_service_not_coalesced_across_kink (test_selector_repair.DecodeCoalescingTests.test_clamped_short_service_not_coalesced_across_kink) ... ok
+test_coalescing_matches_single_steps_on_fork (test_selector_repair.DecodeCoalescingTests.test_coalescing_matches_single_steps_on_fork) ... ok
+test_event_trace_is_not_coalesced (test_selector_repair.DecodeCoalescingTests.test_event_trace_is_not_coalesced) ... ok
+test_random_small_DAGs_agree (test_selector_repair.DecodeCoalescingTests.test_random_small_DAGs_agree) ... ok
+test_all_archived_blocks_required (test_selector_repair.PhaseModelTests.test_all_archived_blocks_required) ... ok
+test_block_cv_holds_out_all_methods (test_selector_repair.PhaseModelTests.test_block_cv_holds_out_all_methods) ... ok
+test_empty_phase_retains_legacy_not_zero_time (test_selector_repair.PhaseModelTests.test_empty_phase_retains_legacy_not_zero_time) ... ok
+test_legacy_model_numerics_preserved (test_selector_repair.PhaseModelTests.test_legacy_model_numerics_preserved) ... ok
+test_negative_phase_coefficient_rejected (test_selector_repair.PhaseModelTests.test_negative_phase_coefficient_rejected) ... ok
+test_new_duration_uses_native_skips_not_logical_tokens (test_selector_repair.PhaseModelTests.test_new_duration_uses_native_skips_not_logical_tokens) ... ok
+test_no_future_or_JCT_labels_needed (test_selector_repair.PhaseModelTests.test_no_future_or_JCT_labels_needed) ... ok
+test_rollout_and_model_use_same_phase (test_selector_repair.PhaseModelTests.test_rollout_and_model_use_same_phase) ... ok
+test_missing_model_input_not_claimed_zero_skip (test_selector_repair.RawExtractionTests.test_missing_model_input_not_claimed_zero_skip) ... ok
+test_raw_backend_join (test_selector_repair.RawExtractionTests.test_raw_backend_join) ... ok
+test_B_keeps_reference_schedule (test_selector_repair.SearchRepairTests.test_B_keeps_reference_schedule) ... ok
+test_D_keeps_fixed_cap (test_selector_repair.SearchRepairTests.test_D_keeps_fixed_cap) ... ok
+test_client_reserves_handoff_inside_unchanged_deadline (test_selector_repair.SearchRepairTests.test_client_reserves_handoff_inside_unchanged_deadline) ... ok
+test_coordinate_prefix_same_for_decoupled_and_joint (test_selector_repair.SearchRepairTests.test_coordinate_prefix_same_for_decoupled_and_joint) ... ok
+test_expired_worker_returns_reference_without_forged_score (test_selector_repair.SearchRepairTests.test_expired_worker_returns_reference_without_forged_score) ... ok
+test_incomplete_reference_does_not_allow_other_scores_to_win (test_selector_repair.SearchRepairTests.test_incomplete_reference_does_not_allow_other_scores_to_win) ... ok
+test_joint_selects_cross_only_when_complete_objective_wins (test_selector_repair.SearchRepairTests.test_joint_selects_cross_only_when_complete_objective_wins) ... ok
+test_trace_has_per_workflow_objective_evidence (test_selector_repair.SearchRepairTests.test_trace_has_per_workflow_objective_evidence) ... ok
+test_all_twenty_temp_conditions_fit_and_freeze_without_network (test_selector_workflow.PreparationTests.test_all_twenty_temp_conditions_fit_and_freeze_without_network) ... ok
+test_prepared_hash_rejects_mutation (test_selector_workflow.PreparationTests.test_prepared_hash_rejects_mutation) ... ok
+test_suite_failure_keeps_partial_results_and_disables_control (test_selector_workflow.SuiteTests.test_suite_failure_keeps_partial_results_and_disables_control) ... Executing <Task finished name='Task-389' coro=<SuiteTests.test_suite_failure_keeps_partial_results_and_disables_control() done, defined at /mnt/data/spra_stage19_musique_joint_v1/tests/test_selector_workflow.py:85> result=None created at /usr/lib/python3.13/asyncio/runners.py:100> took 0.210 seconds
+ok
+test_suite_warmup_then_twenty_conditions (test_selector_workflow.SuiteTests.test_suite_warmup_then_twenty_conditions) ... Executing <Task finished name='Task-394' coro=<SuiteTests.test_suite_warmup_then_twenty_conditions() done, defined at /mnt/data/spra_stage19_musique_joint_v1/tests/test_selector_workflow.py:84> result=None created at /usr/lib/python3.13/asyncio/runners.py:100> took 1.305 seconds
+ok
+test_answer_metric (test_semantic19.DatasetTests.test_answer_metric) ... ok
+test_chain_retained (test_semantic19.DatasetTests.test_chain_retained) ... ok
+test_compile_dataset_count_and_disjoint (test_semantic19.DatasetTests.test_compile_dataset_count_and_disjoint) ... ok
+test_disconnected_rejected (test_semantic19.DatasetTests.test_disconnected_rejected) ... ok
+test_exact_parent_response_not_gold (test_semantic19.DatasetTests.test_exact_parent_response_not_gold) ... ok
+test_fair_context_budget (test_semantic19.DatasetTests.test_fair_context_budget) ... ok
+test_fair_context_no_padding (test_semantic19.DatasetTests.test_fair_context_no_padding) ... ok
+test_format_failure_is_not_teacher_forced (test_semantic19.DatasetTests.test_format_failure_is_not_teacher_forced) ... ok
+test_forward_ref_rejected (test_semantic19.DatasetTests.test_forward_ref_rejected) ... ok
+test_missing_parent_rejected (test_semantic19.DatasetTests.test_missing_parent_rejected) ... ok
+test_native_fork_not_added (test_semantic19.DatasetTests.test_native_fork_not_added) ... ok
+test_no_equalization_real_outputs (test_semantic19.DatasetTests.test_no_equalization_real_outputs) ... ok
+test_ordinal_refs_not_source_id (test_semantic19.DatasetTests.test_ordinal_refs_not_source_id) ... ok
+test_public_validation_rejects_injected_gold (test_semantic19.DatasetTests.test_public_validation_rejects_injected_gold) ... ok
+test_reject_changed_public_data (test_semantic19.DatasetTests.test_reject_changed_public_data) ... ok
+test_runtime_strips_gold (test_semantic19.DatasetTests.test_runtime_strips_gold) ... ok
+test_wave_is_declared_fixed_shape (test_semantic19.DatasetTests.test_wave_is_declared_fixed_shape) ... ok
+test_dynamic_child_receives_actual_outputs (test_semantic19.PacketTests.test_dynamic_child_receives_actual_outputs) ... ok
+test_dynamic_oversize_never_silently_truncates (test_semantic19.PacketTests.test_dynamic_oversize_never_silently_truncates) ... ok
+test_packet_uses_all_documents_and_bounds (test_semantic19.PacketTests.test_packet_uses_all_documents_and_bounds) ... ok
+test_B_does_not_build_schedules (test_semantic19.SelectorTests.test_B_does_not_build_schedules) ... ok
+test_decode_guard_can_reject_predicted_harm (test_semantic19.SelectorTests.test_decode_guard_can_reject_predicted_harm) ... ok
+test_four_cells_scored_joint (test_semantic19.SelectorTests.test_four_cells_scored_joint) ... ok
+test_joint_deadline_retains_reference (test_semantic19.SelectorTests.test_joint_deadline_retains_reference) ... ok
+test_no_output_future_labels_in_selector (test_semantic19.SelectorTests.test_no_output_future_labels_in_selector) ... ok
+test_pair_incomplete_never_ranks_partial_value (test_semantic19.SelectorTests.test_pair_incomplete_never_ranks_partial_value) ... ok
+test_semantic_A (test_semantic19.SemanticEndToEnd.test_semantic_A) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1839777627732, "phase": "scheduler_init_enter", "pid": 2207, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1839780297779, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2207, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpaa2xqqfu/joint18v2/spra-vllm-0.status.json"}
+ok
+test_semantic_B (test_semantic19.SemanticEndToEnd.test_semantic_B) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1840067184151, "phase": "scheduler_init_enter", "pid": 2207, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1840069820278, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2207, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpxbmx5dg7/joint18v2/spra-vllm-0.status.json"}
+ok
+test_semantic_D (test_semantic19.SemanticEndToEnd.test_semantic_D) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1840382154539, "phase": "scheduler_init_enter", "pid": 2207, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1840384759158, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2207, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpqefn4qvv/joint18v2/spra-vllm-0.status.json"}
+ok
+test_semantic_Decoupled (test_semantic19.SemanticEndToEnd.test_semantic_Decoupled) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1840677120207, "phase": "scheduler_init_enter", "pid": 2207, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1840680404619, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2207, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpfk914063/joint18v2/spra-vllm-0.status.json"}
+ok
+test_semantic_Joint (test_semantic19.SemanticEndToEnd.test_semantic_Joint) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1841012258682, "phase": "scheduler_init_enter", "pid": 2207, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 1841015054038, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 2207, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpekx4vs9e/joint18v2/spra-vllm-0.status.json"}
+ok
+test_ambiguous_archive_rejected (test_semantic_cli.AcquisitionTests.test_ambiguous_archive_rejected) ... ok
+test_confirmation_form (test_semantic_cli.AcquisitionTests.test_confirmation_form) ... ok
+test_duplicate_paragraph_rejected (test_semantic_cli.AcquisitionTests.test_duplicate_paragraph_rejected) ... ok
+test_no_overwrite_existing_dataset_manifest (test_semantic_cli.AcquisitionTests.test_no_overwrite_existing_dataset_manifest) ... ok
+test_official_archive_names_imported_and_labels_separated (test_semantic_cli.AcquisitionTests.test_official_archive_names_imported_and_labels_separated) ... ok
+test_all_methods_reported_with_variable_outputs (test_semantic_cli.ReportAndFreezeTests.test_all_methods_reported_with_variable_outputs) ... ok
+test_incomplete_profile_not_frozen (test_semantic_cli.ReportAndFreezeTests.test_incomplete_profile_not_frozen) ... ok
+test_prepared_mutation_rejected (test_semantic_cli.ReportAndFreezeTests.test_prepared_mutation_rejected) ... ok
+test_profile_guard_preserves_quality_and_uses_all_20 (test_semantic_cli.ReportAndFreezeTests.test_profile_guard_preserves_quality_and_uses_all_20) ... ok
+test_wave_low_rate_does_not_hang (test_semantic_cli.ReportAndFreezeTests.test_wave_low_rate_does_not_hang) ... ok
+
+----------------------------------------------------------------------
+Ran 195 tests in 20.008s
+
+OK

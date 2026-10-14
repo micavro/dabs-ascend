@@ -1,0 +1,5 @@
+﻿block,workflow_count,node_count,edge_count,chain_count,branch_count,shared_prefix_per_workflow,mean_registered_full_prefix_tokens,mean_prompt_est_tokens,manifest
+1,16,53,37,8,8,16,2619.4716981132074,2663.0943396226417,repo/spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B1_1_A/manifest.json
+2,16,55,39,7,9,16,2653.3818181818183,2694.7272727272725,repo/spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B2_1_D/manifest.json
+3,16,52,36,9,7,16,2660.6153846153848,2700.769230769231,repo/spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B3_1_B/manifest.json
+4,16,53,37,8,8,16,2650.867924528302,2691.7169811320755,repo/spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B4_1_Decoupled/manifest.json

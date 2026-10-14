@@ -1,0 +1,52 @@
+test_ablation_all_permutations (test_contracts.DesignTests.test_ablation_all_permutations) ... ok
+test_cfg_deep_copy (test_contracts.DesignTests.test_cfg_deep_copy) ... ok
+test_confirmation_carryover_balance (test_contracts.DesignTests.test_confirmation_carryover_balance) ... ok
+test_confirmation_position_balance (test_contracts.DesignTests.test_confirmation_position_balance) ... ok
+test_counts (test_contracts.DesignTests.test_counts) ... ok
+test_exact_four_blocks (test_contracts.DesignTests.test_exact_four_blocks) ... ok
+test_grid_all_cells (test_contracts.DesignTests.test_grid_all_cells) ... ok
+test_grid_no_duplicates (test_contracts.DesignTests.test_grid_no_duplicates) ... ok
+test_mirror_per_cellblock (test_contracts.DesignTests.test_mirror_per_cellblock) ... ok
+test_original_clock_guard (test_contracts.DesignTests.test_original_clock_guard) ... ok
+test_plan_no_oracle (test_contracts.DesignTests.test_plan_no_oracle) ... ok
+test_unknown_suite (test_contracts.DesignTests.test_unknown_suite) ... ok
+test_duplicate (test_contracts.ReportTests.test_duplicate) ... ok
+test_external_mismatch (test_contracts.ReportTests.test_external_mismatch) ... ok
+test_method_alias_wrong (test_contracts.ReportTests.test_method_alias_wrong) ... ok
+test_missing_not_complete (test_contracts.ReportTests.test_missing_not_complete) ... ok
+test_negative_results_retained (test_contracts.ReportTests.test_negative_results_retained) ... ok
+test_distinct_pair (test_contracts.RoutingTests.test_distinct_pair) ... ok
+test_negative_count (test_contracts.RoutingTests.test_negative_count) ... ok
+test_no_future_length_ranking (test_contracts.RoutingTests.test_no_future_length_ranking) ... ok
+test_no_native_reorder (test_contracts.RoutingTests.test_no_native_reorder) ... ok
+test_no_prefix_or_dag_dependency (test_contracts.RoutingTests.test_no_prefix_or_dag_dependency) ... ok
+test_one_replica_same_routes (test_contracts.RoutingTests.test_one_replica_same_routes) ... ok
+test_p2c_counts_new_placements (test_contracts.RoutingTests.test_p2c_counts_new_placements) ... ok
+test_p2c_idempotence (test_contracts.RoutingTests.test_p2c_idempotence) ... ok
+test_p2c_selects_lower_load (test_contracts.RoutingTests.test_p2c_selects_lower_load) ... ok
+test_reference_has_no_cursor_side_effect (test_contracts.RoutingTests.test_reference_has_no_cursor_side_effect) ... ok
+test_resource_held_fifo_prefix (test_contracts.RoutingTests.test_resource_held_fifo_prefix) ... ok
+test_round_robin (test_contracts.RoutingTests.test_round_robin) ... ok
+test_round_robin_resume_count (test_contracts.RoutingTests.test_round_robin_resume_count) ... ok
+test_unknown_baseline (test_contracts.RoutingTests.test_unknown_baseline) ... ok
+test_baseline_rejected_by_worker (test_contracts.SelectorTests.test_baseline_rejected_by_worker) ... ok
+test_binding_restored_on_exception (test_contracts.SelectorTests.test_binding_restored_on_exception) ... ok
+test_budget_function_not_called (test_contracts.SelectorTests.test_budget_function_not_called) ... ok
+test_complete_objective_equivalence_R1 (test_contracts.SelectorTests.test_complete_objective_equivalence_R1) ... ok
+test_complete_objective_equivalence_R2 (test_contracts.SelectorTests.test_complete_objective_equivalence_R2) ... ok
+test_complete_objective_equivalence_R3 (test_contracts.SelectorTests.test_complete_objective_equivalence_R3) ... ok
+test_complete_objective_equivalence_R4 (test_contracts.SelectorTests.test_complete_objective_equivalence_R4) ... ok
+test_expired_retains_reference (test_contracts.SelectorTests.test_expired_retains_reference) ... ok
+test_extra_file_tamper (test_contracts.SelectorTests.test_extra_file_tamper) ... ok
+test_file_tamper (test_contracts.SelectorTests.test_file_tamper) ... ok
+test_incomplete_never_ranked (test_contracts.SelectorTests.test_incomplete_never_ranked) ... ok
+test_inspect48_without_data_claim (test_contracts.SelectorTests.test_inspect48_without_data_claim) ... ok
+test_reject_adaptive_method (test_contracts.SelectorTests.test_reject_adaptive_method) ... ok
+test_reject_other_cap (test_contracts.SelectorTests.test_reject_other_cap) ... ok
+test_worker_lite_path (test_contracts.SelectorTests.test_worker_lite_path) ... ok
+test_worker_original_calls_original (test_contracts.SelectorTests.test_worker_original_calls_original) ... ok
+
+----------------------------------------------------------------------
+Ran 47 tests in 0.094s
+
+OK

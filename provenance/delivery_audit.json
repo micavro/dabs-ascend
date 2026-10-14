@@ -1,0 +1,40 @@
+{
+  "schema": "workflow-port-delivery-audit-1",
+  "native_original_source_files_verified": 48,
+  "unchanged_wfsched_core_files": 9,
+  "protected_algorithm_application_files": 13,
+  "historical_result_files": 0,
+  "native_gpu_experiments_executed_here": 0,
+  "target_accelerator_adaptation_complete": false,
+  "input_jsonl_in_download": false,
+  "read_only_source_server_input_export_provided": true,
+  "test_groups": {
+    "delivery": {
+      "run": 30,
+      "passed": 30
+    },
+    "experiment": {
+      "run": 121,
+      "passed": 121
+    },
+    "semantic": {
+      "run": 31,
+      "passed": 31
+    },
+    "typed": {
+      "run": 53,
+      "passed": 52,
+      "skipped_historical_result_test": 1
+    },
+    "logging": {
+      "run": 30,
+      "passed": 30
+    }
+  },
+  "test_execution": "groups completed separately; synthetic/fake-native only",
+  "source_components": {
+    "spra_stage19_musique_joint_v1": 56,
+    "spra_workflow_accept_v1": 44,
+    "spra_stage19_typed_handoff_v1": 11
+  }
+}

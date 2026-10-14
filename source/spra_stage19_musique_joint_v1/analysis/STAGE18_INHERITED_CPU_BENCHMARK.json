@@ -1,0 +1,233 @@
+{
+  "scope": "synthetic constant known work; local CPU; no external sockets or GPU requests",
+  "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]",
+  "model": {
+    "model_id": "synthetic_NOT_MEASURED",
+    "models": {
+      "0": {
+        "coef": [
+          15,
+          2,
+          6,
+          0.3,
+          0.1,
+          0.4
+        ]
+      },
+      "1": {
+        "coef": [
+          15,
+          2,
+          6,
+          0.3,
+          0.1,
+          0.4
+        ]
+      },
+      "2": {
+        "coef": [
+          15,
+          2,
+          6,
+          0.3,
+          0.1,
+          0.4
+        ]
+      },
+      "3": {
+        "coef": [
+          15,
+          2,
+          6,
+          0.3,
+          0.1,
+          0.4
+        ]
+      }
+    }
+  },
+  "rows": [
+    {
+      "method": "A",
+      "repetition": 0,
+      "nodes": 96,
+      "ready": 64,
+      "call_wall_ms": 1.5579329999582114,
+      "complete_evaluations": 0,
+      "partial_group_complete": 0,
+      "cross_complete": 0,
+      "reference_unrankable": false,
+      "deadline_reached": false
+    },
+    {
+      "method": "A",
+      "repetition": 1,
+      "nodes": 96,
+      "ready": 64,
+      "call_wall_ms": 0.32842100017660414,
+      "complete_evaluations": 0,
+      "partial_group_complete": 0,
+      "cross_complete": 0,
+      "reference_unrankable": false,
+      "deadline_reached": false
+    },
+    {
+      "method": "A",
+      "repetition": 2,
+      "nodes": 96,
+      "ready": 64,
+      "call_wall_ms": 0.2996719999828201,
+      "complete_evaluations": 0,
+      "partial_group_complete": 0,
+      "cross_complete": 0,
+      "reference_unrankable": false,
+      "deadline_reached": false
+    },
+    {
+      "method": "D",
+      "repetition": 0,
+      "nodes": 96,
+      "ready": 64,
+      "call_wall_ms": 178.37208100013413,
+      "complete_evaluations": 1,
+      "partial_group_complete": 0,
+      "cross_complete": 0,
+      "reference_unrankable": false,
+      "deadline_reached": true
+    },
+    {
+      "method": "D",
+      "repetition": 1,
+      "nodes": 96,
+      "ready": 64,
+      "call_wall_ms": 95.73452600011478,
+      "complete_evaluations": 3,
+      "partial_group_complete": 2,
+      "cross_complete": 0,
+      "reference_unrankable": false,
+      "deadline_reached": false
+    },
+    {
+      "method": "D",
+      "repetition": 2,
+      "nodes": 96,
+      "ready": 64,
+      "call_wall_ms": 88.34257200010143,
+      "complete_evaluations": 3,
+      "partial_group_complete": 2,
+      "cross_complete": 0,
+      "reference_unrankable": false,
+      "deadline_reached": false
+    },
+    {
+      "method": "B",
+      "repetition": 0,
+      "nodes": 96,
+      "ready": 64,
+      "call_wall_ms": 81.03373900007682,
+      "complete_evaluations": 0,
+      "partial_group_complete": 0,
+      "cross_complete": 0,
+      "reference_unrankable": true,
+      "deadline_reached": false
+    },
+    {
+      "method": "B",
+      "repetition": 1,
+      "nodes": 96,
+      "ready": 64,
+      "call_wall_ms": 100.33026899986908,
+      "complete_evaluations": 5,
+      "partial_group_complete": 0,
+      "cross_complete": 0,
+      "reference_unrankable": false,
+      "deadline_reached": true
+    },
+    {
+      "method": "B",
+      "repetition": 2,
+      "nodes": 96,
+      "ready": 64,
+      "call_wall_ms": 100.21188700011407,
+      "complete_evaluations": 4,
+      "partial_group_complete": 0,
+      "cross_complete": 0,
+      "reference_unrankable": false,
+      "deadline_reached": true
+    },
+    {
+      "method": "Decoupled",
+      "repetition": 0,
+      "nodes": 96,
+      "ready": 64,
+      "call_wall_ms": 100.28212700012773,
+      "complete_evaluations": 4,
+      "partial_group_complete": 3,
+      "cross_complete": 0,
+      "reference_unrankable": false,
+      "deadline_reached": true
+    },
+    {
+      "method": "Decoupled",
+      "repetition": 1,
+      "nodes": 96,
+      "ready": 64,
+      "call_wall_ms": 100.30438500007222,
+      "complete_evaluations": 3,
+      "partial_group_complete": 2,
+      "cross_complete": 0,
+      "reference_unrankable": false,
+      "deadline_reached": true
+    },
+    {
+      "method": "Decoupled",
+      "repetition": 2,
+      "nodes": 96,
+      "ready": 64,
+      "call_wall_ms": 100.34374899987597,
+      "complete_evaluations": 4,
+      "partial_group_complete": 3,
+      "cross_complete": 0,
+      "reference_unrankable": false,
+      "deadline_reached": true
+    },
+    {
+      "method": "Joint",
+      "repetition": 0,
+      "nodes": 96,
+      "ready": 64,
+      "call_wall_ms": 101.18291699996007,
+      "complete_evaluations": 4,
+      "partial_group_complete": 3,
+      "cross_complete": 1,
+      "reference_unrankable": false,
+      "deadline_reached": true
+    },
+    {
+      "method": "Joint",
+      "repetition": 1,
+      "nodes": 96,
+      "ready": 64,
+      "call_wall_ms": 100.57954699982474,
+      "complete_evaluations": 4,
+      "partial_group_complete": 3,
+      "cross_complete": 1,
+      "reference_unrankable": false,
+      "deadline_reached": true
+    },
+    {
+      "method": "Joint",
+      "repetition": 2,
+      "nodes": 96,
+      "ready": 64,
+      "call_wall_ms": 100.62296099999912,
+      "complete_evaluations": 4,
+      "partial_group_complete": 3,
+      "cross_complete": 1,
+      "reference_unrankable": false,
+      "deadline_reached": true
+    }
+  ],
+  "runtime_gate": false,
+  "online_GPU39_performance_proven": false
+}

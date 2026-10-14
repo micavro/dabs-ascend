@@ -1,0 +1,46 @@
+test_answer_metric (test_semantic19.DatasetTests.test_answer_metric) ... ok
+test_chain_retained (test_semantic19.DatasetTests.test_chain_retained) ... ok
+test_compile_dataset_count_and_disjoint (test_semantic19.DatasetTests.test_compile_dataset_count_and_disjoint) ... ok
+test_disconnected_rejected (test_semantic19.DatasetTests.test_disconnected_rejected) ... ok
+test_exact_parent_response_not_gold (test_semantic19.DatasetTests.test_exact_parent_response_not_gold) ... ok
+test_fair_context_budget (test_semantic19.DatasetTests.test_fair_context_budget) ... ok
+test_fair_context_no_padding (test_semantic19.DatasetTests.test_fair_context_no_padding) ... ok
+test_format_failure_is_not_teacher_forced (test_semantic19.DatasetTests.test_format_failure_is_not_teacher_forced) ... ok
+test_forward_ref_rejected (test_semantic19.DatasetTests.test_forward_ref_rejected) ... ok
+test_missing_parent_rejected (test_semantic19.DatasetTests.test_missing_parent_rejected) ... ok
+test_native_fork_not_added (test_semantic19.DatasetTests.test_native_fork_not_added) ... ok
+test_no_equalization_real_outputs (test_semantic19.DatasetTests.test_no_equalization_real_outputs) ... ok
+test_ordinal_refs_not_source_id (test_semantic19.DatasetTests.test_ordinal_refs_not_source_id) ... ok
+test_public_validation_rejects_injected_gold (test_semantic19.DatasetTests.test_public_validation_rejects_injected_gold) ... ok
+test_reject_changed_public_data (test_semantic19.DatasetTests.test_reject_changed_public_data) ... ok
+test_runtime_strips_gold (test_semantic19.DatasetTests.test_runtime_strips_gold) ... ok
+test_wave_is_declared_fixed_shape (test_semantic19.DatasetTests.test_wave_is_declared_fixed_shape) ... ok
+test_dynamic_child_receives_actual_outputs (test_semantic19.PacketTests.test_dynamic_child_receives_actual_outputs) ... ok
+test_dynamic_oversize_never_silently_truncates (test_semantic19.PacketTests.test_dynamic_oversize_never_silently_truncates) ... ok
+test_packet_uses_all_documents_and_bounds (test_semantic19.PacketTests.test_packet_uses_all_documents_and_bounds) ... ok
+test_B_does_not_build_schedules (test_semantic19.SelectorTests.test_B_does_not_build_schedules) ... ok
+test_decode_guard_can_reject_predicted_harm (test_semantic19.SelectorTests.test_decode_guard_can_reject_predicted_harm) ... ok
+test_four_cells_scored_joint (test_semantic19.SelectorTests.test_four_cells_scored_joint) ... ok
+test_joint_deadline_retains_reference (test_semantic19.SelectorTests.test_joint_deadline_retains_reference) ... ok
+test_no_output_future_labels_in_selector (test_semantic19.SelectorTests.test_no_output_future_labels_in_selector) ... ok
+test_pair_incomplete_never_ranks_partial_value (test_semantic19.SelectorTests.test_pair_incomplete_never_ranks_partial_value) ... ok
+test_semantic_A (test_semantic19.SemanticEndToEnd.test_semantic_A) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 479495691852, "phase": "scheduler_init_enter", "pid": 910, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 479498739213, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 910, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmphzm_qnh4/joint18v2/spra-vllm-0.status.json"}
+ok
+test_semantic_B (test_semantic19.SemanticEndToEnd.test_semantic_B) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 479789288423, "phase": "scheduler_init_enter", "pid": 910, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 479791976071, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 910, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmp7_i9tjxj/joint18v2/spra-vllm-0.status.json"}
+ok
+test_semantic_D (test_semantic19.SemanticEndToEnd.test_semantic_D) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 480080550432, "phase": "scheduler_init_enter", "pid": 910, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 480083395878, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 910, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmp0jj965v0/joint18v2/spra-vllm-0.status.json"}
+ok
+test_semantic_Decoupled (test_semantic19.SemanticEndToEnd.test_semantic_Decoupled) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 480375744350, "phase": "scheduler_init_enter", "pid": 910, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 480381164140, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 910, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmp5wzvn45y/joint18v2/spra-vllm-0.status.json"}
+ok
+test_semantic_Joint (test_semantic19.SemanticEndToEnd.test_semantic_Joint) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 480672760868, "phase": "scheduler_init_enter", "pid": 910, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 480675550471, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 910, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpoeemzpzx/joint18v2/spra-vllm-0.status.json"}
+ok
+
+----------------------------------------------------------------------
+Ran 31 tests in 1.633s
+
+OK

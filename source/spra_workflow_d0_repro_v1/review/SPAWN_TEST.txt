@@ -1,0 +1,17 @@
+{
+  "spawn_ok": true,
+  "native_D_worker_called": true,
+  "same_original_frozen_model": true,
+  "fixed_caps": [
+    4096,
+    4096,
+    4096,
+    4096
+  ],
+  "evaluated_cells": [
+    "00",
+    "10"
+  ],
+  "gpu_requests": 0,
+  "performance_claimed": false
+}

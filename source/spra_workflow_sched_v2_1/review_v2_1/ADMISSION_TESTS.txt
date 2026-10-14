@@ -1,0 +1,23 @@
+test_age_validator_is_still_enforced (test_admission_repair.AdmissionRepairTests.test_age_validator_is_still_enforced) ... ok
+test_agecheck_is_not_a_performance_suite (test_admission_repair.AdmissionRepairTests.test_agecheck_is_not_a_performance_suite) ... ok
+test_binding_restores_original_even_on_failure (test_admission_repair.AdmissionRepairTests.test_binding_restores_original_even_on_failure) ... ok
+test_both_worker_versions_complete_under_pressure (test_admission_repair.AdmissionRepairTests.test_both_worker_versions_complete_under_pressure) ... ok
+test_bounded_admission_policy_is_not_overridden (test_admission_repair.AdmissionRepairTests.test_bounded_admission_policy_is_not_overridden) ... ok
+test_duplicate_or_overlapping_partition_rejected (test_admission_repair.AdmissionRepairTests.test_duplicate_or_overlapping_partition_rejected) ... ok
+test_input_snapshots_and_base_not_mutated (test_admission_repair.AdmissionRepairTests.test_input_snapshots_and_base_not_mutated) ... ok
+test_many_resource_limits_and_decision_indices (test_admission_repair.AdmissionRepairTests.test_many_resource_limits_and_decision_indices) ... ok
+test_old_resources_function_is_unchanged (test_admission_repair.AdmissionRepairTests.test_old_resources_function_is_unchanged) ... ok
+test_original_failure_reproduced_without_gpu (test_admission_repair.AdmissionRepairTests.test_original_failure_reproduced_without_gpu) ... ok
+test_original_no_pressure_action_is_exactly_unchanged (test_admission_repair.AdmissionRepairTests.test_original_no_pressure_action_is_exactly_unchanged) ... ok
+test_partial_partition_is_not_hidden (test_admission_repair.AdmissionRepairTests.test_partial_partition_is_not_hidden) ... ok
+test_real_spawn_process_pressure_case (test_admission_repair.AdmissionRepairTests.test_real_spawn_process_pressure_case) ... ok
+test_repaired_candidate_keeps_genuine_resource_holds (test_admission_repair.AdmissionRepairTests.test_repaired_candidate_keeps_genuine_resource_holds) ... ok
+test_rerouted_previously_held_request_is_reconsidered (test_admission_repair.AdmissionRepairTests.test_rerouted_previously_held_request_is_reconsidered) ... ok
+test_sequence_limit_remains_enforced (test_admission_repair.AdmissionRepairTests.test_sequence_limit_remains_enforced) ... ok
+test_worker_failure_snapshot_is_preserved (test_admission_repair.AdmissionRepairTests.test_worker_failure_snapshot_is_preserved) ... ok
+test_zero_capacity_never_forces_an_aged_admission (test_admission_repair.AdmissionRepairTests.test_zero_capacity_never_forces_an_aged_admission) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 0.761s
+
+OK

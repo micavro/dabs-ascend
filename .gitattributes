@@ -1,0 +1,3 @@
+# Preserve archived source/data bytes: their SHA-256 hashes are verified at startup.
+* -text
+/run_ascend.sh text eol=lf

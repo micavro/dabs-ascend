@@ -1,0 +1,38 @@
+test_bad_int_rejected (test_workflow_only.FixedCheck.test_bad_int_rejected) ... ok
+test_bad_validity_rejected (test_workflow_only.FixedCheck.test_bad_validity_rejected) ... ok
+test_cap_change_rejected (test_workflow_only.FixedCheck.test_cap_change_rejected) ... ok
+test_correlation_rejected (test_workflow_only.FixedCheck.test_correlation_rejected) ... ok
+test_missing_batches_rejected (test_workflow_only.FixedCheck.test_missing_batches_rejected) ... ok
+test_no_space (test_workflow_only.FixedCheck.test_no_space) ... ok
+test_partial_aligns (test_workflow_only.FixedCheck.test_partial_aligns) ... ok
+test_switch_rejected (test_workflow_only.FixedCheck.test_switch_rejected) ... ok
+test_tail_fits (test_workflow_only.FixedCheck.test_tail_fits) ... ok
+test_tail_smaller_than_block (test_workflow_only.FixedCheck.test_tail_smaller_than_block) ... ok
+test_valid (test_workflow_only.FixedCheck.test_valid) ... ok
+test_missing_history_clear_error (test_workflow_only.HistoryAudit.test_missing_history_clear_error) ... ok
+test_no_imputed_history (test_workflow_only.HistoryAudit.test_no_imputed_history) ... ok
+test_nonfixed_history_rejected (test_workflow_only.HistoryAudit.test_nonfixed_history_rejected) ... ok
+test_saved_summary_audit (test_workflow_only.HistoryAudit.test_saved_summary_audit) ... ok
+test_48_frozen_source_hashes (test_workflow_only.RealSource.test_48_frozen_source_hashes) ... ok
+test_inspect_cli_no_runtime (test_workflow_only.RealSource.test_inspect_cli_no_runtime) ... ok
+test_original_native_import_and_prepared (test_workflow_only.RealSource.test_original_native_import_and_prepared) ... ok
+test_adaptive_method_rejected (test_workflow_only.Reports.test_adaptive_method_rejected) ... ok
+test_duplicate_rejected (test_workflow_only.Reports.test_duplicate_rejected) ... ok
+test_incomplete_not_success (test_workflow_only.Reports.test_incomplete_not_success) ... ok
+test_missing_auxiliary_null (test_workflow_only.Reports.test_missing_auxiliary_null) ... ok
+test_negative_retained (test_workflow_only.Reports.test_negative_retained) ... ok
+test_nonfinite_rejected (test_workflow_only.Reports.test_nonfinite_rejected) ... ok
+test_paired_not_ratio_of_means (test_workflow_only.Reports.test_paired_not_ratio_of_means) ... ok
+test_quality_percentage_points (test_workflow_only.Reports.test_quality_percentage_points) ... ok
+test_force_caps_guard_prevents_bypass (test_workflow_only.ThinBridge.test_force_caps_guard_prevents_bypass) ... ok
+test_joint_never_runs (test_workflow_only.ThinBridge.test_joint_never_runs) ... ok
+test_mirrored_order (test_workflow_only.ThinBridge.test_mirrored_order) ... ok
+test_original_executor_used_without_force_caps (test_workflow_only.ThinBridge.test_original_executor_used_without_force_caps) ... ok
+test_output_no_overwrite (test_workflow_only.ThinBridge.test_output_no_overwrite) ... ok
+test_protocol_marks_remeasurement (test_workflow_only.ThinBridge.test_protocol_marks_remeasurement) ... WORKFLOW_REPRO_RUN=/new/run
+ok
+
+----------------------------------------------------------------------
+Ran 32 tests in 0.772s
+
+OK

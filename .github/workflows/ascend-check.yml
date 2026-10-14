@@ -1,0 +1,25 @@
+name: Linux Ascend client checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  client-tests:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install client dependencies
+        run: python -m pip install -r requirements-ascend.txt
+      - name: Check Bash entry
+        run: bash -n run_ascend.sh
+      - name: Run CPU tests and frozen-source integrity checks
+        run: bash run_ascend.sh test

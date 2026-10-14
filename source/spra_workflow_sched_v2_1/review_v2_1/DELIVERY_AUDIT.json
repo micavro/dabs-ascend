@@ -1,0 +1,19 @@
+{
+  "revision": "workflow-scheduling-native-2.1",
+  "modified_executable_files": [
+    "wfsched/__init__.py",
+    "wfsched/admission.py",
+    "wfsched/design.py",
+    "wfsched/runner.py",
+    "wfsched/selector.py",
+    "wfsched/worker.py",
+    "run.py"
+  ],
+  "frozen_reference_identical_to_v2": true,
+  "gpu_tests_run_locally": 0,
+  "local_test_count": 95,
+  "agecheck_conditions": 10,
+  "grid_conditions": 640,
+  "multi_replica_filtered_conditions": 480,
+  "failed_old_attempt_reused": false
+}

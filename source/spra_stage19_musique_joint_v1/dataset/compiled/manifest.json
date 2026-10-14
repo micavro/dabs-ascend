@@ -1,0 +1,88 @@
+{
+  "schema": "stage19-musique-dataset-1",
+  "upstream": "StonyBrookNLP/musique",
+  "release": "MuSiQue-Ans v1.0",
+  "license": "CC-BY-4.0",
+  "source_sha256": {
+    "train": "83a75b1e11e4e9bb8f8308e72ac40ca617ae4431b3a0d955b61cab259248490a",
+    "dev": "15fa63794d18a94ce12411aca6e2327e65b6e83b0b1490efab3f1962e48abf3b"
+  },
+  "provenance": {
+    "official_repository": "https://github.com/StonyBrookNLP/musique",
+    "official_file_id": "1tGdADlNjWFaHLeZZGShh2IRcpO6Lv24h",
+    "archive_sha256": "98f839bf2fd5319f5c688aed77901a6d5c30b3b9f9f691ab9a8ecafb045ee0cd",
+    "archive_source": "manual --archive",
+    "publisher_checksum_available": false,
+    "transport": "official release URL; local content hash pinned at acquisition"
+  },
+  "selection": "topology-stratified SHA256 order, seeds190101/190102; no quality or performance filtering",
+  "counts": {
+    "smoke": 2,
+    "profile": 32,
+    "pilot": 64
+  },
+  "source_graph_coverage": {
+    "train": {
+      "valid": 19936,
+      "shape_counts": {
+        "-;0": 14374,
+        "-;-;0,1": 650,
+        "-;0;1": 3737,
+        "-;0;1;2": 648,
+        "-;-;0,1;2": 127,
+        "-;0;-;1,2": 400
+      }
+    },
+    "dev": {
+      "valid": 2417,
+      "shape_counts": {
+        "-;0": 1252,
+        "-;0;1": 568,
+        "-;-;0,1": 192,
+        "-;0;1;2": 246,
+        "-;0;-;1,2": 95,
+        "-;-;0,1;2": 64
+      }
+    }
+  },
+  "schema_exclusions": {
+    "train": {
+      "ValueError: self/forward # reference or literal ambiguity": 2
+    },
+    "dev": {}
+  },
+  "selected_graphs": {
+    "smoke": {
+      "-;-;0,1;2": 1,
+      "-;0;1": 1
+    },
+    "profile": {
+      "-;0": 6,
+      "-;0;-;1,2": 6,
+      "-;0;1;2": 5,
+      "-;-;0,1": 5,
+      "-;-;0,1;2": 5,
+      "-;0;1": 5
+    },
+    "pilot": {
+      "-;0;-;1,2": 11,
+      "-;-;0,1;2": 11,
+      "-;0": 11,
+      "-;0;1": 11,
+      "-;-;0,1": 10,
+      "-;0;1;2": 10
+    }
+  },
+  "files": {
+    "smoke.public.jsonl": "e0ba600d764aaa62a0236308ac7ef2b4c446975c4802d3d075368e3702ee3da9",
+    "profile.public.jsonl": "b527ffe4b0232df59a96996a3c568437e9618b3e43e54b69b834f1f28417e86b",
+    "pilot.public.jsonl": "23d46b8c2266c3a00c74d15d3e07bda90894cc40e749f8e62f6dc12ca865e745",
+    "evaluation_gold.jsonl": "7373581403cc9b84f03dd9c0f887eaf6b12fe98c592f6edbd4758b55cdee7890",
+    "ATTRIBUTION.txt": "5697bf579121cfb137de89deab853c359c3edb2d4076878e97683e1a0e3082e9"
+  },
+  "native_edges_preserved": true,
+  "gold_separated": true,
+  "known_plan_setting": true,
+  "not_production_traffic": true,
+  "no_real_dataset_examples_bundled_in_code_zip": true
+}

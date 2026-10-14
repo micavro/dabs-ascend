@@ -1,0 +1,9 @@
+{
+  "new_dataset": "MuSiQue-Ans-v1.0",
+  "full_dataset_bytes_in_code_package": false,
+  "hook_original_sha": "78ca1d716c5701a9f83ba7dc0b22669b6b50a38bd54626a56642130cd1684418",
+  "hook_retained_sha": "78ca1d716c5701a9f83ba7dc0b22669b6b50a38bd54626a56642130cd1684418",
+  "client_metric_end_boundary": "actual last completion, not loop exit",
+  "legacy_analysis_files": "STAGE18_INHERITED_* are historical, not Stage19 results",
+  "test_synthetic_fixture_notice": "all fixtures are synthetic and explicitly labelled; fetch must use official real archive"
+}

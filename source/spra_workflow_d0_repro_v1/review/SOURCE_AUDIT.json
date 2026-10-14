@@ -1,0 +1,754 @@
+{
+  "checkpoint_id": "MUSIQUE_SCHEDULING_D0_20261010",
+  "original_run_path": "/home/wmy/sci/spra_paper_experiments_github/spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e",
+  "profile_source_hashes": {
+    "source/joint18v2/__init__.py": {
+      "expected": "997d8a35c61557eb0600d58a5b19d9238f6a68ee1790f37d886639559fc1d773",
+      "actual": "997d8a35c61557eb0600d58a5b19d9238f6a68ee1790f37d886639559fc1d773",
+      "match": true
+    },
+    "source/joint18v2/actions.py": {
+      "expected": "26368c6018dafd0cfc933463c72afd39c29155e294ca1870da2fcad9e83f9936",
+      "actual": "26368c6018dafd0cfc933463c72afd39c29155e294ca1870da2fcad9e83f9936",
+      "match": true
+    },
+    "source/joint18v2/batchcheck.py": {
+      "expected": "e2ea7e28332d83a4e7d107c8c3754ba58107b3ced893701ae6705d9c18ac6926",
+      "actual": "e2ea7e28332d83a4e7d107c8c3754ba58107b3ced893701ae6705d9c18ac6926",
+      "match": true
+    },
+    "source/joint18v2/bootstrap.py": {
+      "expected": "e06b1d25dc094821674a3052bb279f3f8791a40379c0041549b5d1b25ed65ebd",
+      "actual": "e06b1d25dc094821674a3052bb279f3f8791a40379c0041549b5d1b25ed65ebd",
+      "match": true
+    },
+    "source/joint18v2/cache.py": {
+      "expected": "dfebac6b5a1736f086cbd5e32e5691b4d4294cb657e03c1279536cdba185fdc2",
+      "actual": "dfebac6b5a1736f086cbd5e32e5691b4d4294cb657e03c1279536cdba185fdc2",
+      "match": true
+    },
+    "source/joint18v2/client.py": {
+      "expected": "f84e1a763fbdaef12e0d4433d8c49d50d62d9700e1879e8d39f183a4df25d485",
+      "actual": "f84e1a763fbdaef12e0d4433d8c49d50d62d9700e1879e8d39f183a4df25d485",
+      "match": true
+    },
+    "source/joint18v2/common.py": {
+      "expected": "e099c31b2e3ee13a02a075b9befb6dfbc15454aa1fb6892827745e0b3d19d67a",
+      "actual": "e099c31b2e3ee13a02a075b9befb6dfbc15454aa1fb6892827745e0b3d19d67a",
+      "match": true
+    },
+    "source/joint18v2/io.py": {
+      "expected": "79e8d725bc3bb243a7eecb2d159e200d4017269da98a1d89c7d06084ecf4431d",
+      "actual": "79e8d725bc3bb243a7eecb2d159e200d4017269da98a1d89c7d06084ecf4431d",
+      "match": true
+    },
+    "source/joint18v2/latency_metrics.py": {
+      "expected": "88fb372660e57932648902762c6451d626abb9a09f4018a4cf5962937d74a8af",
+      "actual": "88fb372660e57932648902762c6451d626abb9a09f4018a4cf5962937d74a8af",
+      "match": true
+    },
+    "source/joint18v2/lifetime_probe.py": {
+      "expected": "63c9122a91597302ecf483c31a12ad7be83038ba1d73f62b67e3ddf12c1458e0",
+      "actual": "63c9122a91597302ecf483c31a12ad7be83038ba1d73f62b67e3ddf12c1458e0",
+      "match": true
+    },
+    "source/joint18v2/model.py": {
+      "expected": "6336ca4d9d4cc98a0725ef6cdf3cc355663e483e0e9be137a2b5cf3104bb4972",
+      "actual": "6336ca4d9d4cc98a0725ef6cdf3cc355663e483e0e9be137a2b5cf3104bb4972",
+      "match": true
+    },
+    "source/joint18v2/native_contract.py": {
+      "expected": "55a6c77cb75bd4077ae138c7cca85dfa221b0dc986dd313bd0e6cbfad5a30f8f",
+      "actual": "55a6c77cb75bd4077ae138c7cca85dfa221b0dc986dd313bd0e6cbfad5a30f8f",
+      "match": true
+    },
+    "source/joint18v2/report.py": {
+      "expected": "a1c092f9654effdf9e0481db2da01299307cdba634ef4cf9786652a2f0dc16c2",
+      "actual": "a1c092f9654effdf9e0481db2da01299307cdba634ef4cf9786652a2f0dc16c2",
+      "match": true
+    },
+    "source/joint18v2/search.py": {
+      "expected": "165991025586cf91a38987eedf42ccf2f09dd784ad6e44c59b08f916d6da69fc",
+      "actual": "165991025586cf91a38987eedf42ccf2f09dd784ad6e44c59b08f916d6da69fc",
+      "match": true
+    },
+    "source/joint18v2/service_fit.py": {
+      "expected": "3c723c0d0b852f4fa7787445cf937fd871f91b422d96fc6b52f98dc840f60477",
+      "actual": "3c723c0d0b852f4fa7787445cf937fd871f91b422d96fc6b52f98dc840f60477",
+      "match": true
+    },
+    "source/joint18v2/transport.py": {
+      "expected": "79234bf67a1fb7cd00f136a2d0dc1d43c3f314dda6f8a375265a560b9388b66f",
+      "actual": "79234bf67a1fb7cd00f136a2d0dc1d43c3f314dda6f8a375265a560b9388b66f",
+      "match": true
+    },
+    "source/joint18v2/validation.py": {
+      "expected": "4178cdb6b1fbee791b610c3c8285bb2e36e7b502f33cbb3be40273e2e831ddf6",
+      "actual": "4178cdb6b1fbee791b610c3c8285bb2e36e7b502f33cbb3be40273e2e831ddf6",
+      "match": true
+    },
+    "source/joint18v2/workload.py": {
+      "expected": "e2c5239f9d919e7b37c8147b57969a641e962428f39d6d052d6a9650cd9cdc09",
+      "actual": "e2c5239f9d919e7b37c8147b57969a641e962428f39d6d052d6a9650cd9cdc09",
+      "match": true
+    },
+    "source/core18v2/__init__.py": {
+      "expected": "d07d7defcb7ec76877f293888fd526ee67f1fafd8cf383e0b1b80fb12cda3d7c",
+      "actual": "d07d7defcb7ec76877f293888fd526ee67f1fafd8cf383e0b1b80fb12cda3d7c",
+      "match": true
+    },
+    "source/core18v2/engine.py": {
+      "expected": "c5d16322f536c8a8458f11ab3f3f83c214609ec65cfe049016b8f7caa779d05d",
+      "actual": "c5d16322f536c8a8458f11ab3f3f83c214609ec65cfe049016b8f7caa779d05d",
+      "match": true
+    },
+    "source/core18v2/service.py": {
+      "expected": "7563fb1c825cf509d6ec75f64f66cb46f3020b25f12d3aa6562c84fb2e0ba459",
+      "actual": "7563fb1c825cf509d6ec75f64f66cb46f3020b25f12d3aa6562c84fb2e0ba459",
+      "match": true
+    },
+    "source/core18v2/timing.py": {
+      "expected": "4e020562210dbb2ee5033e41b2297258842c85c29a861fef0d0f8f41c3aeed8d",
+      "actual": "4e020562210dbb2ee5033e41b2297258842c85c29a861fef0d0f8f41c3aeed8d",
+      "match": true
+    },
+    "source/semantic19/__init__.py": {
+      "expected": "8264a706fa63e3ff8bfedbb429c4b248c593e1329163a15a088a84ce9633436c",
+      "actual": "8264a706fa63e3ff8bfedbb429c4b248c593e1329163a15a088a84ce9633436c",
+      "match": true
+    },
+    "source/semantic19/dataset.py": {
+      "expected": "6d6814002f4ea0ef9dcbfe201bd47505d1fc21dda45e5719d4bed5feede0a070",
+      "actual": "6d6814002f4ea0ef9dcbfe201bd47505d1fc21dda45e5719d4bed5feede0a070",
+      "match": true
+    },
+    "source/semantic19/quality.py": {
+      "expected": "45c8ebf1ae13f0803d13eb1c544bee70ce7be273f642c8145e9996ad6c6926ab",
+      "actual": "45c8ebf1ae13f0803d13eb1c544bee70ce7be273f642c8145e9996ad6c6926ab",
+      "match": true
+    },
+    "source/semantic19/selector.py": {
+      "expected": "504de4f5e9e89785417a2d18fe61d0353c4158eeb04e11cc4c6617f7d68e67f5",
+      "actual": "504de4f5e9e89785417a2d18fe61d0353c4158eeb04e11cc4c6617f7d68e67f5",
+      "match": true
+    },
+    "source/semantic19/workflow.py": {
+      "expected": "45b39dcb9b2810f03846328b59f8566e4297fab99d49697f1b024ddf63f75af2",
+      "actual": "45b39dcb9b2810f03846328b59f8566e4297fab99d49697f1b024ddf63f75af2",
+      "match": true
+    },
+    "source/tools/benchmark_cpu.py": {
+      "expected": "0c7c1aa23bd738d6cc1fde5a8dfbdd5c0dbcc6f21a84883ccc2e503c347f2693",
+      "actual": "0c7c1aa23bd738d6cc1fde5a8dfbdd5c0dbcc6f21a84883ccc2e503c347f2693",
+      "match": true
+    },
+    "source/tools/benchmark_selector.py": {
+      "expected": "d813cd85e88d19bcecda0ba31d8a0cdda48e292daa355db618166150faf70e7b",
+      "actual": "d813cd85e88d19bcecda0ba31d8a0cdda48e292daa355db618166150faf70e7b",
+      "match": true
+    },
+    "source/tools/experiment.py": {
+      "expected": "a910604076a77f3dab0a7a7fd48452654d5c71be361b3fa551407fc9dc2de108",
+      "actual": "a910604076a77f3dab0a7a7fd48452654d5c71be361b3fa551407fc9dc2de108",
+      "match": true
+    },
+    "source/tools/fetch_musique.py": {
+      "expected": "24617235d701c36038cf2046190d7da2d944f946670ca24128a72dac50c94da3",
+      "actual": "24617235d701c36038cf2046190d7da2d944f946670ca24128a72dac50c94da3",
+      "match": true
+    },
+    "source/tools/pack_dataset.py": {
+      "expected": "4109c4172a62e2e28e22a55bbe28abb8169f9e00d1fdbcc7da40790d2800aaae",
+      "actual": "4109c4172a62e2e28e22a55bbe28abb8169f9e00d1fdbcc7da40790d2800aaae",
+      "match": true
+    },
+    "source/tools/recount_latency.py": {
+      "expected": "d85f2fce9ed1c4188a21129399feacf8aac2c81853a5c671b1bd7dd9a2f7e18b",
+      "actual": "d85f2fce9ed1c4188a21129399feacf8aac2c81853a5c671b1bd7dd9a2f7e18b",
+      "match": true
+    },
+    "source/tools/run.py": {
+      "expected": "6d3a37276368eeb3c719ffae4f3b1e3f715444e6f0238a03feda695cddba3053",
+      "actual": "6d3a37276368eeb3c719ffae4f3b1e3f715444e6f0238a03feda695cddba3053",
+      "match": true
+    },
+    "source/tools/run_semantic.py": {
+      "expected": "5287f8191453b9f3c7c15176fb3b31705ffbea971ea6c69438f85a4a722a4e46",
+      "actual": "5287f8191453b9f3c7c15176fb3b31705ffbea971ea6c69438f85a4a722a4e46",
+      "match": true
+    },
+    "source/tools/stage.py": {
+      "expected": "6e455abd49b37a55d3cb3e7cc91e799b766ce7e28e9b71532750c572f3124896",
+      "actual": "6e455abd49b37a55d3cb3e7cc91e799b766ce7e28e9b71532750c572f3124896",
+      "match": true
+    },
+    "source/runtime/joint18v2_hook.py": {
+      "expected": "78ca1d716c5701a9f83ba7dc0b22669b6b50a38bd54626a56642130cd1684418",
+      "actual": "78ca1d716c5701a9f83ba7dc0b22669b6b50a38bd54626a56642130cd1684418",
+      "match": true
+    },
+    "source/runtime/launcher.py": {
+      "expected": "1e661619cbfacbe22f3838082e58692597cc1b2c15e73699bbda666ae9fb6537",
+      "actual": "1e661619cbfacbe22f3838082e58692597cc1b2c15e73699bbda666ae9fb6537",
+      "match": true
+    },
+    "source/configs/development.json": {
+      "expected": "ec121751e213b39ff811fe6f70d4635fff4fceb8dd2280969c5a48bf9d52e589",
+      "actual": "ec121751e213b39ff811fe6f70d4635fff4fceb8dd2280969c5a48bf9d52e589",
+      "match": true
+    },
+    "source/configs/semantic.json": {
+      "expected": "2662dc0b47cfcf44072f2bb0de1a4837628d95659daedb1069b32075f788f943",
+      "actual": "2662dc0b47cfcf44072f2bb0de1a4837628d95659daedb1069b32075f788f943",
+      "match": true
+    },
+    "adapter/typed19/__init__.py": {
+      "expected": "82fceeba1c0fe8420a58b29a95c51119474296931fd001fda5ed7abfdf3e23b8",
+      "actual": "82fceeba1c0fe8420a58b29a95c51119474296931fd001fda5ed7abfdf3e23b8",
+      "match": true
+    },
+    "adapter/typed19/answers.py": {
+      "expected": "f8b58d2738ec8ad7097e3c375d7b348456d745e8ceae74670c0bec6bced1f290",
+      "actual": "f8b58d2738ec8ad7097e3c375d7b348456d745e8ceae74670c0bec6bced1f290",
+      "match": true
+    },
+    "adapter/typed19/dependency.py": {
+      "expected": "23e0f95744175bf3f830da710e9c0e38ab349ad40d57cfada226047175967ce1",
+      "actual": "23e0f95744175bf3f830da710e9c0e38ab349ad40d57cfada226047175967ce1",
+      "match": true
+    },
+    "adapter/typed19/quality.py": {
+      "expected": "149ae6a4e774bf5dd97e8bbd20206ca7887ea33ac673a60f810d8619ab590821",
+      "actual": "149ae6a4e774bf5dd97e8bbd20206ca7887ea33ac673a60f810d8619ab590821",
+      "match": true
+    },
+    "adapter/typed19/transport.py": {
+      "expected": "ef52b45f6d81f8804c007e14476752156d01bf0cd6e8cc886238f03ca98fe1f7",
+      "actual": "ef52b45f6d81f8804c007e14476752156d01bf0cd6e8cc886238f03ca98fe1f7",
+      "match": true
+    },
+    "adapter/typed19/workflow.py": {
+      "expected": "d70275e0757864deeff3dd4cd9982bfc18a2e5182916fb960984b087e0030b29",
+      "actual": "d70275e0757864deeff3dd4cd9982bfc18a2e5182916fb960984b087e0030b29",
+      "match": true
+    },
+    "adapter/configs/semantic.json": {
+      "expected": "8a8c350af03aa68214a5990157c413eeb7bf65fc0d7cb5f3074c32362a76b749",
+      "actual": "8a8c350af03aa68214a5990157c413eeb7bf65fc0d7cb5f3074c32362a76b749",
+      "match": true
+    },
+    "adapter/tools/run_typed.py": {
+      "expected": "5572bbd0a74090de25545c9a3ee0bb07a777b4f459841fb5df3d9e94dd0b6535",
+      "actual": "5572bbd0a74090de25545c9a3ee0bb07a777b4f459841fb5df3d9e94dd0b6535",
+      "match": true
+    }
+  },
+  "archive_vs_working_tree": {
+    "spra_stage19_typed_handoff_v1": {
+      "compared_files": 23,
+      "all_equal": true,
+      "differences": []
+    },
+    "spra_stage19_musique_joint_v1": {
+      "compared_files": 79,
+      "all_equal": true,
+      "differences": []
+    },
+    "spra_musique_d0_batching_v1": {
+      "compared_files": 30,
+      "all_equal": true,
+      "differences": []
+    }
+  },
+  "historical_gain_recorded_pct": 13.303823038299074,
+  "arithmetic_mean_of_recorded_block_gains_pct": 13.303823038299074,
+  "original_pilot_summary_recomputed_from_nodes": false,
+  "original_pilot_raw_backend_checked": false,
+  "original_pilot_omissions_count": 119,
+  "original_pilot_omissions": [
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/dataset_manifest.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/frozen_protocol.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/joint_result.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/suite_status.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B1_1_A/backend_output_progress_metrics.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B1_1_A/manifest.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B1_1_A/request_latency_summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B1_1_A/status.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B1_1_A/summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B1_2_D/backend_output_progress_metrics.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B1_2_D/manifest.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B1_2_D/request_latency_summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B1_2_D/status.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B1_2_D/summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B1_3_B/backend_output_progress_metrics.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B1_3_B/manifest.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B1_3_B/request_latency_summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B1_3_B/status.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B1_3_B/summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B1_4_Decoupled/backend_output_progress_metrics.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B1_4_Decoupled/manifest.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B1_4_Decoupled/request_latency_summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B1_4_Decoupled/status.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B1_4_Decoupled/summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B1_5_Joint/backend_output_progress_metrics.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B1_5_Joint/manifest.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B1_5_Joint/request_latency_summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B1_5_Joint/status.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B1_5_Joint/summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B2_1_D/backend_output_progress_metrics.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B2_1_D/manifest.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B2_1_D/request_latency_summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B2_1_D/status.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B2_1_D/summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B2_2_Decoupled/backend_output_progress_metrics.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B2_2_Decoupled/manifest.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B2_2_Decoupled/request_latency_summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B2_2_Decoupled/status.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B2_2_Decoupled/summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B2_3_A/backend_output_progress_metrics.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B2_3_A/manifest.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B2_3_A/request_latency_summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B2_3_A/status.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B2_3_A/summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B2_4_Joint/backend_output_progress_metrics.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B2_4_Joint/manifest.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B2_4_Joint/request_latency_summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B2_4_Joint/status.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B2_4_Joint/summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B2_5_B/backend_output_progress_metrics.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B2_5_B/manifest.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B2_5_B/request_latency_summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B2_5_B/status.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B2_5_B/summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B3_1_B/backend_output_progress_metrics.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B3_1_B/manifest.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B3_1_B/request_latency_summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B3_1_B/status.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B3_1_B/summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B3_2_Joint/backend_output_progress_metrics.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B3_2_Joint/manifest.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B3_2_Joint/request_latency_summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B3_2_Joint/status.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B3_2_Joint/summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B3_3_D/backend_output_progress_metrics.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B3_3_D/manifest.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B3_3_D/request_latency_summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B3_3_D/status.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B3_3_D/summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B3_4_A/backend_output_progress_metrics.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B3_4_A/manifest.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B3_4_A/request_latency_summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B3_4_A/status.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B3_4_A/summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B3_5_Decoupled/backend_output_progress_metrics.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B3_5_Decoupled/manifest.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B3_5_Decoupled/request_latency_summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B3_5_Decoupled/status.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B3_5_Decoupled/summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B4_1_Decoupled/backend_output_progress_metrics.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B4_1_Decoupled/manifest.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B4_1_Decoupled/request_latency_summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B4_1_Decoupled/status.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B4_1_Decoupled/summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B4_2_B/backend_output_progress_metrics.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B4_2_B/manifest.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B4_2_B/request_latency_summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B4_2_B/status.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B4_2_B/summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B4_3_Joint/backend_output_progress_metrics.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B4_3_Joint/manifest.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B4_3_Joint/request_latency_summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B4_3_Joint/status.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B4_3_Joint/summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B4_4_D/backend_output_progress_metrics.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B4_4_D/manifest.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B4_4_D/request_latency_summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B4_4_D/status.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B4_4_D/summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B4_5_A/backend_output_progress_metrics.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B4_5_A/manifest.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B4_5_A/request_latency_summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B4_5_A/status.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/B4_5_A/summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/SERVICE_WARMUP/GUIDED_JSON/backend_output_progress_metrics.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/SERVICE_WARMUP/GUIDED_JSON/manifest.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/SERVICE_WARMUP/GUIDED_JSON/request_latency_summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/SERVICE_WARMUP/GUIDED_JSON/status.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/SERVICE_WARMUP/GUIDED_JSON/summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/SERVICE_WARMUP/P1/backend_output_progress_metrics.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/SERVICE_WARMUP/P1/manifest.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/SERVICE_WARMUP/P1/request_latency_summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/SERVICE_WARMUP/P1/status.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/SERVICE_WARMUP/P1/summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/SERVICE_WARMUP/P2/backend_output_progress_metrics.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/SERVICE_WARMUP/P2/manifest.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/SERVICE_WARMUP/P2/request_latency_summary.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/SERVICE_WARMUP/P2/status.json",
+      "reason": "evidence_total_byte_limit"
+    },
+    {
+      "origin": "spra_stage19_typed_handoff_v1/runs/PILOT_20261010T092749Z_421e356e/SERVICE_WARMUP/P2/summary.json",
+      "reason": "evidence_total_byte_limit"
+    }
+  ],
+  "target_gpu_contacted": false,
+  "new_GPU_measurement": false,
+  "local_tests": {
+    "reproducer": 32,
+    "original_semantic": 31,
+    "original_typed": 53,
+    "additional_native_spawn_probe": 1
+  }
+}

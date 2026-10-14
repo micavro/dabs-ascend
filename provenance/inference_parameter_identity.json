@@ -1,0 +1,13 @@
+{
+  "all_replica_default_and_phase_coefficients_exact": true,
+  "replicas": 4,
+  "phase_models": 12,
+  "inference_coefficients_changed": false,
+  "removed": [
+    "fit errors",
+    "condition IDs",
+    "training sample counts",
+    "feature range diagnostics"
+  ],
+  "historical_outcomes_included": false
+}

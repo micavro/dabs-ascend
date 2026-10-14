@@ -1,0 +1,22 @@
+test_existing_output_cannot_overwrite (test_suite_orchestration.OrchestrationTests.test_existing_output_cannot_overwrite) ... Executing <Task pending name='Task-2' coro=<OrchestrationTests.test_existing_output_cannot_overwrite() running at /mnt/data/spra_workflow_sched_v2/tests/test_suite_orchestration.py:107> wait_for=<Future pending cb=[_chain_future.<locals>._call_check_cancel() at /usr/lib/python3.13/asyncio/futures.py:384, Task.task_wakeup()] created at /usr/lib/python3.13/asyncio/base_events.py:459> cb=[_run_until_complete_cb() at /usr/lib/python3.13/asyncio/base_events.py:181] created at /usr/lib/python3.13/asyncio/runners.py:100> took 0.177 seconds
+Executing <Task finished name='Task-2' coro=<OrchestrationTests.test_existing_output_cannot_overwrite() done, defined at /mnt/data/spra_workflow_sched_v2/tests/test_suite_orchestration.py:106> result=None created at /usr/lib/python3.13/asyncio/runners.py:100> took 0.159 seconds
+ok
+test_failed_attempt_not_retried (test_suite_orchestration.OrchestrationTests.test_failed_attempt_not_retried) ... ok
+test_index_summary_tamper (test_suite_orchestration.OrchestrationTests.test_index_summary_tamper) ... Executing <Task finished name='Task-12' coro=<OrchestrationTests.test_index_summary_tamper() done, defined at /mnt/data/spra_workflow_sched_v2/tests/test_suite_orchestration.py:122> result=None created at /usr/lib/python3.13/asyncio/runners.py:100> took 0.154 seconds
+ok
+test_pause_resume_all_methods (test_suite_orchestration.OrchestrationTests.test_pause_resume_all_methods) ... Executing <Task pending name='Task-17' coro=<OrchestrationTests.test_pause_resume_all_methods() running at /mnt/data/spra_workflow_sched_v2/tests/test_suite_orchestration.py:100> wait_for=<Future pending cb=[_chain_future.<locals>._call_check_cancel() at /usr/lib/python3.13/asyncio/futures.py:384, Task.task_wakeup()] created at /usr/lib/python3.13/asyncio/base_events.py:459> cb=[_run_until_complete_cb() at /usr/lib/python3.13/asyncio/base_events.py:181] created at /usr/lib/python3.13/asyncio/runners.py:100> took 0.203 seconds
+Executing <Task finished name='Task-17' coro=<OrchestrationTests.test_pause_resume_all_methods() done, defined at /mnt/data/spra_workflow_sched_v2/tests/test_suite_orchestration.py:98> result=None created at /usr/lib/python3.13/asyncio/runners.py:100> took 0.272 seconds
+ok
+test_protocol_tamper (test_suite_orchestration.OrchestrationTests.test_protocol_tamper) ... Executing <Task finished name='Task-22' coro=<OrchestrationTests.test_protocol_tamper() done, defined at /mnt/data/spra_workflow_sched_v2/tests/test_suite_orchestration.py:111> result=None created at /usr/lib/python3.13/asyncio/runners.py:100> took 0.157 seconds
+ok
+test_raw_time_tamper (test_suite_orchestration.OrchestrationTests.test_raw_time_tamper) ... Executing <Task finished name='Task-27' coro=<OrchestrationTests.test_raw_time_tamper() done, defined at /mnt/data/spra_workflow_sched_v2/tests/test_suite_orchestration.py:116> result=None created at /usr/lib/python3.13/asyncio/runners.py:100> took 0.172 seconds
+ok
+test_replica_filter_keeps_full_plan (test_suite_orchestration.OrchestrationTests.test_replica_filter_keeps_full_plan) ... Executing <Task finished name='Task-32' coro=<OrchestrationTests.test_replica_filter_keeps_full_plan() done, defined at /mnt/data/spra_workflow_sched_v2/tests/test_suite_orchestration.py:140> result=None created at /usr/lib/python3.13/asyncio/runners.py:100> took 0.201 seconds
+ok
+test_runtime_change_stops_resume (test_suite_orchestration.OrchestrationTests.test_runtime_change_stops_resume) ... Executing <Task finished name='Task-37' coro=<OrchestrationTests.test_runtime_change_stops_resume() done, defined at /mnt/data/spra_workflow_sched_v2/tests/test_suite_orchestration.py:136> result=None created at /usr/lib/python3.13/asyncio/runners.py:100> took 0.176 seconds
+ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 2.162s
+
+OK

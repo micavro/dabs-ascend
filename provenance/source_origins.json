@@ -1,0 +1,514 @@
+{
+  "source/spra_stage19_musique_joint_v1/core18v2/__init__.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/core18v2/__init__.py",
+    "sha256": "d07d7defcb7ec76877f293888fd526ee67f1fafd8cf383e0b1b80fb12cda3d7c",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/core18v2/engine.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/core18v2/engine.py",
+    "sha256": "c5d16322f536c8a8458f11ab3f3f83c214609ec65cfe049016b8f7caa779d05d",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/core18v2/service.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/core18v2/service.py",
+    "sha256": "7563fb1c825cf509d6ec75f64f66cb46f3020b25f12d3aa6562c84fb2e0ba459",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/core18v2/timing.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/core18v2/timing.py",
+    "sha256": "4e020562210dbb2ee5033e41b2297258842c85c29a861fef0d0f8f41c3aeed8d",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/joint18v2/__init__.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/joint18v2/__init__.py",
+    "sha256": "997d8a35c61557eb0600d58a5b19d9238f6a68ee1790f37d886639559fc1d773",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/joint18v2/actions.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/joint18v2/actions.py",
+    "sha256": "26368c6018dafd0cfc933463c72afd39c29155e294ca1870da2fcad9e83f9936",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/joint18v2/batchcheck.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/joint18v2/batchcheck.py",
+    "sha256": "e2ea7e28332d83a4e7d107c8c3754ba58107b3ced893701ae6705d9c18ac6926",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/joint18v2/bootstrap.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/joint18v2/bootstrap.py",
+    "sha256": "e06b1d25dc094821674a3052bb279f3f8791a40379c0041549b5d1b25ed65ebd",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/joint18v2/cache.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/joint18v2/cache.py",
+    "sha256": "dfebac6b5a1736f086cbd5e32e5691b4d4294cb657e03c1279536cdba185fdc2",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/joint18v2/client.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/joint18v2/client.py",
+    "sha256": "f84e1a763fbdaef12e0d4433d8c49d50d62d9700e1879e8d39f183a4df25d485",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/joint18v2/common.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/joint18v2/common.py",
+    "sha256": "e099c31b2e3ee13a02a075b9befb6dfbc15454aa1fb6892827745e0b3d19d67a",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/joint18v2/io.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/joint18v2/io.py",
+    "sha256": "79e8d725bc3bb243a7eecb2d159e200d4017269da98a1d89c7d06084ecf4431d",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/joint18v2/latency_metrics.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/joint18v2/latency_metrics.py",
+    "sha256": "88fb372660e57932648902762c6451d626abb9a09f4018a4cf5962937d74a8af",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/joint18v2/lifetime_probe.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/joint18v2/lifetime_probe.py",
+    "sha256": "63c9122a91597302ecf483c31a12ad7be83038ba1d73f62b67e3ddf12c1458e0",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/joint18v2/model.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/joint18v2/model.py",
+    "sha256": "6336ca4d9d4cc98a0725ef6cdf3cc355663e483e0e9be137a2b5cf3104bb4972",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/joint18v2/native_contract.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/joint18v2/native_contract.py",
+    "sha256": "55a6c77cb75bd4077ae138c7cca85dfa221b0dc986dd313bd0e6cbfad5a30f8f",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/joint18v2/report.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/joint18v2/report.py",
+    "sha256": "a1c092f9654effdf9e0481db2da01299307cdba634ef4cf9786652a2f0dc16c2",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/joint18v2/search.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/joint18v2/search.py",
+    "sha256": "165991025586cf91a38987eedf42ccf2f09dd784ad6e44c59b08f916d6da69fc",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/joint18v2/service_fit.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/joint18v2/service_fit.py",
+    "sha256": "3c723c0d0b852f4fa7787445cf937fd871f91b422d96fc6b52f98dc840f60477",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/joint18v2/transport.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/joint18v2/transport.py",
+    "sha256": "79234bf67a1fb7cd00f136a2d0dc1d43c3f314dda6f8a375265a560b9388b66f",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/joint18v2/validation.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/joint18v2/validation.py",
+    "sha256": "4178cdb6b1fbee791b610c3c8285bb2e36e7b502f33cbb3be40273e2e831ddf6",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/joint18v2/workload.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/joint18v2/workload.py",
+    "sha256": "e2c5239f9d919e7b37c8147b57969a641e962428f39d6d052d6a9650cd9cdc09",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/semantic19/__init__.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/semantic19/__init__.py",
+    "sha256": "8264a706fa63e3ff8bfedbb429c4b248c593e1329163a15a088a84ce9633436c",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/semantic19/dataset.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/semantic19/dataset.py",
+    "sha256": "6d6814002f4ea0ef9dcbfe201bd47505d1fc21dda45e5719d4bed5feede0a070",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/semantic19/quality.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/semantic19/quality.py",
+    "sha256": "45c8ebf1ae13f0803d13eb1c544bee70ce7be273f642c8145e9996ad6c6926ab",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/semantic19/selector.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/semantic19/selector.py",
+    "sha256": "504de4f5e9e89785417a2d18fe61d0353c4158eeb04e11cc4c6617f7d68e67f5",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/semantic19/workflow.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/semantic19/workflow.py",
+    "sha256": "45b39dcb9b2810f03846328b59f8566e4297fab99d49697f1b024ddf63f75af2",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/runtime/joint18v2_hook.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/runtime/joint18v2_hook.py",
+    "sha256": "78ca1d716c5701a9f83ba7dc0b22669b6b50a38bd54626a56642130cd1684418",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/runtime/launcher.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/runtime/launcher.py",
+    "sha256": "1e661619cbfacbe22f3838082e58692597cc1b2c15e73699bbda666ae9fb6537",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/tools/benchmark_cpu.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/tools/benchmark_cpu.py",
+    "sha256": "0c7c1aa23bd738d6cc1fde5a8dfbdd5c0dbcc6f21a84883ccc2e503c347f2693",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/tools/benchmark_selector.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/tools/benchmark_selector.py",
+    "sha256": "d813cd85e88d19bcecda0ba31d8a0cdda48e292daa355db618166150faf70e7b",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/tools/collect_pod.sh": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/tools/collect_pod.sh",
+    "sha256": "aad14a356dce32347af43044d12f4602f89cac20b14bb36221231b02172709fe",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/tools/experiment.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/tools/experiment.py",
+    "sha256": "a910604076a77f3dab0a7a7fd48452654d5c71be361b3fa551407fc9dc2de108",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/tools/fetch_musique.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/tools/fetch_musique.py",
+    "sha256": "24617235d701c36038cf2046190d7da2d944f946670ca24128a72dac50c94da3",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/tools/pack_dataset.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/tools/pack_dataset.py",
+    "sha256": "4109c4172a62e2e28e22a55bbe28abb8169f9e00d1fdbcc7da40790d2800aaae",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/tools/recount_latency.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/tools/recount_latency.py",
+    "sha256": "d85f2fce9ed1c4188a21129399feacf8aac2c81853a5c671b1bd7dd9a2f7e18b",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/tools/restart.sh": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/tools/restart.sh",
+    "sha256": "a09d89685e5f210da68b2b05f725af4a3a1a01f66a01fe29dde6b305bef8b5f0",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/tools/restart_checked.sh": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/tools/restart_checked.sh",
+    "sha256": "04003357af04108efebc13dc2bdd12b714bb5021acafbd0d1663a234b7417ade",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/tools/run.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/tools/run.py",
+    "sha256": "6d3a37276368eeb3c719ffae4f3b1e3f715444e6f0238a03feda695cddba3053",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/tools/run_semantic.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/tools/run_semantic.py",
+    "sha256": "5287f8191453b9f3c7c15176fb3b31705ffbea971ea6c69438f85a4a722a4e46",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/tools/stage.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/tools/stage.py",
+    "sha256": "6e455abd49b37a55d3cb3e7cc91e799b766ce7e28e9b71532750c572f3124896",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/configs/development.json": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/configs/development.json",
+    "sha256": "ec121751e213b39ff811fe6f70d4635fff4fceb8dd2280969c5a48bf9d52e589",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/configs/semantic.json": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/configs/semantic.json",
+    "sha256": "2662dc0b47cfcf44072f2bb0de1a4837628d95659daedb1069b32075f788f943",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/tests/fake_native.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/tests/fake_native.py",
+    "sha256": "0eb11b2bbb59b16b50209eafbf155dd782f0777f5f4adf1ba6553ca028a52398",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/tests/test_bootstrap_metrics_fix.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/tests/test_bootstrap_metrics_fix.py",
+    "sha256": "27edf76a2b185bd913ad2d35b7b261b4df5f34e4689b5be327dc9aee74a4e8e9",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/tests/test_deployment_and_reports.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/tests/test_deployment_and_reports.py",
+    "sha256": "edb2169e94b5304e2d5af46e7c2c10fce1edd0e5e873271f4b8fe398d62645bc",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/tests/test_end_to_end.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/tests/test_end_to_end.py",
+    "sha256": "ddff46ba5f598bf9e9e554415d4958f606f2924953efcc264565ac6234865d21",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/tests/test_finite_admission_fix.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/tests/test_finite_admission_fix.py",
+    "sha256": "517be93de7174022d9009b9ffe4521ac35b8ce5ea05b8e6a44747f29ae6a44f3",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/tests/test_integration_contracts.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/tests/test_integration_contracts.py",
+    "sha256": "f8e3ac33818e2c71e16f8187bc59532664216a9d9c676bbaa782770ca5aad2b8",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/tests/test_retained_contracts.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/tests/test_retained_contracts.py",
+    "sha256": "6a74f31a99396255c984c2e334db89de1bff589441287d867aba63cdd20b0389",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/tests/test_selector_repair.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/tests/test_selector_repair.py",
+    "sha256": "1b763c4fd2880cdb52a70e6a19f3605226593027cfa4532f461b91b3f8aa8ecc",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/tests/test_selector_workflow.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/tests/test_selector_workflow.py",
+    "sha256": "b37871aeeb3733aaa32a64ed3911e230f9d92746bf599125164c53cfb255b4af",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/tests/test_semantic19.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/tests/test_semantic19.py",
+    "sha256": "5670664ec09d948c0627bad831908e5635a36b37cafdb8c8c1bd5c39c13c9268",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/tests/test_semantic_cli.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/tests/test_semantic_cli.py",
+    "sha256": "028e0a3b3e7d8584925308b4eeca88ed00b1ccdd54a3851427d6a0598bb09dc6",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_typed_handoff_v1/typed19/__init__.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_typed_handoff_v1/typed19/__init__.py",
+    "sha256": "82fceeba1c0fe8420a58b29a95c51119474296931fd001fda5ed7abfdf3e23b8",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_typed_handoff_v1/typed19/answers.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_typed_handoff_v1/typed19/answers.py",
+    "sha256": "f8b58d2738ec8ad7097e3c375d7b348456d745e8ceae74670c0bec6bced1f290",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_typed_handoff_v1/typed19/dependency.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_typed_handoff_v1/typed19/dependency.py",
+    "sha256": "23e0f95744175bf3f830da710e9c0e38ab349ad40d57cfada226047175967ce1",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_typed_handoff_v1/typed19/quality.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_typed_handoff_v1/typed19/quality.py",
+    "sha256": "149ae6a4e774bf5dd97e8bbd20206ca7887ea33ac673a60f810d8619ab590821",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_typed_handoff_v1/typed19/transport.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_typed_handoff_v1/typed19/transport.py",
+    "sha256": "ef52b45f6d81f8804c007e14476752156d01bf0cd6e8cc886238f03ca98fe1f7",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_typed_handoff_v1/typed19/workflow.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_typed_handoff_v1/typed19/workflow.py",
+    "sha256": "d70275e0757864deeff3dd4cd9982bfc18a2e5182916fb960984b087e0030b29",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_typed_handoff_v1/tools/run_typed.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_typed_handoff_v1/tools/run_typed.py",
+    "sha256": "5572bbd0a74090de25545c9a3ee0bb07a777b4f459841fb5df3d9e94dd0b6535",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_typed_handoff_v1/configs/semantic.json": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_typed_handoff_v1/configs/semantic.json",
+    "sha256": "8a8c350af03aa68214a5990157c413eeb7bf65fc0d7cb5f3074c32362a76b749",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_typed_handoff_v1/tests/test_runner.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_typed_handoff_v1/tests/test_runner.py",
+    "sha256": "9e6ead5e5244e37a7797e8709348387762ec9dca440081144a8bbd5ef5938049",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_typed_handoff_v1/tests/test_typed_contract.py": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_typed_handoff_v1/tests/test_typed_contract.py",
+    "sha256": "64695daeb0b8a4682f9d7ac7372e65ee4d22dbef1c99f1449bfe608f48864d91",
+    "kind": "documented_packaging_or_test_change",
+    "delivered_sha256": "3873f3ea47d45f7f2e3d7c3f35c2d71edc1bbbdfc778ac6452fa8eb5a2b71884"
+  },
+  "source/spra_stage19_typed_handoff_v1/dependency_identity.json": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_typed_handoff_v1/dependency_identity.json",
+    "sha256": "fdc31f461462aa737c046cf9a2ed162df2005fdcc365b6de582cf92eb3c78ac9",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/wfsched/__init__.py": {
+    "origin": "spra_workflow_accept_v1.zip:wfsched/__init__.py",
+    "sha256": "c494740799f91bd3e10424dfceb8345ef0c4247991c94527401d34c7fd0729e9",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/wfsched/accept_report.py": {
+    "origin": "spra_workflow_accept_v1.zip:wfsched/accept_report.py",
+    "sha256": "1f03dbc3d7fa5c0f2be9e54d5446cc279b3e7a40c2260cfd5bbf4cc7eb059fc3",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/wfsched/acceptance.py": {
+    "origin": "spra_workflow_accept_v1.zip:wfsched/acceptance.py",
+    "sha256": "0b4af6f80bbe7b60516e274669a599a2f91cd045d254fab224de16ebe32d2950",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/wfsched/admission.py": {
+    "origin": "spra_workflow_accept_v1.zip:wfsched/admission.py",
+    "sha256": "29b69e68dd80dd5468bb4cef54d2cadfa2508ab9431bddaa3cfc8e78069f7d78",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/wfsched/audit.py": {
+    "origin": "spra_workflow_accept_v1.zip:wfsched/audit.py",
+    "sha256": "b9263cb143ab53f5c18ad22cb9446cb7a7d187379cceb21bd90f9bed87d82cd6",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/wfsched/bench.py": {
+    "origin": "spra_workflow_accept_v1.zip:wfsched/bench.py",
+    "sha256": "b9612bd98c0f6ebe9d7f2a92527caafe22d1fd36c1831d2f2d5abaad4fa229cb",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/wfsched/binding.py": {
+    "origin": "spra_workflow_accept_v1.zip:wfsched/binding.py",
+    "sha256": "791562d24fdb363d9b8ab0af1e31975a85ad072517b985e6bc0bdc4fb498a476",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/wfsched/common.py": {
+    "origin": "spra_workflow_accept_v1.zip:wfsched/common.py",
+    "sha256": "c4edbc8f2f14cb27e15438d70f20c2f4a6316ba90ea48aeebfa2e5a26dad918d",
+    "kind": "documented_packaging_or_test_change",
+    "delivered_sha256": "1ee22967efd0d9412de59774783067dad2203ca557f8bcbb57be1d6bb1cad8a9"
+  },
+  "source/spra_workflow_accept_v1/wfsched/design.py": {
+    "origin": "spra_workflow_accept_v1.zip:wfsched/design.py",
+    "sha256": "97eaf17d9965afbe21c4f130639909748724622521e3993c38ac2ede6b39fb53",
+    "kind": "documented_packaging_or_test_change",
+    "delivered_sha256": "dec6269ab1497b15c4b5a0a5fc3d2eb9b5a843ff75da75c0ef12a6b57d2d7e1c"
+  },
+  "source/spra_workflow_accept_v1/wfsched/environment.py": {
+    "origin": "spra_workflow_accept_v1.zip:wfsched/environment.py",
+    "sha256": "95fa4648d55222697f074002b84a73a64641b0092ef2df7b382c7a408dbb0772",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/wfsched/legacy.py": {
+    "origin": "spra_workflow_accept_v1.zip:wfsched/legacy.py",
+    "sha256": "1ce7a61ccbef81757ea30fc6e98c678403149bb0dc5fc6adf8d4aa326eca4a63",
+    "kind": "documented_packaging_or_test_change",
+    "delivered_sha256": "63680ad5895674a32c8ace29d5700507de121c88f7e6690a1d8b8b0eeb9f25a8"
+  },
+  "source/spra_workflow_accept_v1/wfsched/report.py": {
+    "origin": "spra_workflow_accept_v1.zip:wfsched/report.py",
+    "sha256": "e41e40ed3f157e3b94f10c6c925acfa14413475cce5b12b7d74c02a26b574e1f",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/wfsched/routing.py": {
+    "origin": "spra_workflow_accept_v1.zip:wfsched/routing.py",
+    "sha256": "c4e9875f4333ca361293c6d15a508898f90acd7a303890cf7025302914ca6f38",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/wfsched/runner.py": {
+    "origin": "spra_workflow_accept_v1.zip:wfsched/runner.py",
+    "sha256": "b968d30cdf0501d8a3abe9b4c604c622974521328c92b1b7637452ee66b04977",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/wfsched/selector.py": {
+    "origin": "spra_workflow_accept_v1.zip:wfsched/selector.py",
+    "sha256": "3daeb9ce7a6c0310dcf1751dbb2344c6f6302124fed5f566ac146b9f7770f6f0",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/wfsched/tail_check.py": {
+    "origin": "spra_workflow_accept_v1.zip:wfsched/tail_check.py",
+    "sha256": "b08c2337659d33f77807e395ddd4bd51fcf6cb811a5559e073975e77e43e7795",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/wfsched/worker.py": {
+    "origin": "spra_workflow_accept_v1.zip:wfsched/worker.py",
+    "sha256": "5b1475877870b518fb573930713a2477bbd5e382cae126ac39fbc1817192ac13",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/tests/bootstrap.py": {
+    "origin": "spra_workflow_accept_v1.zip:tests/bootstrap.py",
+    "sha256": "a1e269147cf22378562ebf8a052af2bfdec0c1000b2e75a49602cd3da1f529f9",
+    "kind": "documented_packaging_or_test_change",
+    "delivered_sha256": "6a49dc137af34581d8d0ba40688f6505ddae8a2745995559de50b8d3ce2f6a31"
+  },
+  "source/spra_workflow_accept_v1/tests/fake_native.py": {
+    "origin": "spra_workflow_accept_v1.zip:tests/fake_native.py",
+    "sha256": "0eb11b2bbb59b16b50209eafbf155dd782f0777f5f4adf1ba6553ca028a52398",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/tests/synthetic.py": {
+    "origin": "spra_workflow_accept_v1.zip:tests/synthetic.py",
+    "sha256": "d2da8241f8004c5a625141d76df2134cfdf9440344f89f68e5385307168357e9",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/tests/test_acceptance.py": {
+    "origin": "spra_workflow_accept_v1.zip:tests/test_acceptance.py",
+    "sha256": "af69d4b0bfea301d1d6f99953f57234268b7c7b4c97711c9ed46dadc35086005",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/tests/test_admission_repair.py": {
+    "origin": "spra_workflow_accept_v1.zip:tests/test_admission_repair.py",
+    "sha256": "6821b0ced0551a38e2cbecdfea3eefcbb36bed0227c13c2477baf2897f3ddcd7",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/tests/test_case_native_orchestration.py": {
+    "origin": "spra_workflow_accept_v1.zip:tests/test_case_native_orchestration.py",
+    "sha256": "870fce1b0d67d6ae821af8892e865f141c6b60078ce2f9e17915c68a55b06d98",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/tests/test_contracts.py": {
+    "origin": "spra_workflow_accept_v1.zip:tests/test_contracts.py",
+    "sha256": "e56675f1a49677afc585c04cca20291bf74625a2102289d1773d167ff0ad9e0c",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/tests/test_native_path.py": {
+    "origin": "spra_workflow_accept_v1.zip:tests/test_native_path.py",
+    "sha256": "09b699613744e3c1657d93b5b524d5ec5a3074357e8dd5f6b9675952a3cdc605",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/tests/test_suite_orchestration.py": {
+    "origin": "spra_workflow_accept_v1.zip:tests/test_suite_orchestration.py",
+    "sha256": "6a9953bd6aff12a724b6531c51a0cb6e43ad3a20a9c0cc00dc871acc66018249",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/run.py": {
+    "origin": "spra_workflow_accept_v1.zip:run.py",
+    "sha256": "82b29cc6bf7a40666245a5334e3ae41dd1f7d2a934f8f94ae7ff2cb3edb17f97",
+    "kind": "documented_packaging_or_test_change",
+    "delivered_sha256": "b99c415760bc02f00e1ab0e4de153f51009946d6cb6d00cc50772604926d0ced"
+  },
+  "source/spra_workflow_accept_v1/run.sh": {
+    "origin": "spra_workflow_accept_v1.zip:run.sh",
+    "sha256": "918e3dd3208568b1076793c2d388f09767823eb0a710e41e95c4e31e9c957728",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/run_checks.sh": {
+    "origin": "spra_workflow_accept_v1.zip:run_checks.sh",
+    "sha256": "976cd09853d545245c7df5c70a22b91c11f1e5cb076699200017378641080224",
+    "kind": "documented_packaging_or_test_change",
+    "delivered_sha256": "81b9f7b7bd8ce1a1090e03b470adc229ea8dac394d5c81c2ec1cbfe171d8a4ad"
+  },
+  "source/spra_workflow_accept_v1/plans/smoke.json": {
+    "origin": "spra_workflow_accept_v1.zip:plans/smoke.json",
+    "sha256": "5b4aebf2e834a65002a43df2fa4636a84c5c9e1ba4b48a7f6a004cda81833c84",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/plans/grid.json": {
+    "origin": "spra_workflow_accept_v1.zip:plans/grid.json",
+    "sha256": "3fae2c74f09ea667d5e4857f0290ae16489a03dca98e787d23f82def1d8a1078",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/plans/ablation.json": {
+    "origin": "spra_workflow_accept_v1.zip:plans/ablation.json",
+    "sha256": "0dd7ac5a092b6b6b45dcfd926b74138c50639a0cbcfaf6449332e17976e1e398",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/plans/confirm.json": {
+    "origin": "spra_workflow_accept_v1.zip:plans/confirm.json",
+    "sha256": "6644229781cebc7afc5efd9a3cd31ce3408dcf4cf8e1227201578a4b62e23617",
+    "kind": "unchanged_source"
+  },
+  "source/spra_workflow_accept_v1/plans/agecheck.json": {
+    "origin": "spra_workflow_accept_v1.zip:plans/agecheck.json",
+    "sha256": "8d421c9072d7fcf5567044a12cfceb9663f0df9f5dc39cce9ee74b4c4704f249",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/dataset/compiled/manifest.json": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/dataset/compiled/manifest.json",
+    "sha256": "615f631f695d8401d0727aa4044427f11ba49d0a1eb01419a6bd9ff030907c12",
+    "kind": "unchanged_source"
+  },
+  "source/spra_stage19_musique_joint_v1/dataset/compiled/ATTRIBUTION.txt": {
+    "origin": "workflow_code_review.zip:working_tree/spra_stage19_musique_joint_v1/dataset/compiled/ATTRIBUTION.txt",
+    "sha256": "5697bf579121cfb137de89deab853c359c3edb2d4076878e97683e1a0e3082e9",
+    "kind": "unchanged_source"
+  }
+}

@@ -1,0 +1,370 @@
+--- v2/wfsched/__init__.py
++++ v2.1/wfsched/__init__.py
+@@ -1,2 +1,2 @@
+ """Frozen D0 request scheduling extension. No adaptive batching."""
+-REVISION = 'workflow-scheduling-native-2'
++REVISION = 'workflow-scheduling-native-2.1'
+--- v2/wfsched/admission.py
++++ v2.1/wfsched/admission.py
+@@ -0,0 +1,58 @@
++"""Repair inherited D0 proposal admission intent, without changing resource limits.
++
++The reference has already been projected. A copy of its admitted subset is NOT
++an unprojected candidate: resources() resets resource_held on every invocation.
++Restore the complete reference intent before original schedule_alternative()
++constructs its bounded-admission intent, then let the original resource projector
++and the unchanged age validator act on that candidate. Do not patch validation.
++"""
++from __future__ import annotations
++import copy
++from contextlib import contextmanager
++import semantic19.selector as semantic
++
++REVISION = 'wf-admission-intent-repair-1'
++_ORIGINAL = semantic.schedule_alternative
++
++
++def schedule_alternative(snapshot, model, cfg, base):
++    held = base.get('resource_held', [])
++    if not held:
++        # Preserve the original low-pressure proposal path and action fields.
++        return _ORIGINAL(snapshot, model, cfg, base)
++    ready = set(snapshot['ready'])
++    admitted = set(base['admit'])
++    blocked = set(held)
++    if (admitted & blocked or admitted | blocked != ready
++            or len(base['admit']) != len(admitted) or len(held) != len(blocked)):
++        raise ValueError('reference admission partition is incomplete or overlapping')
++    restored = copy.deepcopy(base)
++    restored['admit'] = list(snapshot['ready'])
++    restored['resource_held'] = []
++    # Original bounded-admission logic is applied AFTER restoration, not bypassed.
++    candidate = _ORIGINAL(snapshot, model, cfg, restored)
++    candidate['admission_projection_repair'] = {
++        'revision': REVISION,
++        'inherited_resource_held': list(held),
++        'candidate_resource_held': list(candidate.get('resource_held', [])),
++        'reference_intent_restored_before_bounded_rule': True,
++        'age_validator_changed': False,
++        'resource_limits_changed': False,
++        'budget_changed': False,
++    }
++    return candidate
++
++
++@contextmanager
++def binding():
++    """The experiment uses a single isolated planning process per session.
++
++    Restore globals even on failure. No deployed source file or engine process is
++    patched. The original D choose() reads this global; Lite imports our wrapper.
++    """
++    saved = semantic.schedule_alternative
++    semantic.schedule_alternative = schedule_alternative
++    try:
++        yield
++    finally:
++        semantic.schedule_alternative = saved
+--- v2/wfsched/design.py
++++ v2.1/wfsched/design.py
+@@ -21,6 +21,9 @@
+ def make_design(suite):
+     if suite == 'smoke':
+         cells = [(4,2.)]; blocks=[1]; methods=list(METHODS); seq=[methods]
++    elif suite == 'agecheck':
++        cells=[(1,4.),(1,8.)];blocks=[1]
++        methods=['Affinity','DAG','DAG-Lite','RR','P2C'];seq=[methods]
+     elif suite == 'ablation':
+         cells = [(4,2.)]; blocks=[1,2,3,4]
+         methods=['Affinity','DAG','DAG-Lite']; seq=list(itertools.permutations(methods))
+@@ -64,6 +67,8 @@
+                   'two mirrored orders per cell/block, not fully position-balanced' if suite=='grid' else
+                   'one smoke order; not performance evidence'),
+       'budget_candidate_generation_removed_only_for':'DAG-Lite',
++      'admission_intent_revision':'wf-admission-intent-repair-1',
++      'original_frozen_source_modified':False,
+       'no_posthoc_version_selection':True,'all_results_retained':True,'automatic_retry':False,
+       'guaranteed_10_percent':False}
+ 
+--- v2/wfsched/runner.py
++++ v2.1/wfsched/runner.py
+@@ -10,6 +10,7 @@
+ from pathlib import Path
+ import sys
+ import time
++import traceback
+ import uuid
+ import zipfile
+ from concurrent.futures import ProcessPoolExecutor
+@@ -203,6 +204,7 @@
+                     atomic(attempt/'status.json',{'status':'running','spec':cell,'automatic_retry':False})
+                     touched.append(cell['label']);offsets=inactive_offsets(runtime,R)
+                     print('WF_CONDITION_START='+json.dumps(cell),flush=True)
++                    cfg['wf_worker_failure_dir']=str(folder/'worker_failures')
+                     native_method='D' if cell['method'] in ('DAG','DAG-Lite') else 'A'
+                     with bindings(cell['method']):
+                         summary,events=await live.execute(client,runtime,initial,cfg,nodes,folder,
+@@ -233,7 +235,7 @@
+                          'requests','output_tokens','semantic_quality','decision_wall_ms')}},ensure_ascii=False),flush=True)
+                 success=True
+             except BaseException as exc:
+-                atomic(session/'failure.json',{'error':repr(exc),'automatic_retry':False,'touched_conditions':touched})
++                atomic(session/'failure.json',{'error':repr(exc),'traceback':traceback.format_exc(),'automatic_retry':False,'touched_conditions':touched})
+                 atomic(out/'suite_status.json',{'status':'failed','error':repr(exc),'completed_conditions':len(rows)})
+                 raise
+             finally:
+--- v2/wfsched/selector.py
++++ v2.1/wfsched/selector.py
+@@ -7,7 +7,8 @@
+ from __future__ import annotations
+ import copy
+ import time
+-from semantic19.selector import schedule_alternative, guard
++from semantic19.selector import guard
++from .admission import schedule_alternative
+ from joint18v2.common import action_key, validate_action
+ from joint18v2.search import reference
+ from core18v2.engine import evaluate
+--- v2/wfsched/worker.py
++++ v2.1/wfsched/worker.py
+@@ -1,12 +1,18 @@
+ """Spawn-safe worker: original frozen D0, or its budget-generation-free path."""
+ from __future__ import annotations
+ import os
++import traceback
++from pathlib import Path
++from .common import atomic
+ 
+ def ready(): return os.getpid()
+ 
+ def process_plan(snapshot, model, cfg, method, deadline):
+     if method != 'D' or cfg['base_cap'] != 4096:
+         raise ValueError('only fixed-budget workflow scheduling is allowed')
++    # Keep module import independent of the native project. Parent runner loads
++    # original source paths before actual worker planning.
++    from .admission import binding, REVISION as ADMISSION_REVISION
+     public = cfg['wf_public_method']
+     if public == 'DAG':
+         from semantic19.selector import choose
+@@ -14,11 +20,31 @@
+         from .selector import choose_lite as choose
+     else:
+         raise ValueError('baseline must not enter workflow worker')
+-    ans = choose(snapshot, model, cfg, 'D', deadline)
++    try:
++        with binding():
++            ans = choose(snapshot, model, cfg, 'D', deadline)
++    except Exception as exc:
++        # Preserve a failing input instead of replacing the action or retrying.
++        target = cfg.get('wf_worker_failure_dir')
++        if target:
++            try:
++                atomic(Path(target)/('failure_'+str(os.getpid())+'.json'), {
++                    'error': repr(exc), 'traceback': traceback.format_exc(),
++                    'snapshot': snapshot, 'config': cfg, 'method': method,
++                    'deadline': deadline, 'automatic_retry': False,
++                })
++            except Exception as save_error:
++                # Saving diagnostics must never hide or convert the original failure.
++                print('WF_FAILURE_DIAGNOSTIC_WRITE_ERROR='+repr(save_error), flush=True)
++        raise
++    ans['wf_admission_revision'] = ADMISSION_REVISION
++    ans['wf_admission_repair_proposals'] = sum(
++        bool(e.get('action', {}).get('admission_projection_repair'))
++        for e in ans.get('evaluations', []))
+     if ans['action']['caps'] != [4096]*snapshot['replicas']:
+         raise ValueError('workflow candidate changed budget')
+     if any(e['cell'] not in ('00','10') for e in ans['evaluations']):
+         raise ValueError('non-scheduling cell scored')
+     ans['wf_public_method'] = public
+-    ans['wf_worker_path'] = 'frozen_D0' if public == 'DAG' else 'no_budget_candidates'
++    ans['wf_worker_path'] = 'D0_admission_repaired' if public == 'DAG' else 'no_budget_candidates'
+     return ans
+--- v2/run.py
++++ v2.1/run.py
+@@ -15,7 +15,7 @@
+     p.add_argument('command',choices=['check','freeze','gate','plan','run','report','export','benchmark'])
+     p.add_argument('--repo',type=Path,default=ROOT)
+     p.add_argument('--runtime',type=Path,default=RUNTIME)
+-    p.add_argument('--suite',choices=['smoke','ablation','grid','confirm'],default='smoke')
++    p.add_argument('--suite',choices=['smoke','agecheck','ablation','grid','confirm'],default='smoke')
+     p.add_argument('--out',type=Path)
+     p.add_argument('--replicas',type=int,nargs='+',choices=[1,2,3,4],help='filter a frozen run, not redefine its plan')
+     p.add_argument('--max-conditions',type=int,help='cleanly pause after this many newly accepted conditions')
+@@ -47,7 +47,7 @@
+         asyncio.run(gate_only(args))
+     elif args.command=='run':
+         if not args.confirm_gpu_use:p.error('run sends real requests; require --confirm-gpu-use')
+-        if args.out is None:args.out=HERE/'runs'/(args.suite+'_v2')
++        if args.out is None:args.out=HERE/'runs'/(args.suite+'_v2_1')
+         from wfsched.runner import run
+         asyncio.run(run(args))
+     elif args.command in ('report','export'):
+--- v2/tests/test_admission_repair.py
++++ v2.1/tests/test_admission_repair.py
+@@ -0,0 +1,165 @@
++"""Actual frozen source, synthetic pressure: no model service or GPU request."""
++from __future__ import annotations
++import copy
++import json
++import multiprocessing
++import os
++import tempfile
++import subprocess
++import sys
++import time
++import unittest
++from concurrent.futures import ProcessPoolExecutor
++from pathlib import Path
++from unittest.mock import patch
++from bootstrap import CFG, MODEL
++from wfsched.bench import snapshot
++from wfsched.admission import schedule_alternative, binding, _ORIGINAL, REVISION
++from wfsched.worker import process_plan, ready
++from joint18v2.search import reference
++from joint18v2.actions import resources
++from joint18v2.common import validate_action, action_key
++
++class AdmissionRepairTests(unittest.TestCase):
++    def inputs(self, R=1, index=1, capacity=50):
++        s=snapshot(R,2)
++        s.update(now=1.,decision_index=index,capacity_blocks=[capacity]*R,reserved_blocks=[0]*R)
++        c=dict(CFG,replicas=R,base_cap=4096)
++        return s,c,reference(s,c)
++
++    def test_original_failure_reproduced_without_gpu(self):
++        s,c,a=self.inputs()
++        self.assertTrue(a['resource_held'])
++        validate_action(a,s,c)
++        self.assertFalse(resources(a,s,c)['resource_held'])
++        with self.assertRaisesRegex(ValueError,'^age_admission$'):_ORIGINAL(s,MODEL,c,a)
++
++    def test_repaired_candidate_keeps_genuine_resource_holds(self):
++        s,c,a=self.inputs();z=schedule_alternative(s,MODEL,c,a)
++        self.assertTrue(validate_action(z,s,c))
++        self.assertEqual(set(z['admit'])|set(z['resource_held']),set(s['ready']))
++        self.assertEqual(len(z['admit']),1)
++        self.assertEqual(z['caps'],[4096])
++
++    def test_original_no_pressure_action_is_exactly_unchanged(self):
++        for R in (1,2,3,4):
++            for index in (1,3):
++                s,c,a=self.inputs(R,index,4096)
++                self.assertEqual(schedule_alternative(s,MODEL,c,a),_ORIGINAL(s,MODEL,c,a))
++
++    def test_input_snapshots_and_base_not_mutated(self):
++        s,c,a=self.inputs();before=copy.deepcopy((s,c,a))
++        schedule_alternative(s,MODEL,c,a)
++        self.assertEqual((s,c,a),before)
++
++    def test_partial_partition_is_not_hidden(self):
++        s,c,a=self.inputs();a['resource_held'].pop()
++        with self.assertRaisesRegex(ValueError,'partition'):schedule_alternative(s,MODEL,c,a)
++
++    def test_duplicate_or_overlapping_partition_rejected(self):
++        for overlap in (False,True):
++            s,c,a=self.inputs();a['resource_held'].append(a['admit'][0] if overlap else a['resource_held'][0])
++            with self.assertRaisesRegex(ValueError,'partition'):schedule_alternative(s,MODEL,c,a)
++
++    def test_age_validator_is_still_enforced(self):
++        s,c,a=self.inputs();a['resource_held']=[]
++        with self.assertRaisesRegex(ValueError,'^age_admission$'):validate_action(a,s,c)
++
++    def test_sequence_limit_remains_enforced(self):
++        s,c,_=self.inputs(capacity=4096);c['max_num_seqs']=1;a=reference(s,c)
++        z=schedule_alternative(s,MODEL,c,a);validate_action(z,s,c)
++        self.assertEqual(len(z['admit']),1);self.assertEqual(len(z['resource_held']),3)
++
++    def test_zero_capacity_never_forces_an_aged_admission(self):
++        s,c,a=self.inputs(capacity=0);z=schedule_alternative(s,MODEL,c,a)
++        self.assertEqual(z['admit'],[]);self.assertEqual(set(z['resource_held']),set(s['ready']))
++        validate_action(z,s,c)
++
++    def test_rerouted_previously_held_request_is_reconsidered(self):
++        s,c,a=self.inputs(R=2,capacity=50)
++        s['capacity_blocks']=[0,4096]
++        for k in a['placement']:a['placement'][k]=0
++        a['admit']=[];a['resource_held']=list(s['ready'])
++        z=schedule_alternative(s,MODEL,c,a)
++        self.assertTrue(z['admit'])
++        self.assertTrue(all(z['placement'][k]==1 for k in z['admit']))
++        validate_action(z,s,c)
++
++    def test_bounded_admission_policy_is_not_overridden(self):
++        s,c,_=self.inputs(index=3,capacity=50)
++        # One incumbent is enough to activate the original soft rule in this test.
++        n=copy.deepcopy(s['nodes']['w0/0']);n.update(id='inc',wid='old',state='submitted',replica=0,phase='decode',compiled_groups=[],compiled_successors=[])
++        s['nodes']['inc']=n;s['now']=.1;c['admission_soft_active']=1
++        a=reference(s,c);z=schedule_alternative(s,MODEL,c,a)
++        self.assertTrue(a['resource_held'])
++        self.assertIn('bounded_admission',z['family'])
++        self.assertLess(len(set(z['admit'])|set(z['resource_held'])),len(s['ready']))
++        validate_action(z,s,c)
++
++    def test_old_resources_function_is_unchanged(self):
++        import joint18v2.actions as A
++        f=A.resources
++        with binding():self.assertIs(A.resources,f)
++        self.assertIs(A.resources,f)
++
++    def test_binding_restores_original_even_on_failure(self):
++        import semantic19.selector as S
++        saved=S.schedule_alternative
++        with self.assertRaisesRegex(RuntimeError,'synthetic'):
++            with binding():
++                self.assertIs(S.schedule_alternative,schedule_alternative)
++                raise RuntimeError('synthetic')
++        self.assertIs(S.schedule_alternative,saved)
++
++    def test_many_resource_limits_and_decision_indices(self):
++        for R in (1,2,3,4):
++            for cap in (0,50,100,4096):
++                for index in (1,2,3,6):
++                    s,c,a=self.inputs(R,index,cap)
++                    z=schedule_alternative(s,MODEL,c,a)
++                    validate_action(z,s,c)
++                    self.assertEqual(z['caps'],[4096]*R)
++                    # Original projector must agree that final admitted set fits.
++                    self.assertEqual(resources(z,s,c)['admit'],z['admit'])
++
++    def test_both_worker_versions_complete_under_pressure(self):
++        for m in ('DAG','DAG-Lite'):
++            s,c,a=self.inputs();c['wf_public_method']=m
++            ans=process_plan(s,MODEL,c,'D',time.monotonic()+5)
++            validate_action(ans['action'],s,c)
++            self.assertEqual(ans['wf_admission_revision'],REVISION)
++            self.assertTrue(all(e['cell'] in ('00','10') for e in ans['evaluations']))
++            self.assertGreater(ans['wf_admission_repair_proposals'],0)
++
++    def test_worker_failure_snapshot_is_preserved(self):
++        with tempfile.TemporaryDirectory() as td:
++            s,c,a=self.inputs();c.update(wf_public_method='DAG',wf_worker_failure_dir=td)
++            with patch('semantic19.selector.choose',side_effect=ValueError('test diagnostic')):
++                with self.assertRaisesRegex(ValueError,'test diagnostic'):process_plan(s,MODEL,c,'D',time.monotonic()+5)
++            files=list(Path(td).glob('failure_*.json'));self.assertEqual(len(files),1)
++            v=json.loads(files[0].read_text());self.assertEqual(v['snapshot'],s)
++            self.assertIn('ValueError',v['traceback']);self.assertFalse(v['automatic_retry'])
++
++    def test_real_spawn_process_pressure_case(self):
++        with ProcessPoolExecutor(1,mp_context=multiprocessing.get_context('spawn')) as pool:
++            self.assertNotEqual(pool.submit(ready).result(timeout=15),os.getpid())
++            for m in ('DAG','DAG-Lite'):
++                s,c,_=self.inputs();c['wf_public_method']=m
++                ans=pool.submit(process_plan,s,MODEL,c,'D',time.monotonic()+5).result(timeout=15)
++                self.assertEqual(ans['wf_admission_revision'],REVISION)
++                validate_action(ans['action'],s,c)
++
++    def test_agecheck_is_not_a_performance_suite(self):
++        from wfsched.design import plan
++        p=plan('agecheck')
++        self.assertEqual(len(p['conditions']),10)
++        self.assertEqual({(r['replicas'],r['rate']) for r in p['conditions']},{(1,4.),(1,8.)})
++        self.assertEqual({r['block'] for r in p['conditions']},{1})
++        self.assertEqual(p['admission_intent_revision'],REVISION)
++
++    def test_runner_imports_before_native_source_activation(self):
++        app=Path(__file__).resolve().parents[1]
++        script="import sys;sys.path.insert(0,"+repr(str(app))+");import wfsched.runner;print('BOOTSTRAP_OK')"
++        v=subprocess.run([sys.executable,'-I','-c',script],capture_output=True,text=True,timeout=10)
++        self.assertEqual(v.returncode,0,v.stderr)
++        self.assertIn('BOOTSTRAP_OK',v.stdout)

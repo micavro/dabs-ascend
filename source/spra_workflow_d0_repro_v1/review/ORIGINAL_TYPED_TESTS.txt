@@ -1,0 +1,69 @@
+test_all_methods_keep_null_tpot (test_runner.RunnerTests.test_all_methods_keep_null_tpot) ... ok
+test_incomplete_profile_rejected (test_runner.RunnerTests.test_incomplete_profile_rejected) ... ok
+test_metric_clock_unchanged (test_runner.RunnerTests.test_metric_clock_unchanged) ... ok
+test_no_joint_codegen_changes (test_runner.RunnerTests.test_no_joint_codegen_changes) ... ok
+test_old_profile_rejected (test_runner.RunnerTests.test_old_profile_rejected) ... ok
+test_plan_cli_has_no_runtime_access (test_runner.RunnerTests.test_plan_cli_has_no_runtime_access) ... ok
+test_profile_freeze_shared_contract (test_runner.RunnerTests.test_profile_freeze_shared_contract) ... ok
+test_source_unchanged (test_runner.RunnerTests.test_source_unchanged) ... ok
+test_fixed_four_replicas_no_semantic_dataset (test_runner.SchemaWarmupTest.test_fixed_four_replicas_no_semantic_dataset) ... ok
+test_canonical_tokens_not_fragments (test_typed_contract.AdapterTests.test_canonical_tokens_not_fragments) ... ok
+test_dynamic_invalid_status_retained (test_typed_contract.AdapterTests.test_dynamic_invalid_status_retained) ... ok
+test_dynamic_overflow_not_clipped (test_typed_contract.AdapterTests.test_dynamic_overflow_not_clipped) ... ok
+test_dynamic_prefix_is_verified (test_typed_contract.AdapterTests.test_dynamic_prefix_is_verified) ... ok
+test_dynamic_valid_parent (test_typed_contract.AdapterTests.test_dynamic_valid_parent) ... ok
+test_exact_namespace_collision_stops (test_typed_contract.AdapterTests.test_exact_namespace_collision_stops) ... ok
+test_malformed_token_list_fails (test_typed_contract.AdapterTests.test_malformed_token_list_fails) ... Executing <Task finished name='Task-37' coro=<AdapterTests.test_malformed_token_list_fails() done, defined at /mnt/data/workflow_review_extracted/working_tree/spra_stage19_typed_handoff_v1/tests/test_typed_contract.py:134> result=None created at /usr/lib/python3.13/asyncio/runners.py:100> took 0.107 seconds
+ok
+test_native_payload (test_typed_contract.AdapterTests.test_native_payload) ... ok
+test_new_first_block_each_condition (test_typed_contract.AdapterTests.test_new_first_block_each_condition) ... ok
+test_no_overall_or_gold (test_typed_contract.AdapterTests.test_no_overall_or_gold) ... ok
+test_complete_at_length_flagged (test_typed_contract.AnswerTests.test_complete_at_length_flagged) ... ok
+test_duplicate_invalid (test_typed_contract.AnswerTests.test_duplicate_invalid) ... ok
+test_empty_invalid (test_typed_contract.AnswerTests.test_empty_invalid) ... ok
+test_extra_field_invalid (test_typed_contract.AnswerTests.test_extra_field_invalid) ... ok
+test_hash_matches_raw (test_typed_contract.AnswerTests.test_hash_matches_raw) ... ok
+test_multiline_invalid (test_typed_contract.AnswerTests.test_multiline_invalid) ... ok
+test_nonrefusal_mention (test_typed_contract.AnswerTests.test_nonrefusal_mention) ... ok
+test_nonstring_invalid (test_typed_contract.AnswerTests.test_nonstring_invalid) ... ok
+test_null_invalid (test_typed_contract.AnswerTests.test_null_invalid) ... ok
+test_old_markup_not_silently_repaired (test_typed_contract.AnswerTests.test_old_markup_not_silently_repaired) ... ok
+test_prose_invalid (test_typed_contract.AnswerTests.test_prose_invalid) ... ok
+test_refusal_signal_not_quality_rewrite (test_typed_contract.AnswerTests.test_refusal_signal_not_quality_rewrite) ... ok
+test_solution_unknown_identified (test_typed_contract.AnswerTests.test_solution_unknown_identified) ... ok
+test_trailing_text_invalid (test_typed_contract.AnswerTests.test_trailing_text_invalid) ... ok
+test_truncated_invalid (test_typed_contract.AnswerTests.test_truncated_invalid) ... ok
+test_unknown_extra_text_invalid (test_typed_contract.AnswerTests.test_unknown_extra_text_invalid) ... ok
+test_unknown_never_entity (test_typed_contract.AnswerTests.test_unknown_never_entity) ... ok
+test_unknown_status (test_typed_contract.AnswerTests.test_unknown_status) ... ok
+test_valid_json (test_typed_contract.AnswerTests.test_valid_json) ... ok
+test_wrong_country_not_corrected (test_typed_contract.AnswerTests.test_wrong_country_not_corrected) ... ok
+test_abstention_status_not_error (test_typed_contract.BindingTests.test_abstention_status_not_error) ... ok
+test_invalid_not_prose (test_typed_contract.BindingTests.test_invalid_not_prose) ... ok
+test_missing_parent_fails (test_typed_contract.BindingTests.test_missing_parent_fails) ... ok
+test_raw_not_task (test_typed_contract.BindingTests.test_raw_not_task) ... ok
+test_real_values_only (test_typed_contract.BindingTests.test_real_values_only) ... ok
+test_repeated_reference (test_typed_contract.BindingTests.test_repeated_reference) ... ok
+test_format_valid_wrong_answer_kept_wrong (test_typed_contract.QualityTests.test_format_valid_wrong_answer_kept_wrong) ... ok
+test_no_labels_before_end (test_typed_contract.QualityTests.test_no_labels_before_end) ... ok
+test_unknown_not_filtered (test_typed_contract.QualityTests.test_unknown_not_filtered) ... ok
+test_A (test_typed_contract.RealCodeFakeEngine.test_A) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 482833990898, "phase": "scheduler_init_enter", "pid": 950, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 482836867907, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 950, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpfmxxzkjo/joint18v2/spra-vllm-0.status.json"}
+ok
+test_B (test_typed_contract.RealCodeFakeEngine.test_B) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 483140442806, "phase": "scheduler_init_enter", "pid": 950, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 483143146329, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 950, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpz_xc66bt/joint18v2/spra-vllm-0.status.json"}
+ok
+test_D (test_typed_contract.RealCodeFakeEngine.test_D) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 483446895705, "phase": "scheduler_init_enter", "pid": 950, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 483449930988, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 950, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpttbkc9js/joint18v2/spra-vllm-0.status.json"}
+ok
+test_Decoupled (test_typed_contract.RealCodeFakeEngine.test_Decoupled) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 483743519859, "phase": "scheduler_init_enter", "pid": 950, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 483746308469, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 950, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpjfclib58/joint18v2/spra-vllm-0.status.json"}
+ok
+test_Joint (test_typed_contract.RealCodeFakeEngine.test_Joint) ... JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 484039462742, "phase": "scheduler_init_enter", "pid": 950, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1"}
+JOINT18V2_STARTUP={"launch_id": null, "mono_ns": 484042082868, "native_cache_allocator": "v1", "phase": "scheduler_status_written", "pid": 950, "pod": "spra-vllm-0", "revision": "stage18v2-boot-metrics-fix-1", "status_file": "/tmp/tmpky0jj7uu/joint18v2/spra-vllm-0.status.json"}
+ok
+
+----------------------------------------------------------------------
+Ran 53 tests in 2.573s
+
+OK

@@ -1,0 +1,15 @@
+{
+  "scope": "local CPU, synthetic states, frozen real service model; not GPU performance",
+  "pairs": 48,
+  "all_actions_matched": true,
+  "old_mean_ms": 1.2754110833270715,
+  "lite_mean_ms": 2.0881494374975773,
+  "old_median_ms": 1.1302324999746816,
+  "lite_median_ms": 0.9842755000022407,
+  "old_max_ms": 2.595912000060707,
+  "lite_max_ms": 49.95001299994328,
+  "lite_faster_pairs": 44,
+  "outliers_removed": false,
+  "mean_CPU_improvement_established": false,
+  "GPU_JCT_gain_established": false
+}

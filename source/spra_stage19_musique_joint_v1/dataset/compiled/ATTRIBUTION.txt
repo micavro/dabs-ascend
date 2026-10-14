@@ -1,0 +1,8 @@
+MuSiQue: Multi-hop Questions via Single-hop Question Composition.
+Harsh Trivedi, Niranjan Balasubramanian, Tushar Khot, Ashish Sabharwal. TACL 2022.
+Source: https://github.com/StonyBrookNLP/musique ; official MuSiQue-Ans v1.0.
+License: Creative Commons Attribution 4.0 International
+https://creativecommons.org/licenses/by/4.0/
+Adaptation: topology-stratified subset, answer/support labels separated; annotated DAG retained.
+Inference additionally applies equal per-document prefix clipping under a 2700-token evidence budget.
+Known-plan reading-comprehension experiment, not original leaderboard protocol or production traces.

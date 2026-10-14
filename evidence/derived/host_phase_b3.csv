@@ -1,0 +1,7 @@
+method,phase,n,host_mean_ms,runs
+Affinity,prefill_only,73,83.20368260273972,3
+Affinity,decode_only,981,39.77519668807339,3
+Affinity,mixed,78,91.83046575641026,3
+Ours,prefill_only,112,80.41294235714285,3
+Ours,decode_only,1346,36.28582123997028,3
+Ours,mixed,44,101.43200750000001,3

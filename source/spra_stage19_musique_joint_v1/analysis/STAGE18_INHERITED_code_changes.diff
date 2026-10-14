@@ -1,0 +1,661 @@
+--- old/core18v2/engine.py
++++ new/core18v2/engine.py
+@@ -21,6 +21,8 @@
+ from collections import Counter, defaultdict
+ from dataclasses import dataclass
+ from typing import Any, Callable
++
++from .service import coefficients as service_coefficients
+ 
+ EPS = 1e-8
+ 
+@@ -174,16 +176,9 @@
+             self.counts['modeled_conservative_evictions'] += 1
+ 
+ 
+-def _predict(model: dict, r: int, p: int, d: int, dc: int, pc: int, cache: int) -> float:
+-    eff = max(0, p - cache)
+-    x = (1., eff / 1024., d / 16., dc / 65536., eff * pc / (1024. * 4096.), eff * d / (1024. * 16.))
+-    coef = model['models'][str(r)]['coef']
+-    if len(coef) != 6 or any(not math.isfinite(float(c)) or float(c) < 0 for c in coef):
+-        raise ValueError('expected v1 nonnegative six-feature model; no implicit refit')
+-    dt = max(.1, sum(float(a) * b for a, b in zip(coef, x)))
+-    if not math.isfinite(dt):
+-        raise ValueError('nonfinite surrogate duration')
+-    return dt
++def _predict(model, r, p, d, dc, pc, cache):
++    from .service import predict
++    return predict(model,r,p,d,dc,pc,cache)
+ 
+ 
+ def _validate(s: dict, a: dict, cfg: dict):
+@@ -244,8 +239,7 @@
+     cfg = settings(config)
+     _validate(snapshot, action, cfg)
+     ns = {k: dict(n) for k,n in snapshot['nodes'].items()} # nested parents are read-only
+-    coeff = [tuple(float(v) for v in model['models'][str(r)]['coef']) for r in range(snapshot['replicas'])]
+-    if any(len(c)!=6 or any(not math.isfinite(x) or x<0 for x in c) for c in coeff):raise ValueError('invalid nonnegative six-feature model')
++    coeff = [{q:service_coefficients(model,r,q) for q in ('prefill_only','decode_only','mixed')} for r in range(snapshot['replicas'])]
+     R = snapshot['replicas']
+     horizon = float(cfg['action_horizon_ms'])
+     apply_at = float(cfg['apply_delay_ms'])
+@@ -266,6 +260,8 @@
+         groups[n['wid']].add(k)
+     pending_wf = {w for w, ks in groups.items() if not all(k in node_done for k in ks)}
+     wf_done = {w: 0. for w in groups if w not in pending_wf}
++    unfinished_counts={w:sum(k not in node_done for k in ks) for w,ks in groups.items()}
++    finished_workflow_events=set()
+     ready_due = {}
+     ready_time = {}
+     original_ready = set(snapshot['ready'])
+@@ -295,6 +291,8 @@
+     area_h = 0.
+     batch_starts = 0
+     batch_completions = 0
++    expanded_iterations = 0
++    coalesced_decode_batches = 0
+     trace = []
+     seen_admits = []
+     active_window = False
+@@ -311,6 +309,8 @@
+     dirty=[True]*R
+     started_keys={k for k,n in ns.items() if n['state']=='submitted' and (n.get('computed',0)>0 or n.get('phase')=='decode')}
+     blocked=set(k for k,n in ns.items() if n['state']=='blocked')
++    release_candidates=set(k for k in blocked if all(p in node_done for p in ns[k]['parents']))
++    partitions=[None]*R
+     def active_at(r):
+         return [ns[k] for k in active_keys[r]]
+ 
+@@ -330,7 +330,7 @@
+             return False
+         ns[k]['replica'] = r
+         ns[k]['state'] = 'submitted'
+-        active_keys[r].add(k);dirty[r]=True
++        active_keys[r].add(k);dirty[r]=True;partitions[r]=None
+         ns[k]['phase'] = 'prefill'
+         ns[k]['computed'] = 0
+         ns[k]['output_done'] = 0
+@@ -346,7 +346,9 @@
+         return max(horizon, math.ceil((t - horizon - EPS) / period) * period + horizon)
+ 
+     def release_successors(at):
+-        for k in list(blocked):
++        for k in list(release_candidates):
++            release_candidates.discard(k)
++            if k not in blocked:continue
+             n=ns[k]
+             if all(p in node_done for p in n['parents']):
+                 blocked.remove(k)
+@@ -395,10 +397,13 @@
+         if not active:
+             return
+         # Declared running/decode, partial-prefill, new-prefill boundaries.
+-        dec = sorted([k for k in active if ns[k].get('phase') == 'decode'],
+-                     key=lambda k: (native_rank.get(k, 10**9), k))[:cfg['max_num_seqs']]
+-        part = [k for k in active if k not in dec and ns[k].get('phase') != 'decode' and ns[k].get('computed', 0) > 0]
+-        waiting = [k for k in active if k not in dec and ns[k].get('phase') != 'decode' and ns[k].get('computed', 0) <= 0]
++        if partitions[r] is None:
++            dec = sorted([k for k in active if ns[k].get('phase') == 'decode'],
++                         key=lambda k: (native_rank.get(k, 10**9), k))[:cfg['max_num_seqs']]
++            part = [k for k in active if ns[k].get('phase') != 'decode' and ns[k].get('computed', 0) > 0]
++            waiting = [k for k in active if ns[k].get('phase') != 'decode' and ns[k].get('computed', 0) <= 0]
++            partitions[r]=(dec,part,waiting)
++        else:dec,part,waiting=partitions[r]
+         def ordered(ks):
+             use_priority = active_window and not any(
+                 at / 1000 + snapshot['now'] -
+@@ -443,12 +448,32 @@
+         assert p <= cap and p + d <= cfg['hard_total']
+         assert len(chosen) + d <= cfg['max_num_seqs']
+         dc = sum(ns[k]['prompt'] + ns[k].get('output_done', 0) for k in dec)
+-        eff=max(0,p-cache);c=coeff[r]
++        eff=max(0,p-cache);c=coeff[r]['mixed' if p and d else 'prefill_only' if p else 'decode_only']
+         dt=max(.1,c[0]+c[1]*eff/1024.+c[2]*d/16.+c[3]*dc/65536.+c[4]*eff*context/4194304.+c[5]*eff*d/16384.)
++        decode_steps=1
++        # Exact within this nonnegative linear HOST model: while membership is
++        # unchanged, decode context grows by d each step, so step duration is an
++        # arithmetic progression. Never cross the next known global event, an
++        # output completion, an admission/expiry event or a prefill opportunity.
++        # record_events=True retains the original one-batch-at-a-time trace.
++        if p==0 and d>0 and not part and not waiting and not record_events and cfg.get('coalesce_decode',True):
++            raw=c[0]+c[2]*d/16.+c[3]*dc/65536.
++            slope=c[3]*d/65536.
++            bound=min(ns[k]['output']-ns[k].get('output_done',0) for k in dec)
++            if raw>=.1-EPS or slope==0:
++                until=heap[0][0]-at if heap else float('inf')
++                def duration(k):return k*dt+slope*k*(k-1)/2
++                lo,hi=1,max(1,int(bound))
++                while lo<hi:
++                    mid=(lo+hi+1)//2
++                    if duration(mid)<=until+EPS:lo=mid
++                    else:hi=mid-1
++                decode_steps=lo
++                dt=duration(lo)
+         b = {'replica': r, 'start_ms': at, 'end_ms': at + dt,
+              'prefill': chosen, 'decode': dec, 'prefill_tokens': p,
+              'decode_tokens': d, 'cache_overlap_proxy': cache, 'cap': cap,
+-             'current_action_window': active_window}
++             'current_action_window': active_window, 'decode_steps': decode_steps}
+         busy[r] = b
+         started_keys.update(dec+[k for k,_ in chosen])
+         push(at + dt, 'complete', b)
+@@ -507,7 +532,8 @@
+             if busy[r] is not b:
+                 raise RuntimeError('surrogate replica overlap')
+             for k in b['decode']:
+-                ns[k]['output_done'] += 1
++                ns[k]['output_done'] += b.get('decode_steps',1)
++            if b['prefill']:partitions[r]=None
+             for k, take in b['prefill']:
+                 n = ns[k]
+                 n['computed'] += take
+@@ -519,17 +545,22 @@
+                 n = ns[k]
+                 if n['output_done'] >= n['output']:
+                     n['state'] = 'done'
+-                    active_keys[r].discard(k);dirty[r]=True
++                    active_keys[r].discard(k);dirty[r]=True;partitions[r]=None
+                     node_done[k] = now
++                    release_candidates.update(succ[k])
++                    unfinished_counts[n['wid']]-=1
++                    if unfinished_counts[n['wid']]==0:finished_workflow_events.add(n['wid'])
+                     if n.get('prefix_hash'):
+                         history.setdefault(n['prefix_hash'], set()).add(r)
+             busy[r] = None
+             last_finish[r] = now
+             batch_completions += 1
+-        for w in list(pending_wf):
+-            if all(k in node_done for k in groups[w]):
+-                wf_done[w] = max(node_done[k] for k in groups[w])
+-                pending_wf.remove(w)
++            expanded_iterations += b.get('decode_steps',1)
++            if b.get('decode_steps',1)>1:coalesced_decode_batches+=1
++        for w in finished_workflow_events:
++            wf_done[w] = max(node_done[k] for k in groups[w])
++            pending_wf.remove(w)
++        finished_workflow_events.clear()
+         release_successors(now)
+         for _, _, kind, payload in at_events:
+             if kind == 'cache_event':
+@@ -581,6 +612,8 @@
+         'common_continuation_value_ms': (total - area_h) if complete else None,
+         'partial_unfinished_area_ms': area,
+         'rollout_steps': batch_completions,
++        'expanded_model_iterations': expanded_iterations,
++        'coalesced_decode_batches': coalesced_decode_batches,
+         'terminal_estimate_used': False,
+         'physical_horizon_ms': horizon,
+         'apply_delay_ms': apply_at,
+--- old/joint18v2/actions.py
++++ new/joint18v2/actions.py
+@@ -114,3 +114,82 @@
+         a=resources(a,s,cfg);validate_action(a,s,cfg);unique.setdefault(action_key(a),a)
+     return list(unique.values())
+ 
++
++# --- Selector repair: names below are internal mechanisms, not new paper methods. ---
++_original_schedules = schedules
++
++
++def join_groups(s, model, base):
++    """Current-ready antichains sharing a real unfinished join and a prefix.
++
++    The downstream tail ranks proposals only. It is NOT an independent objective:
++    all decisions are evaluated using the common complete-workflow rollout.
++    Neither branch labels, replica IDs nor measured future outcomes are features.
++    """
++    ns=s['nodes'];ready=set(s['ready'])
++    _,height,slack=structural(s,model,base['placement'])
++    predecessors={}
++    def ancestors(k):
++        if k not in predecessors:
++            acc=set()
++            for p in ns[k]['parents']:acc.add(p);acc.update(ancestors(p))
++            predecessors[k]=acc
++        return predecessors[k]
++    result=[]
++    for j,nj in ns.items():
++        if nj['state']=='done' or len(nj['parents'])<2:continue
++        groups=defaultdict(list)
++        for k in ready & ancestors(j):
++            n=ns[k]
++            if n['wid']!=nj['wid']:continue
++            groups[n.get('prefix_hash')].append(k)
++        for h,ks in groups.items():
++            if len(ks)<2:continue
++            ks=sorted(ks,key=lambda k:(-height.get(k,0),slack.get(k,0),ns[k]['ready_at'],k))
++            result.append({'join':j,'wid':nj['wid'],'prefix_hash':h,'nodes':ks,
++                           'height_ms':{k:height.get(k,0) for k in ks},
++                           'slack_ms':{k:slack.get(k,0) for k in ks},
++                           'oldest_ready':min(ns[k]['ready_at'] for k in ks)})
++    return sorted(result,key=lambda g:(-max(g['height_ms'].values()),g['oldest_ready'],g['join']))
++
++
++def partial_join_candidates(s,model,cfg,base):
++    """Move a proper subset of a ready join group together, keeping the rest at A.
++
++    All nonempty nested critical subsets are proposed (not a fixed B3/B4 pair).
++    A group of size m produces prefixes of sizes 1..m-1 in remaining-tail order.
++    Every destination is possible. Proposal priority uses current load/cache;
++    only the full objective can accept a move. Memory projection is unchanged.
++    """
++    _,height,slack=structural(s,model,base['placement'])
++    orderable=[k for k,n in s['nodes'].items() if n['state'] in ('ready','submitted') and n.get('phase')!='decode']
++    order=sorted(orderable,key=lambda k:(slack.get(k,0),-height.get(k,0),s['nodes'][k].get('ready_at') or 0,k))
++    candidates=[]
++    for g in join_groups(s,model,base)[:int(cfg.get('focus_join_limit',2))]:
++        ks=g['nodes'];m=len(ks)
++        # The size closest to half is tried first; remaining sizes are still available.
++        sizes=sorted(range(1,m),key=lambda x:(abs(x-m/2),-x))
++        destinations=sorted(range(s['replicas']),key=lambda r:(s['pressure'][r],r))
++        for size in sizes:
++            subset=ks[:size]
++            for r in destinations:
++                if all(base['placement'][k]==r for k in subset):continue
++                a=copy.deepcopy(base);a['placement'].update({k:r for k in subset})
++                a.update(family=f'partial_join/{g["join"]}/{size}/to_{r}',order=list(order),
++                         proposal={'kind':'partial_join_group','join':g['join'],'moved_nodes':list(subset),
++                         'retained_nodes':[k for k in ks if k not in subset], 'destination':r,
++                         'prefix_hash':g['prefix_hash'],'remaining_tail_ms':g['height_ms'],
++                         'is_prediction_not_future_measurement':True})
++                a=resources(a,s,cfg);validate_action(a,s,cfg)
++                candidates.append(a)
++    return candidates
++
++
++def schedules(s,model,cfg,base):
++    """Same schedule library for D, Decoupled and Joint; all old families retained."""
++    old=_original_schedules(s,model,cfg,base)
++    partial=partial_join_candidates(s,model,cfg,base)
++    combined=old[:1]+partial+old[1:]
++    unique={}
++    for a in combined:unique.setdefault(action_key(a),a)
++    return list(unique.values())
+--- old/joint18v2/client.py
++++ new/joint18v2/client.py
+@@ -305,11 +305,17 @@
+                         if executor is None or model is None:raise RuntimeError('optimized method requires isolated worker/model')
+                         worker_snapshot=dict(snap)
+                         worker_snapshot['cache_evidence']=[{k:v for k,v in e.items() if k not in ('blocks','block_ids')} for e in snap['cache_evidence']]
+-                        pending=asyncio.get_running_loop().run_in_executor(executor,process_plan,worker_snapshot,model,scfg,method,deadline)
++                        handoff=min(float(cfg.get('result_handoff_reserve_s',.020)),max(0.,deadline-time.monotonic())*.25)
++                        evaluation_deadline=deadline-handoff
++                        pending=asyncio.get_running_loop().run_in_executor(executor,process_plan,worker_snapshot,model,scfg,method,evaluation_deadline)
+                         try:
+                             ans=await asyncio.wait_for(asyncio.shield(pending),timeout=max(.0001,deadline-time.monotonic()))
+                             pending=None
+-                        except asyncio.TimeoutError:ans.update(worker_timeout_fallback=True)
++                            ans.update(result_receive_deadline=deadline,worker_evaluation_deadline=evaluation_deadline,
++                                reserved_handoff_ms=handoff*1000,result_received_s=time.monotonic(),
++                                received_before_total_deadline=time.monotonic()<deadline)
++                        except asyncio.TimeoutError:ans.update(worker_timeout_fallback=True,
++                            result_receive_deadline=deadline,worker_evaluation_deadline=evaluation_deadline,reserved_handoff_ms=handoff*1000)
+                 plan_done=time.monotonic();fresh=make_snapshot(nodes,ss_latest,publisher.caps_at(int(plan_done*1e9)),history,plan_done,model,cfg,decision_index)
+                 a=ans['action'];reason=None
+                 if any(k not in fresh['nodes'] or fresh['nodes'][k]['state']!='ready' for k in a['placement']):reason='touched_request_changed'
+@@ -454,6 +460,16 @@
+             'common_continuation_iterations':sum(x['execution_phase']=='common_continuation' for x in seq),
+             'native_fallback_iterations':sum(x['plan_reason']!='lease_ok' for x in seq)}
+     summary['budget_switches_total']=sum(x['budget_switches'] for x in summary['per_replica_execution'].values())
++    summary['selector_revision']=cfg.get('selector_revision')
++    summary['selector_coverage']={
++        'partial_group_generated':sum(x.get('partial_group_candidates_generated',0) for x in actions),
++        'partial_group_evaluated':sum(x.get('partial_group_candidates_evaluated',0) for x in actions),
++        'partial_group_complete':sum(x.get('partial_group_complete_evaluations',0) for x in actions),
++        'partial_group_selected_by_worker':sum(bool(x.get('selected_partial_group')) for x in actions),
++        'partial_group_committed':sum('partial_join/' in x['action']['family'] and not x.get('commit_fallback') for x in actions),
++        'received_before_total_deadline':sum(bool(x.get('received_before_total_deadline')) for x in actions),
++        'reference_unrankable':sum(bool(x.get('reference_unrankable')) for x in actions),
++        'retained_backend_revision':REVISION}
+     planned={x['plan_id']:x for x in publisher.records}
+     def matches(x):
+         if x['plan_id'] not in planned:return False
+--- old/joint18v2/model.py
++++ new/joint18v2/model.py
+@@ -1,13 +1,6 @@
+-"""Transferred measured HOST-step curve. No fitting or single-held-case validator here.
++"""One model contract for proposal, rollout and measured-batch validation.
+ 
+-The input model is archived provenance from the previous measurements, not newly
+-certified under the integration executor. Actual-batch diagnostics are produced by
+-validation.py. Counterfactual scores remain model estimates.
++Phase coefficients are selected on archived execution data BEFORE a new suite.
++The artifact is immutable during all methods. It contains no future test outcomes.
+ """
+-from __future__ import annotations
+-def features(p,d,decode_context,prefill_context,cache_proxy=0):
+-    eff=max(0,p-cache_proxy)
+-    return [1.,eff/1024.,d/16.,decode_context/65536.,eff*prefill_context/(1024.*4096.),eff*d/(1024.*16.)]
+-def predict(model,r,p,d,decode_context,prefill_context,cache_proxy=0):
+-    x=features(p,d,decode_context,prefill_context,cache_proxy);m=model["models"][str(r)]
+-    return max(.1,sum(a*b for a,b in zip(m["coef"],x)))
++from core18v2.service import features, predict, phase, coefficients
+--- old/joint18v2/search.py
++++ new/joint18v2/search.py
+@@ -1,125 +1,200 @@
+-"""Bounded complete-action selection. One absolute deadline covers ALL work.
+-
+-A does not perform unnecessary model search. Joint shares the same coordinate
+-candidates with Decoupled and additionally evaluates complete crossed actions.
+-No singleton performance gate and no unrankable scalar substitutes.
++"""Bounded complete-action refinement with an explicit result-handoff reserve.
++
++A/D/B/Decoupled/Joint share state, candidate library, duration model and validity
++rules. No partial objective is ranked. Joint uses the SAME coordinate rule as Decoupled, interleaves a complete cross
++early, then spends remaining time on alternative schedules and local caps.
++No score is a measured counterfactual and no real non-regression is certified.
+ """
+ from __future__ import annotations
+ import copy,time
+-from core18v2.engine import evaluate
+ from .actions import affinity,resources,schedules
+ from .common import action_key,validate_action
++from core18v2.engine import evaluate
+ METHODS=('A','D','B','Decoupled','Joint')
++REVISION='stage18v2-selector-repair-1'
+ 
+ def reference(s,cfg):
+-    a=resources({'family':'reference','placement':affinity(s,s['ready']),'admit':list(s['ready']),
+-                 'order':[],'caps':[cfg['base_cap']]*s['replicas']},s,cfg)
++    a=resources({'family':'reference','placement':affinity(s,s['ready']),
++      'admit':list(s['ready']),'order':[],'caps':[cfg['base_cap']]*s['replicas']},s,cfg)
+     validate_action(a,s,cfg);return a
+ 
+ def post_budget(s,a,cfg):
+-    R=s['replicas'];pre=[0]*R;dec=[0]*R
+-    cert={(e['prefix_hash'],int(e['replica'])):e.get('tokens',0) for e in s.get('cache_evidence',[]) if e.get('known',True)}
++    """Complete vectors based on state AFTER the candidate admission/placement.
++
++    Keep-current and base remain explicit. The local mixed/prefill composition
++    proposes low/base/high vectors; it never declares which vector will win.
++    All five legal levels remain reachable. No changes are proposed on replicas
++    with no current admitted/submitted prefill. Subsequent state evolution is
++    charged by the complete-workflow evaluator.
++    """
++    R=s['replicas'];pre=[0]*R;dec=[0]*R;dc=[0]*R
++    cert={(e['prefix_hash'],int(e['replica'])):int(e.get('tokens',0))
++          for e in s.get('cache_evidence',[]) if e.get('known',True)
++          and e.get('state') in ('active_computed','reclaimable_computed')}
+     for k,n in s['nodes'].items():
+         if n['state']=='submitted':r=n['replica']
+         elif k in a['admit']:r=a['placement'][k]
+         else:continue
+-        if n.get('phase')=='decode':dec[r]+=1
+-        else:pre[r]+=max(1,n['prompt']-max(n.get('computed',0),min(n.get('share',0),cert.get((n.get('prefix_hash'),r),0))))
+-    touched=sorted({a['placement'][k] for k in a['admit']},key=lambda r:(-pre[r],r))
+-    ranks=touched+[r for r in sorted(range(R),key=lambda r:(-pre[r],-dec[r],r)) if r not in touched]
+-    focal=next((r for r in ranks if pre[r]>0),None)
+-    vec=[tuple(a['caps']),tuple([cfg['base_cap']]*R)]
++        if n.get('phase')=='decode':
++            dec[r]+=1;dc[r]+=n['prompt']+n.get('output_done',0)
++        else:
++            # Logical eligibility, with observed cached overlap as a proposal hint.
++            computed=int(n.get('computed',0))
++            pre[r]+=max(1,n['prompt']-max(computed,min(n.get('share',0),cert.get((n.get('prefix_hash'),r),0))))
++    active=[r for r in range(R) if pre[r]>0]
++    focal=min(active,key=lambda r:(-pre[r],r)) if active else None
++    current=list(s.get('current_caps',a['caps']));base=[cfg['base_cap']]*R
++    vectors=[tuple(a['caps']),tuple(current),tuple(base)]
++    protective=list(current);aggressive=list(current)
++    for r in active:
++        protective[r]=min(cfg['caps']) if dec[r] else cfg['base_cap']
++        aggressive[r]=max(cfg['caps'])
++    vectors.extend((tuple(protective),tuple(aggressive)))
+     if focal is not None:
+-        # All legal levels remain in the family; a deterministic epoch rotation bounds online work.
+-        levels=list(cfg['caps']);j=int(s.get('decision_index',0))%len(levels)
+-        levels=levels[j:]+levels[:j]
+-        for cap in levels:
+-            v=list(a['caps']);v[focal]=cap
+-            # Changed destinations receive the candidate-specific vector, not action-before pressure.
+-            vec.append(tuple(v))
+-        if len(touched)>1:
+-            for high in (False,True):
+-                v=list(a['caps'])
+-                for r in touched:v[r]=cfg['caps'][-1] if high else cfg['caps'][0]
+-                vec.append(tuple(v))
+-    return list(dict.fromkeys(vec)),{'resulting_prefill_query_proxy':pre,'resulting_decode':dec,'focal':focal}
++        # Intermediate legal levels are rotated AFTER complete low/base/high packets.
++        levels=list(cfg['caps']);i=int(s.get('decision_index',0))%len(levels)
++        for cap in levels[i:]+levels[:i]:
++            v=list(current);v[focal]=cap;vectors.append(tuple(v))
++    return list(dict.fromkeys(vectors)),{'resulting_prefill_query_proxy':pre,
++       'resulting_decode':dec,'resulting_decode_context':dc,'focal':focal,
++       'active_prefill_replicas':active,'post_placement_state':True}
++
++def route_packet(s,model,cfg,current):
++    full=schedules(s,model,cfg,current);i=int(s.get('decision_index',0))
++    base=reference(s,cfg);packet=[base]
++    partial=[a for a in full if a['family'].startswith('partial_join/')]
++    # Preferred proper group split is always in the bounded packet. Alternate
++    # subset sizes/destinations are covered by a deterministic rotation thereafter.
++    if partial:packet.append(partial[0])
++    rest=[a for a in full if a['family'] not in ('reference',) and a not in packet]
++    if rest:packet.append(rest[i%len(rest)])
++    if partial and len(partial)>1 and len(packet)<int(cfg.get('route_neighborhood_limit',4)):
++        packet.append(partial[1+(i%(len(partial)-1))])
++    elif not partial:
++        ordered=next((a for a in full if a['family']=='dag_order'),None)
++        if ordered is not None:packet.append(ordered)
++    out={}
++    for a in packet:out.setdefault(action_key(a),a)
++    return list(out.values()),{'full_schedule_count':len(full),'partial_group_candidates_generated':len(partial),
++       'packet_families':[a['family'] for a in out.values()],
++       'shared_with_D_Decoupled_Joint':True}
+ 
+ def choose(s,model,cfg,method,deadline=None):
+-    begin=time.monotonic();deadline=deadline if deadline is not None else begin+cfg['planning_soft_limit_s']
+-    base=reference(s,cfg);records=[];memo={};best=copy.deepcopy(base);bestcost=None
+-    result={'model_selection':False,'action':base,'evaluations':records,'deadline_reached':False,
+-            'joint_cross_candidates_evaluated':0,'incomplete_not_ranked':0,'candidate_neighborhood':'reference + one rotated placement + one rotated bounded-admission; post-placement budgets'}
+-    if method=='A':result['wall_ms']=1000*(time.monotonic()-begin);return result
+-    if method not in METHODS:raise ValueError('unknown method')
++    begin=time.monotonic();deadline=begin+cfg['planning_soft_limit_s'] if deadline is None else deadline
++    base=reference(s,cfg);records=[];memo={};coordinate_values={};best=copy.deepcopy(base);bestcost=None
++    result={'action':base,'evaluations':records,'model_selection':False,'deadline_reached':False,
++        'joint_cross_candidates_evaluated':0,'incomplete_not_ranked':0,'selector_revision':REVISION,
++        'candidate_neighborhood':'shared partial-join-group + old complete families; post-placement cap packets',
++        'worker_evaluation_deadline':deadline,'hard_realtime_guaranteed':False}
++    def finish():
++        result.update(action=best,wall_ms=1000*(time.monotonic()-begin),
++            deadline_reached=time.monotonic()>=deadline,
++            joint_cross_candidates_evaluated=sum(x['is_cross'] and x['complete'] for x in records),
++            complete_distinct_evaluations=sum(x['complete'] for x in records),
++            incomplete_not_ranked=sum(not x['complete'] for x in records),
++            partial_group_candidates_evaluated=sum(x['family'].find('partial_join/')>=0 for x in records),
++            partial_group_complete_evaluations=sum(x['family'].find('partial_join/')>=0 and x['complete'] for x in records),
++            selected_partial_group='partial_join/' in best['family'],
++            selected_cap_changes=sum(x!=y for x,y in zip(best['caps'],s.get('current_caps',base['caps']))),
++            real_nonregression_guaranteed=False)
++        validate_action(best,s,cfg);return result
++    if method=='A':return finish()
++    if method not in METHODS:raise ValueError('unknown method '+method)
+     if not s['ready'] and not any(n['state']=='submitted' and n.get('phase')!='decode' for n in s['nodes'].values()):
+-        result.update(policy_equivalent_no_prefill=True,wall_ms=1000*(time.monotonic()-begin));return result
+-    limit=int(cfg['candidate_limit'])
+-    def score(a):
++        result['policy_equivalent_no_prefill']=True;return finish()
++    def score(a,is_cross=False):
+         nonlocal best,bestcost
+         key=action_key(a)
+-        if key in memo:return memo[key]
+-        if time.monotonic()>=deadline or len(records)>=limit:return None
+-        z=evaluate(s,a,model,cfg,deadline=deadline)
+-        value=z['sum_remaining_jct_ms'] if z['rankable'] else None
+-        memo[key]=value;records.append({'family':a['family'],'action':copy.deepcopy(a),'cost_ms':value,
+-           'complete':z['complete'],'reason':z['reason'],'cpu_wall_ms':z['cpu_wall_ms'],
+-           'rollout_steps':z['rollout_steps'],'current_window_cost_ms':z['unfinished_area_to_horizon_ms'],
+-           'continuation_cost_ms':z['common_continuation_value_ms'],'cache_counts':z['cache_counters']})
+-        if value is not None and (bestcost is None or value<bestcost-1e-8):best=copy.deepcopy(a);bestcost=value
+-        return value
++        if key in memo:
++            if not is_cross and memo[key] is not None:coordinate_values[key]=(memo[key],copy.deepcopy(a))
++            return memo[key]
++        if time.monotonic()>=deadline or len(records)>=cfg['candidate_limit']:return None
++        validate_action(a,s,cfg)
++        # A slow candidate cannot consume the entire packet's remaining CPU budget.
++        # Incomplete evaluation gets no scalar score and cannot improve the incumbent.
++        cap=min(deadline,time.monotonic()+float(cfg.get('per_candidate_slice_s',.018)))
++        z=evaluate(s,a,model,cfg,deadline=cap)
++        val=z['sum_remaining_jct_ms'] if z['rankable'] else None;memo[key]=val
++        records.append({'family':a['family'],'action':copy.deepcopy(a),'cost_ms':val,
++          'complete':z['complete'],'reason':z['reason'],'cpu_wall_ms':z['cpu_wall_ms'],
++          'rollout_steps':z['rollout_steps'],'current_window_cost_ms':z['unfinished_area_to_horizon_ms'],
++          'continuation_cost_ms':z['common_continuation_value_ms'],'cache_counts':z['cache_counters'],
++          'workflow_completion_ms':z.get('workflow_prediction_ms'),'is_cross':bool(is_cross),
++          'objective':'sum remaining completion times of all arrived unfinished workflows'})
++        if val is not None:
++            if not is_cross:coordinate_values[key]=(val,copy.deepcopy(a))
++            tie=float(cfg.get('score_tie_ms',1e-6))
++            better=bestcost is None or val<bestcost-tie
++            if bestcost is not None and abs(val-bestcost)<=tie:
++                current=s.get('current_caps',base['caps'])
++                better=sum(c!=p for c,p in zip(a['caps'],current))<sum(c!=p for c,p in zip(best['caps'],current))
++            if better:best,bestcost=copy.deepcopy(a),val
++        return val
+     refcost=score(base)
+-    if refcost is not None:
+-        current=copy.deepcopy(base);current['caps']=list(s.get('current_caps',base['caps']))
+-        full=schedules(s,model,cfg,current);extra=[a for a in full if a['family'] not in ('reference','dag_order')]
+-        i=int(s.get('decision_index',0))
+-        # Small complete packets: reference, one placement candidate (with DAG order),
+-        # one admission candidate (also placement/order complete). Destinations rotate
+-        # deterministically, never selected from future performance. Four dimensions
+-        # stay available without an expensive forced coordinate sweep before crossing.
+-        routes=[copy.deepcopy(base)]
+-        placement=[a for a in extra if not a['family'].startswith('staged_')]
+-        admission=[a for a in extra if a['family'].startswith('staged_')]
+-        if placement:routes.append(placement[i%len(placement)])
+-        if admission:routes.append(admission[i%len(admission)])
+-        if len(routes)<3:
+-            ordered=next((a for a in full if a['family']=='dag_order'),None)
+-            if ordered:routes.append(ordered)
+-        routes=list({action_key(a):a for a in routes}.values())
+-        if method=='D':
+-            for a in routes:
+-                a['caps']=list(base['caps']);score(a)
+-        elif method=='B':
+-            vectors,features=post_budget(s,base,cfg)
+-            novel=[v for v in vectors if list(v)!=base['caps']][:3]
+-            for v in novel:
+-                a=copy.deepcopy(base);a.update(family='budget_only',caps=list(v));score(a)
++    if refcost is None:
++        result['reference_unrankable']=True;return finish()
++    result['model_selection']=True
++    current=copy.deepcopy(base);current['family']='keep_current';current['caps']=list(s.get('current_caps',base['caps']))
++    if method in ('B','Decoupled','Joint'):score(current)
++    if time.monotonic()>=deadline:return finish()
++    routes,coverage=route_packet(s,model,cfg,current);result.update(coverage)
++    # Joint gets an early complete crossed packet rather than waiting until the
++    # entire coordinate pass consumes the budget. Decoupled has the same FULL
++    # deadline and candidates; it uses that budget for its coordinate sequence.
++    # Memoized scores are shared within this decision only, never across states.
++    if method=='Joint':
++        primary=next((a for a in routes if a['family'].startswith('partial_join/')),None)
++        if primary is not None:
++            vectors,_=post_budget(s,primary,cfg)
++            crossed=[v for v in vectors if list(v)!=current['caps']]
++            if crossed:
++                v=crossed[int(s.get('decision_index',0))%min(2,len(crossed))]
++                a=copy.deepcopy(primary);a.update(family='joint/'+primary['family'],caps=list(v))
++                score(a,True)
++    if method=='D':
++        for a0 in routes[1:]:
++            a=copy.deepcopy(a0);a['caps']=list(base['caps']);score(a)
++            if time.monotonic()>=deadline:break
++    elif method=='B':
++        vectors,feat=post_budget(s,base,cfg);result['budget_proposal_state']=feat
++        # Common complete vectors first, then one intermediate budget in later epochs.
++        for v in vectors:
++            if action_key(dict(base,caps=list(v))) in memo:continue
++            a=copy.deepcopy(base);a.update(family='budget_only',caps=list(v));score(a)
++            if time.monotonic()>=deadline or len(records)>=6:break
++    else:
++        # Identical, finite coordinate pass for Decoupled and Joint: same route
++        # packet, then novel cap vectors in the same order. Both receive the SAME full
++        # deadline; Decoupled is not cut short to reserve time for another method.
++        coordinate_stop=deadline
++        coordinate=current;coordinate_cost=memo.get(action_key(current),refcost)
++        for a0 in routes:
++            if time.monotonic()>=coordinate_stop:break
++            a=copy.deepcopy(a0);a['caps']=list(current['caps']);val=score(a)
++            if val is not None and (coordinate_cost is None or val<coordinate_cost):coordinate,coordinate_cost=a,val
++        vectors,feat=post_budget(s,coordinate,cfg);result['coordinate_budget_state']=feat
++        novel=[v for v in vectors if action_key(dict(coordinate,caps=list(v))) not in memo]
++        for v in novel:
++            if time.monotonic()>=coordinate_stop:break
++            a=copy.deepcopy(coordinate);a.update(family='sequential_budget/'+coordinate['family'],caps=list(v))
++            score(a)
++        if coordinate_values:
++            cv,ca=min(coordinate_values.values(),key=lambda pair:pair[0])
++            result['decoupled_action']=copy.deepcopy(ca);result['decoupled_cost_ms']=cv
++        else:
++            result['decoupled_action']=copy.deepcopy(base);result['decoupled_cost_ms']=refcost
++        result['coordinate_scope']='same coordinate rule; completed prefix under this decision deadline, not guaranteed whole independent Decoupled run'
++        if method=='Joint':
++            # Evaluate crossed partial-group packets BEFORE spending time on extra
++            # whole-group/queue variants. No candidate is chosen merely by its tag.
++            alternatives=sorted(routes[1:],key=lambda a:not a['family'].startswith('partial_join/'))
++            for a0 in alternatives:
++                vectors,feat=post_budget(s,a0,cfg)
++                vv=[v for v in vectors if list(v)!=current['caps'] and action_key(dict(a0,caps=list(v))) not in memo]
++                for v in vv[:2]:
++                    a=copy.deepcopy(a0);a.update(family='joint/'+a0['family'],caps=list(v))
++                    score(a,True)
++                    if time.monotonic()>=deadline:break
+                 if time.monotonic()>=deadline:break
+-        else:
+-            # Same complete coordinate procedure for Decoupled and Joint, under shared deadline.
+-            coordinate=None;coordinate_cost=None
+-            for a in routes:
+-                a=copy.deepcopy(a);a['caps']=list(current['caps']);v=score(a)
+-                if v is not None and (coordinate_cost is None or v<coordinate_cost):coordinate,coordinate_cost=a,v
+-                if time.monotonic()>=deadline:break
+-            coordinate=coordinate or base
+-            vectors,features=post_budget(s,coordinate,cfg)
+-            # One non-identical coordinate improvement; the incumbent was already scored.
+-            # Same rule for Decoupled/Joint. Additional budget levels rotate by epoch.
+-            novel=[v for v in vectors if action_key(dict(coordinate,caps=list(v))) not in memo]
+-            for v in novel[:1]:
+-                a=copy.deepcopy(coordinate);a.update(family='sequential_budget',caps=list(v));score(a)
+-            result['decoupled_action']=copy.deepcopy(best)
+-            if method=='Joint':
+-                for ix,a0 in enumerate(routes[1:]):
+-                    vectors,features=post_budget(s,a0,cfg)
+-                    alternatives=[v for v in vectors if list(v)!=current['caps'] and action_key(dict(a0,caps=list(v))) not in memo]
+-                    if not alternatives:continue
+-                    a=copy.deepcopy(a0);a.update(family='joint/'+a0['family'],caps=list(alternatives[(i+ix)%len(alternatives)]))
+-                    score(a)
+-                    if time.monotonic()>=deadline:break
+-        result.update(action=best,model_selection=True,predicted_reference_cost_ms=refcost,predicted_best_cost_ms=bestcost)
+-    result.update(wall_ms=1000*(time.monotonic()-begin),deadline_reached=time.monotonic()>=deadline,
+-        joint_cross_candidates_evaluated=sum(x['family'].startswith('joint/') and x['complete'] for x in records),
+-        complete_distinct_evaluations=sum(x['complete'] for x in records),incomplete_not_ranked=sum(not x['complete'] for x in records),
+-        real_nonregression_guaranteed=False)
+-    validate_action(result['action'],s,cfg);return result
++    result.update(model_selection=True,predicted_reference_cost_ms=refcost,predicted_best_cost_ms=bestcost)
++    return finish()
+--- old/joint18v2/validation.py
++++ new/joint18v2/validation.py
+@@ -23,3 +23,21 @@
+         rows.append(row);group[phase].append(row)
+     stats={k:{'n':len(v),'mean_relative_absolute_error':statistics.mean(x['relative_absolute_error'] for x in v),'p95_relative_absolute_error':quantile([x['relative_absolute_error'] for x in v],.95)} for k,v in group.items()}
+     return {'rows':rows,'by_phase':stats,'scope':'same executed batches; retained service model with actual model-input skips; no counterfactual inference'}
++
++_legacy_service_diagnostics=service_diagnostics
++
++def service_diagnostics(events,model):
++    z=_legacy_service_diagnostics(events,model)
++    groups=defaultdict(list)
++    for row in z['rows']:
++        err=row['predicted_host_ms']-row['actual_host_ms']
++        row['signed_error_ms']=err;row['absolute_error_ms']=abs(err)
++        groups[row['phase']].append(row)
++    for ph,rows in groups.items():
++        z['by_phase'][ph].update(mean_signed_error_ms=statistics.mean(r['signed_error_ms'] for r in rows),
++          mean_absolute_error_ms=statistics.mean(r['absolute_error_ms'] for r in rows),
++          p95_absolute_error_ms=quantile([r['absolute_error_ms'] for r in rows],.95),
++          mean_actual_host_ms=statistics.mean(r['actual_host_ms'] for r in rows))
++    z['counterfactual_rank_certified']=False
++    z['frozen_phase_model_id']=model.get('model_id')
++    return z

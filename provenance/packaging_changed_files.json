@@ -1,0 +1,13 @@
+{
+  "changed_from_sources": [
+    "source/spra_stage19_typed_handoff_v1/tests/test_typed_contract.py",
+    "source/spra_workflow_accept_v1/wfsched/common.py",
+    "source/spra_workflow_accept_v1/wfsched/design.py",
+    "source/spra_workflow_accept_v1/wfsched/legacy.py",
+    "source/spra_workflow_accept_v1/tests/bootstrap.py",
+    "source/spra_workflow_accept_v1/run.py",
+    "source/spra_workflow_accept_v1/run_checks.sh"
+  ],
+  "policy_changed": false,
+  "native_48_identity_unchanged": true
+}

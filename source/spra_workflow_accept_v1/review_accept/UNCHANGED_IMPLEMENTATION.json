@@ -1,0 +1,19 @@
+{
+  "base_package_sha256": "ad7e1ca5317791dd1fe57d2125782b66c4615be9d3c74b324a1fe630f5948b4e",
+  "files": {
+    "wfsched/admission.py": "29b69e68dd80dd5468bb4cef54d2cadfa2508ab9431bddaa3cfc8e78069f7d78",
+    "wfsched/audit.py": "b9263cb143ab53f5c18ad22cb9446cb7a7d187379cceb21bd90f9bed87d82cd6",
+    "wfsched/binding.py": "791562d24fdb363d9b8ab0af1e31975a85ad072517b985e6bc0bdc4fb498a476",
+    "wfsched/routing.py": "c4e9875f4333ca361293c6d15a508898f90acd7a303890cf7025302914ca6f38",
+    "wfsched/runner.py": "b968d30cdf0501d8a3abe9b4c604c622974521328c92b1b7637452ee66b04977",
+    "wfsched/selector.py": "3daeb9ce7a6c0310dcf1751dbb2344c6f6302124fed5f566ac146b9f7770f6f0",
+    "wfsched/tail_check.py": "b08c2337659d33f77807e395ddd4bd51fcf6cb811a5559e073975e77e43e7795",
+    "wfsched/worker.py": "5b1475877870b518fb573930713a2477bbd5e382cae126ac39fbc1817192ac13",
+    "wfsched/report.py": "e41e40ed3f157e3b94f10c6c925acfa14413475cce5b12b7d74c02a26b574e1f"
+  },
+  "scope": "Nine byte-identical algorithm, baseline, executor and audit files. Path constants and input-profile loader intentionally relocated; tested separately.",
+  "relocated_files": [
+    "wfsched/common.py",
+    "wfsched/legacy.py"
+  ]
+}

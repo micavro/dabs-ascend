@@ -1,0 +1,38 @@
+test_bad_json_preserved_warning (test_ops.Files.test_bad_json_preserved_warning) ... ok
+test_changed_spec (test_ops.Files.test_changed_spec) ... ok
+test_cli_help (test_ops.Files.test_cli_help) ... ok
+test_comparisons (test_ops.Files.test_comparisons) ... ok
+test_console_single_pair (test_ops.Files.test_console_single_pair) ... ok
+test_discovery (test_ops.Files.test_discovery) ... ok
+test_duplicate_label (test_ops.Files.test_duplicate_label) ... ok
+test_existing_checkpoint_refused (test_ops.Files.test_existing_checkpoint_refused) ... ok
+test_external_work_mismatch (test_ops.Files.test_external_work_mismatch) ... ok
+test_failed_suite_not_qualified (test_ops.Files.test_failed_suite_not_qualified) ... ok
+test_false_complete (test_ops.Files.test_false_complete) ... ok
+test_full_checkpoint (test_ops.Files.test_full_checkpoint) ... ok
+test_hash_mismatch (test_ops.Files.test_hash_mismatch) ... ok
+test_inspect (test_ops.Files.test_inspect) ... ok
+test_log_outside_app (test_ops.Files.test_log_outside_app) ... ok
+test_logged_real_subprocess (test_ops.Files.test_logged_real_subprocess) ... /mnt/data/wf_ops_v1/tests/test_ops.py:126: ResourceWarning: unclosed file <_io.BufferedReader name=7>
+  with patch('sys.stdout',io.StringIO()):rc=ops.logged(app,logroot,['run','--confirm-gpu-use'])
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_missing_pair_not_qualified (test_ops.Files.test_missing_pair_not_qualified) ... ok
+test_negative_results (test_ops.Files.test_negative_results) ... ok
+test_no_confirm_no_run (test_ops.Files.test_no_confirm_no_run) ... ok
+test_raw_summary_tamper (test_ops.Files.test_raw_summary_tamper) ... ok
+test_review_only_explicit (test_ops.Files.test_review_only_explicit) ... ok
+test_running_refused (test_ops.Files.test_running_refused) ... ok
+test_safe_path (test_ops.Files.test_safe_path) ... ok
+test_smoke_not_performance (test_ops.Files.test_smoke_not_performance) ... ok
+test_source_inventory_keeps_failed_attempt (test_ops.Files.test_source_inventory_keeps_failed_attempt) ... ok
+test_source_inventory_keeps_operator_logs (test_ops.Files.test_source_inventory_keeps_operator_logs) ... ok
+test_stream_checks_recorded_hash (test_ops.Files.test_stream_checks_recorded_hash) ... ok
+test_symlink (test_ops.Files.test_symlink) ... ok
+test_verify_zip (test_ops.Files.test_verify_zip) ... ok
+test_weight_exclusion_explicit (test_ops.Files.test_weight_exclusion_explicit) ... ok
+
+----------------------------------------------------------------------
+Ran 30 tests in 0.699s
+
+OK
