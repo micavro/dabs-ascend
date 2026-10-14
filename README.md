@@ -1,55 +1,79 @@
-# DABS GPU39 independent reproduction bundle
+# DABS 昇腾一键运行
 
-## 从 GitHub 下载并在昇腾上运行
+下面的命令在 **Linux 昇腾机器上、之前跑 MFE 的 vLLM-Ascend 容器内**手敲执行。
 
-在之前 MFE 使用的 Linux / vLLM-Ascend 容器中执行。仓库公开，可免登录下载；模型权重需要已经放在机器上。
+## 1. 先确认环境
+
+- 单机 910B / 910B4，默认使用空闲的 `0,1,2,3` 四张卡；8 卡机器够用。
+- 复用 MFE 已能运行的驱动、CANN、`torch`、`torch-npu`、`vllm`、`vllm-ascend` 配套环境，Python ≥ 3.10。不要单独升级这些组件。
+- 容器内能看到完整的 **Qwen2.5-1.5B-Instruct** 模型目录，包括权重、配置和 tokenizer。仓库不含模型，程序不会自动下载模型。
+- 当前容器没有其他正在运行的 vLLM 服务，默认端口 `18000–18003` 空闲。
+
+先敲两条，确认 Python 版本和 NPU 可见：
 
 ```bash
-git clone --depth 1 https://github.com/micavro/dabs-ascend.git
+python3 --version
+npu-smi info
+```
+
+如果环境还没装好，先使用之前的 MFE 容器；本项目不负责安装驱动或推理环境。
+
+## 2. 下载代码（只做一次）
+
+```bash
+git clone https://github.com/micavro/dabs-ascend.git
 cd dabs-ascend
-MODEL_PATH=/实际路径/Qwen2.5-1.5B-Instruct bash run_ascend.sh
 ```
 
-默认使用物理卡 `0,1,2,3`，每卡一个独立模型副本。入口会检查环境、启动服务、执行真实推理和工作流测试，并打印测试记录的路径。当前尚未在真实昇腾机器上验证。
+仓库公开，无需登录。没有 Git 时可下载 [ZIP](https://github.com/micavro/dabs-ascend/archive/refs/heads/main.zip)，解压后进入 `dabs-ascend-main`。
 
-后续更新：在仓库目录执行 `git pull --ff-only`，然后重新运行最后一行。若只缺控制端的 `httpx` / `numpy`，可按 [部署说明](docs/ascend-linux.md) 补充；不需要通过本项目安装或升级 torch、CANN、vLLM。
+## 3. 设置模型，然后一键运行
 
-如果机器没有 Git，可从 [GitHub ZIP 下载入口](https://github.com/micavro/dabs-ascend/archive/refs/heads/main.zip) 下载，解压后进入 `dabs-ascend-main`，执行同一条启动命令。
-
-历史 NVIDIA 工程说明见 **[README_先读我.md](README_先读我.md)**。
-
-## Linux / Ascend 910B functional port
-
-In the existing MFE vLLM-Ascend container, run from this directory:
+把下一行的路径换成**容器内实际模型目录**。路径含空格时用双引号包住。
 
 ```bash
-MODEL_PATH=/x/Qwen2.5-1.5B-Instruct bash run_ascend.sh
+export MODEL_PATH=/x/Qwen2.5-1.5B-Instruct
+bash run_ascend.sh
 ```
 
-Default: four independent single-NPU replicas (`0,1,2,3`), environment checks,
-real inference canaries, Ascend-side calibration, then four-method MuSiQue smoke
-tests. An eight-card host is sufficient. See [the Ascend guide](docs/ascend-linux.md)
-for model paths, full runs, output files, and the explicit differences from the
-GPU39 native experiment. No driver, CANN, torch or vLLM installation is performed.
+以后在同一个终端里，只需最后一行。换终端或重新进入容器后，需要重新设置 `MODEL_PATH`。
 
-Canonical local checks (no accelerator or model needed):
+入口会自动检查环境、启动四个单卡模型副本、执行推理和工作流小测试、保存结果，最后关闭本次启动的服务。`Ctrl+C` 可以中断并保留记录。
+
+若提示缺少 `httpx` 或 `numpy`，在当前容器中补齐控制端依赖，再运行：
 
 ```bash
-python tools/run_ascend.py test
-# equivalent Linux entry
-bash run_ascend.sh test
+python3 -m pip install -r requirements-ascend.txt
+bash run_ascend.sh
 ```
 
-The portable method is named `DAG-Ascend`; it reuses the original candidate
-generator and rollout evaluator but has HTTP-observed state and submission-only
-ordering. It is **not** an exact native GPU39/DAG performance reproduction.
-The generated acceptance report distinguishes functional tests from unsupported
-native KV / engine-phase tests. Historical source archives remain unchanged.
+该依赖文件只包含 `httpx` 和 `numpy`。无外网环境需使用机器已有的内部软件源或离线包。
 
-To create a Linux transfer archive without prior outputs or caches:
+## 4. 看结果、更新代码
+
+- 终端打印的 `ASCEND_REPORT=...` 是测试报告路径；结果保存在 `outputs/ascend_.../`。
+- 先看 `TEST_REPORT.md`。失败时看同目录的 `error.txt` 和 `server_npu*.log`。
+- 首次运行包含模型加载和标定，需要等待；默认只跑小测试。
+
+通过 Git 下载的项目，后续更新时在项目目录执行（ZIP 下载则重新下载解压）：
 
 ```bash
-python -X utf8 tools/package_ascend.py
+git pull --ff-only
+bash run_ascend.sh
 ```
 
-This project contains exact copies of native scheduling/experiment source archives plus ported fixed-case orchestration, frozen data, offline reanalysis and plotting scripts, and an auditable provenance manifest. The live vLLM serving deployment, model weights, and some full raw logs are not bundled. **RR is not Preble.**
+## 按需使用
+
+以下推理命令都沿用上面设置的 `MODEL_PATH`。
+
+| 需要做什么 | 手敲命令 |
+|---|---|
+| 只检查环境，不启动推理 | `bash run_ascend.sh check` |
+| 改用空闲的 4–7 号卡 | `DEVICE_IDS=4,5,6,7 bash run_ascend.sh` |
+| 容器只有 `python` 命令 | `PYTHON=python bash run_ascend.sh` |
+| 小测试通过后跑 B1–B4 工作流测试 | `bash run_ascend.sh benchmark` |
+| 纯 CPU 代码自检，无需模型和 NPU | `bash run_ascend.sh test` |
+
+开发机也可用 `python tools/run_ascend.py test` 自检；需要离线传输包时执行 `python -X utf8 tools/package_ascend.py`。
+
+Linux CPU 自动检查已通过，真实昇腾推理仍待上机验证。更多参数和适配范围见 [昇腾部署说明](docs/ascend-linux.md)；历史 NVIDIA 工程见 [原工程说明](README_先读我.md)。
