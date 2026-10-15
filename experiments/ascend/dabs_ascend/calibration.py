@@ -44,7 +44,7 @@ def fit_model(rows, replicas):
                        "For functional port testing, not strict GPU39 performance reproduction"]}
 
 
-async def calibrate(backend, tokenizer, out):
+async def calibrate(backend, tokenizer, out, *, fixed=False):
     rows = []
     # Fixed workload and repetitions, no outcome-dependent retries or selection.
     for replica in range(len(backend.endpoints)):
@@ -58,6 +58,8 @@ async def calibrate(backend, tokenizer, out):
                     raise ValueError("Calibration token construction failed")
                 node = {"id": f"profile-r{replica}-t{repetition}-p{length}", "tokens": tokens,
                         "max_output_tokens": 96}
+                if fixed:
+                    node['fixed_workload_replay'] = True
                 result = await backend.generate(replica, node, 20261014 + repetition, out / "calibration_requests.jsonl", schema=None)
                 rows.append({"replica": replica, "repetition": repetition, "prompt_tokens": length,
                              "completion_tokens": result["usage"]["completion_tokens"],

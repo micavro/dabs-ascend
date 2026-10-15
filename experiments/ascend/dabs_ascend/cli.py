@@ -32,7 +32,9 @@ def parser(existing=False):
     p.add_argument("--condition-timeout", type=float, default=600.)
     p.add_argument("--request-timeout", type=float, default=180.)
     p.add_argument("--max-inflight", type=int, default=8, help="logical client limit per replica, not measured KV capacity")
-    p.add_argument("--suite", choices=("smoke", "blocks", "case", "grid"), default=None)
+    p.add_argument("--suite", choices=("smoke", "blocks", "case", "grid", 'r234', 'dabs-r234-balanced-64'), default=None)
+    p.add_argument('--max-conditions', type=int, help='R234 only: clean pause after N additional conditions')
+    p.add_argument('--resume', type=Path, help='R234 only: resume a cleanly paused output directory')
     p.add_argument("--repeats", type=int, default=None)
     p.add_argument("--rate", type=float, default=2.)
     p.add_argument("--blocks", type=int, nargs="+", default=[1, 2, 3, 4])
@@ -57,6 +59,20 @@ def prepare_args(argv=None, existing=False):
         p.error(str(exc))
     args.model = args.model.expanduser().resolve()
     args.suite = args.suite or ("smoke" if args.mode == "smoke" else "blocks")
+    if args.suite == 'r234':
+        args.suite = 'dabs-r234-balanced-64'
+    if args.suite == 'dabs-r234-balanced-64':
+        if len(args.devices) != 4:
+            p.error('R234 needs exactly four selected services/devices; each condition uses the first R')
+        supplied = list(sys.argv[1:] if argv is None else argv)
+        if any(x.split('=')[0] in ('--rate', '--blocks', '--seed', '--repeats') for x in supplied):
+            p.error('R234 uses the frozen 96-condition plan; rate/blocks/seed/repeats cannot be overridden')
+        if args.max_conditions is not None and not 1 <= args.max_conditions <= 96:
+            p.error('max-conditions must be 1..96')
+        if args.resume is not None and (args.out is not None or args.mode != 'benchmark'):
+            p.error('Use benchmark --resume PATH without --out')
+    elif args.resume is not None or args.max_conditions is not None:
+        p.error('resume/max-conditions are only available for suite r234')
     if args.mode == "smoke" and args.suite != "smoke":
         p.error("Use benchmark --suite ... for larger suites")
     args.repeats = args.repeats if args.repeats is not None else (8 if args.suite == "case" else 1 if args.suite == "smoke" else 2)
@@ -88,6 +104,9 @@ def prepare_args(argv=None, existing=False):
 
 
 def make_plan(args):
+    if args.suite == 'dabs-r234-balanced-64':
+        from .r234 import plan
+        return plan()
     from .scheduler import METHODS
     conditions = []
     replica_counts = list(range(1, min(4, len(args.devices)) + 1)) if args.suite == "grid" else [len(args.devices)]
@@ -182,6 +201,9 @@ def main(argv=None, *, existing=False):
         suite = unittest.defaultTestLoader.discover(str(ROOT / "tests/ascend"), pattern="test_*.py")
         result = unittest.TextTestRunner(verbosity=2).run(suite)
         return 0 if result.wasSuccessful() else 1
+    if args.suite == 'dabs-r234-balanced-64':
+        from .r234_run import main as r234_main
+        return r234_main(args)
     plan = make_plan(args)
     if args.mode == "plan":
         print(json.dumps({"suite": args.suite, "conditions": len(plan), "plan": plan,

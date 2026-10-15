@@ -1,0 +1,117 @@
+{
+  "schema": "workflow-grid-plan-2",
+  "suite": "smoke",
+  "scope": "Same historical 64 MuSiQue development questions, four disjoint 16-question blocks; not unseen holdout",
+  "conditions": [
+    {
+      "label": "R4_L2_T1_B1_RR",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 1,
+      "position": 1,
+      "method": "RR",
+      "seed": 190501,
+      "router_seed": 930101,
+      "packet_slice": [
+        0,
+        16
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T1_B1_P2C",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 1,
+      "position": 2,
+      "method": "P2C",
+      "seed": 190501,
+      "router_seed": 930101,
+      "packet_slice": [
+        0,
+        16
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T1_B1_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 1,
+      "position": 3,
+      "method": "Affinity",
+      "seed": 190501,
+      "router_seed": 930101,
+      "packet_slice": [
+        0,
+        16
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T1_B1_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 1,
+      "position": 4,
+      "method": "DAG",
+      "seed": 190501,
+      "router_seed": 930101,
+      "packet_slice": [
+        0,
+        16
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T1_B1_DAG-Lite",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 1,
+      "position": 5,
+      "method": "DAG-Lite",
+      "seed": 190501,
+      "router_seed": 930101,
+      "packet_slice": [
+        0,
+        16
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    }
+  ],
+  "expected_conditions": 5,
+  "methods": [
+    "RR",
+    "P2C",
+    "Affinity",
+    "DAG",
+    "DAG-Lite"
+  ],
+  "workflows_per_condition": 16,
+  "sampling_contract": "original JSON answer-only, natural outputs; no forced equal work",
+  "input_namespace_contract": "original model-visible unique UUID per condition; prompts not identical across methods",
+  "cache_contract": "cold registered namespace initially; natural within-condition prefix reuse",
+  "arrival_contract": "original wave: 1s active at 2*lambda, 1s idle; finite N=16 truncation",
+  "replica_mapping": "first R verified dedicated service identities 0..R-1; unused pods remain running",
+  "engine_contract": "same native continuous batching, fixed prefill cap and total4096; no adaptive actions",
+  "dispatch_clock": "same original 200ms periodic loop for all methods; not unmodified Ray/NGINX end-to-end",
+  "primary": "mean of paired within-(cell,repeat,block) percentage changes of mean workflow JCT",
+  "ordering": "one smoke order; not performance evidence",
+  "budget_candidate_generation_removed_only_for": "DAG-Lite",
+  "admission_intent_revision": "wf-admission-intent-repair-1",
+  "original_frozen_source_modified": false,
+  "no_posthoc_version_selection": true,
+  "all_results_retained": true,
+  "automatic_retry": false,
+  "guaranteed_10_percent": false
+}

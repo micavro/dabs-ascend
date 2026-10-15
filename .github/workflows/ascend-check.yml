@@ -23,7 +23,12 @@ jobs:
         run: |
           bash -n run_ascend.sh
           bash -n run_dabs_existing.sh
+          bash -n run_dabs_r234.sh
       - name: Run CPU tests and frozen-source integrity checks
         run: bash run_ascend.sh test
       - name: Validate existing-service plan without Docker or model files
         run: python tools/run_dabs_existing.py plan --devices 4,5 --suite smoke
+      - name: Validate the new 96-condition plan
+        run: python tools/run_dabs_existing.py plan --devices 0,1,2,3 --suite r234
+      - name: Run supplied R234 CPU checks with untouched source
+        run: bash source/spra_workflow_fullgrid_r234_sll_v1/run_checks.sh

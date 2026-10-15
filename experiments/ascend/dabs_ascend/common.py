@@ -52,9 +52,11 @@ def source_identity():
     for directory in source_paths():
         paths.extend(p for p in directory.rglob("*.py") if "manonly" not in p.name.lower())
     paths.extend((ROOT / "experiments/ascend").rglob("*.py"))
+    paths.extend((ROOT / 'source/spra_workflow_fullgrid_r234_sll_v1').rglob('*.py'))
     paths.extend([ROOT / "tools/run_ascend.py", ROOT / "run_ascend.sh",
                   ROOT / "tools/run_dabs_existing.py", ROOT / "tools/inspect_dabs_existing.py", ROOT / "run_dabs_existing.sh",
-                  ROOT / "profiles/reference/configuration.json"])
+                  ROOT / "profiles/reference/configuration.json", ROOT / 'run_dabs_r234.sh',
+                  ROOT / 'provenance/r234_import.json'])
     return {p.relative_to(ROOT).as_posix(): sha(p) for p in sorted(paths)}
 
 

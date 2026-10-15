@@ -188,7 +188,7 @@ class ExistingLifecycleTests(unittest.IsolatedAsyncioTestCase):
 
 @unittest.skipUnless(platform.system() == "Linux", "Host Bash/Docker wiring runs in Linux CI")
 class HostLauncherTests(unittest.TestCase):
-    def run_host(self, mode):
+    def run_host(self, mode, entry='run_dabs_existing.sh', devices='4,5', extra=()):
         with tempfile.TemporaryDirectory() as directory:
             folder = Path(directory)
             model = folder / "model with spaces"
@@ -200,13 +200,14 @@ class HostLauncherTests(unittest.TestCase):
             sudo.write_text("#!" + sys.executable + "\n" + '''
 import json, os, sys
 args = sys.argv[1:]
+expected = ['wushibo-qwen-small-npu'+d for d in os.environ['FAKE_EXPECTED_DEVICES'].split(',')]
 with open(os.environ['FAKE_DOCKER_LOG'], 'a') as f:
     f.write(json.dumps(args)+'\\n')
 if args[:3] == ['docker','inspect','--format']:
-    assert args[-1] == 'wushibo-qwen-small-npu4'
+    assert args[-1] == expected[0]
     print('sha256:fixture')
 elif args[:2] == ['docker','inspect']:
-    assert args[2:] == ['wushibo-qwen-small-npu4','wushibo-qwen-small-npu5']
+    assert args[2:] == expected
     print(json.dumps([{'Name':'/'+name,'Id':'fixture-'+name,'Image':'sha256:fixture',
         'State':{'Running':True},'HostConfig':{'Devices':[]},
         'NetworkSettings':{'Ports':{}},'Config':{'Env':['TOKEN=secret']}}
@@ -220,12 +221,25 @@ else:
 ''', encoding="utf-8")
             sudo.chmod(0o755)
             env = {**os.environ, "PATH": str(folder) + os.pathsep + os.environ["PATH"],
-                   "DEVICE_IDS": "4,5", "MODEL_PATH": str(model), "FAKE_DOCKER_LOG": str(log)}
-            result = subprocess.run(["bash", str(ROOT / "run_dabs_existing.sh"), mode],
+                   'FAKE_EXPECTED_DEVICES': devices or '0,1,2,3', "MODEL_PATH": str(model), "FAKE_DOCKER_LOG": str(log)}
+            if devices is None:
+                env.pop('DEVICE_IDS', None)
+            else:
+                env['DEVICE_IDS'] = devices
+            result = subprocess.run(["bash", str(ROOT / entry)] + ([mode] if mode else []) + list(extra),
                                     env=env, capture_output=True, text=True, timeout=30)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             calls = [json.loads(line) for line in log.read_text().splitlines()]
         return calls
+
+    def test_r234_defaults_to_four_services_and_full_suite_with_pause_forwarding(self):
+        calls = self.run_host(None, entry='run_dabs_r234.sh', devices=None, extra=('--max-conditions', '4'))
+        run = calls[-1]
+        self.assertEqual(run[run.index('--devices') + 1], '0,1,2,3')
+        self.assertEqual(run[run.index('--suite') + 1], 'r234')
+        self.assertEqual(run[run.index('--max-conditions') + 1], '4')
+        self.assertEqual(run[run.index('tools/run_dabs_existing.py') + 1], 'benchmark')
+        self.assertTrue(any(x.startswith('DABS_HOST_PROJECT=') for x in run))
 
     def test_host_selects_only_requested_cards_and_reuses_first_selected_image(self):
         calls = self.run_host("check")

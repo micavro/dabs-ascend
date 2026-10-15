@@ -7,6 +7,7 @@ DEVICE_IDS="${DEVICE_IDS:-0,1,2,3,4,5,6,7}"
 CONTAINER_PREFIX="${CONTAINER_PREFIX:-wushibo-qwen-small-npu}"
 CONTROLLER_PYTHON="${CONTROLLER_PYTHON:-/usr/local/python3.12.13/bin/python}"
 MODE="${1:-smoke}"
+printf -v DABS_CONTROLLER_COMMAND '%q ' bash "$ROOT/run_dabs_existing.sh" "$@"
 if (( $# > 0 )); then shift; fi
 case "$MODE" in smoke|benchmark|check|test|plan) ;; *) echo 'Use smoke/benchmark/check/test/plan' >&2; exit 1;; esac
 [[ "$DEVICE_IDS" =~ ^[0-9]+(,[0-9]+)*$ ]] || { echo 'Invalid DEVICE_IDS' >&2; exit 1; }
@@ -37,6 +38,8 @@ sudo docker run --rm --pull never --network host \
   --mount "type=bind,src=$ROOT,dst=/project" "${MOUNTS[@]}" \
   -e PYTHONUTF8=1 -e PYTHONDONTWRITEBYTECODE=1 \
   -e HF_HUB_OFFLINE=1 -e TRANSFORMERS_OFFLINE=1 \
+  -e "DABS_HOST_PROJECT=$ROOT" -e "DABS_HOST_COMMAND=$DABS_CONTROLLER_COMMAND" \
+  -e "DABS_CONTROLLER_IMAGE=$IMAGE_ID" \
   --workdir /project --entrypoint "$CONTROLLER_PYTHON" "$IMAGE_ID" \
   tools/run_dabs_existing.py "$MODE" "${EXTRA[@]}" \
   --devices "$DEVICE_IDS" --container-prefix "$CONTAINER_PREFIX" \

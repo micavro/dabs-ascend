@@ -10,7 +10,7 @@ from .common import DATASET, append_json, percentile, write_json
 from .scheduler import baseline, plan_dag, snapshot
 
 
-def summarize(nodes, start, finish, decisions, quality):
+def summarize(nodes, start, finish, decisions, quality, *, fixed=False):
     groups = {}
     for node in nodes.values():
         groups.setdefault(node["wid"], []).append(node)
@@ -51,9 +51,9 @@ def summarize(nodes, start, finish, decisions, quality):
     if duration <= 0:
         raise ValueError("Invalid measured workflow interval")
     output_tokens = sum(n["stream"]["usage"]["completion_tokens"] for n in nodes.values())
-    schema_errors = sum(n["answer_contract"]["status"] == "format_error" for n in nodes.values())
+    schema_errors = 0 if fixed else sum(n["answer_contract"]["status"] == "format_error" for n in nodes.values())
     dependency_ok = all(n["start"] >= nodes[p]["finish"] and
-                        n.get("parent_response_bindings", {}).get(str(nodes[p]["step_position"] + 1), {}).get("response") == nodes[p]["stream"]["text"]
+                        (fixed or n.get("parent_response_bindings", {}).get(str(nodes[p]["step_position"] + 1), {}).get("response") == nodes[p]["stream"]["text"])
                         for n in nodes.values() for p in n["parents"])
     return {"completed_workflows": len(groups), "completed_requests": len(nodes),
             "jct_mean_ms": statistics.mean(latencies), "jct_p95_ms": percentile(latencies, .95),
@@ -66,7 +66,7 @@ def summarize(nodes, start, finish, decisions, quality):
             "dependency_handoff_pass": dependency_ok, "functional_pass": dependency_ok and schema_errors == 0,
             "scheduler_decisions": len(decisions),
             "selector_scored_decisions": sum(bool(d.get("result", {}).get("model_selection")) for d in decisions),
-            "nonreference_actions": sum(d.get("result", {}).get("selected_cell") == "10" for d in decisions),
+            "nonreference_actions": sum(not d.get('discarded_expired') and d.get("result", {}).get("selected_cell", '00') != '00' for d in decisions),
             "expired_plan_count": sum(d.get("discarded_expired", False) for d in decisions),
             "busy_planner_count": sum(d.get("planner_busy", False) for d in decisions),
             "workflow_rows": workflows, "quality": quality["semantic_quality"],
@@ -85,9 +85,14 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
     tasks = set()
     pending = None
     decisions, history, errors = [], {}, []
+    fixed = spec.get('measurement_mode') == 'fixed_token_replay'
+    if fixed:
+        from . import r234
     try:
         # Historical output-length priors and GPU timing coefficients are not loaded.
         nodes, materialize, proof = await instantiate(packets, tokenizer, cfg, spec["seed"], output_prior=None)
+        if fixed:
+            proof.update(await r234.convert(nodes, tokenizer))
         proof.update(native_cold_guard_unchanged=False, native_cache_observed=False,
                      native_input_readback=False, execution_adapter="ascend-http-v1")
         write_json(out / "input_proof.json", proof)
@@ -113,7 +118,8 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
         async def prepare(key):
             node = nodes[key]
             node["input_prepare_start"] = time.monotonic()
-            await materialize(key, nodes)
+            if not fixed:
+                await materialize(key, nodes)
             node.update(state="ready", input_prepare_end=time.monotonic())
 
         def release(keys):
@@ -133,7 +139,10 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
 
         async def execute(key, replica):
             node = nodes[key]
-            result = await backend.generate(replica, node, spec["seed"], out / "requests.jsonl")
+            if fixed:
+                result = await backend.generate(replica, node, spec['seed'], out / 'requests.jsonl', schema=None)
+            else:
+                result = await backend.generate(replica, node, spec["seed"], out / "requests.jsonl")
             node.update(state="done", finish=time.monotonic(), phase="done",
                         output=result["usage"]["completion_tokens"], output_is_estimate=False,
                         output_done=result["usage"]["completion_tokens"])
@@ -168,16 +177,17 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                         pending.result()  # Never swallow a failure from an expired plan.
                         pending = None
                     continue
-                base = baseline(state, cfg, spec["method"])
+                base = r234.baseline(state, cfg, spec['method']) if fixed else baseline(state, cfg, spec["method"])
                 result = {"action": base, "evaluations": [], "model_selection": False}
                 decision = {"index": index, "at": now, "snapshot": state}
-                if spec["method"] == "DAG-Ascend":
+                if spec["method"] in ("DAG-Ascend", 'Ours'):
                     if pending is not None and pending.done():
                         pending.result()
                         pending = None
                     if pending is None:
                         deadline = min(now + cfg["planning_soft_limit_s"], next_tick - cfg["commit_reserve_s"])
-                        pending = asyncio.get_running_loop().run_in_executor(executor, plan_dag, state, model, cfg, deadline)
+                        planner = r234.plan_ours if fixed else plan_dag
+                        pending = asyncio.get_running_loop().run_in_executor(executor, planner, state, model, cfg, deadline)
                         try:
                             result = await asyncio.wait_for(asyncio.shield(pending), timeout=max(.001, deadline - time.monotonic()))
                             pending = None
@@ -196,7 +206,9 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                 validate_action(action, state, cfg)
                 # Completion callbacks may have run during scoring. No submitted
                 # request can be cancelled, migrated or reordered by this port.
-                for key in sorted(action["admit"], key=lambda k: (nodes[k]["ready_at"], k)):
+                order = r234.submission_order(action, nodes) if fixed else sorted(action['admit'], key=lambda k: (nodes[k]['ready_at'], k))
+                decision['applied_submission_order'] = order
+                for key in order:
                     node = nodes[key]
                     if node["state"] != "ready":
                         raise ValueError("Planned node changed state before submission")
@@ -218,8 +230,34 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
             await pending
             pending = None
         # Gold is read only after all actual requests, including refusals, finish.
-        quality = evaluate(nodes, DATASET, finish - start)
-        summary = {"spec": spec, **summarize(nodes, start, finish, decisions, quality)}
+        quality = ({'semantic_quality': {'final_em': None, 'final_f1': None,
+                    'quality_scope': 'nonsemantic_fixed_token_replay', 'applicable': False}}
+                   if fixed else evaluate(nodes, DATASET, finish - start))
+        summary = {"spec": spec, **summarize(nodes, start, finish, decisions, quality, fixed=fixed)}
+        if fixed:
+            replica_rows = []
+            for replica in range(cfg['replicas']):
+                requests = [n for n in nodes.values() if n['replica'] == replica]
+                events = sorted([(n['start'], 1) for n in requests] + [(n['finish'], -1) for n in requests])
+                occupancy = peak = 0
+                for _, delta in events:
+                    occupancy += delta
+                    peak = max(peak, occupancy)
+                replica_rows.append({'replica': replica, 'requests': len(requests),
+                                     'output_tokens': sum(n['stream']['usage']['completion_tokens'] for n in requests),
+                                     'mean_http_inflight': sum(n['finish'] - n['start'] for n in requests) / summary['cohort_duration_s'],
+                                     'peak_http_inflight': peak, 'native_kv_occupancy': None})
+            summary.update(fixed_work_pass=r234.audit_work(nodes),
+                           external_work_fingerprint=proof['external_work_fingerprint'],
+                           arrival_offsets=[nodes[keys[0]]['arrival_offset'] for keys in groups.values()],
+                           input_tokens=sum(n['stream']['usage']['prompt_tokens'] for n in nodes.values()),
+                           v5_candidate_generated=sum(d['result'].get('v5_candidate_generated', 0) for d in decisions),
+                           v5_candidate_scored=sum(d['result'].get('v5_candidate_scored', 0) for d in decisions),
+                           v5_decisions=sum('v5_revision' in d['result'] for d in decisions),
+                           replica_rows=replica_rows,
+                           planner_mean_wall_ms=(statistics.mean(values) if (values := [d['result']['wall_ms'] for d in decisions if 'wall_ms' in d['result']]) else None),
+                           native_cache_observed=False)
+            summary['functional_pass'] &= summary['fixed_work_pass']
         write_json(out / "quality.json", quality)
         write_json(out / "summary.json", summary)
         write_json(out / "status.json", {"status": "complete", "functional_pass": summary["functional_pass"]})

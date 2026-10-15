@@ -50,7 +50,7 @@ class Backend:
         self.client, self.endpoints = client, endpoints
         self.fields = []
 
-    async def inspect(self):
+    async def inspect(self, *, fixed=False):
         records = []
         for endpoint in self.endpoints:
             response = await self.client.get(endpoint + "/v1/models")
@@ -63,7 +63,14 @@ class Backend:
             for name in ("/tokenize", "/detokenize"):
                 if name not in spec.get("paths", {}):
                     raise ValueError(f"Required canonical tokenizer API missing: {endpoint}{name}")
-            field = constraint_field(spec)
+            if fixed:
+                request = spec['paths']['/v1/completions']['post']['requestBody']['content']['application/json']['schema']
+                properties = schema_properties(spec, request)
+                if not {'stream_options', 'min_tokens', 'ignore_eos'} <= set(properties):
+                    raise ValueError('Fixed replay requires stream_options, min_tokens and ignore_eos')
+                field = None
+            else:
+                field = constraint_field(spec)
             self.fields.append(field)
             records.append({"endpoint": endpoint, "constraint_field": field,
                             "api_info": spec.get("info", {}), "native_gpu39_hook": False})
@@ -78,6 +85,10 @@ class Backend:
         payload = {"model": MODEL_NAME, "prompt": tokens, "max_tokens": node["max_output_tokens"],
                    "temperature": 0., "top_p": 1., "seed": seed, "n": 1,
                    "stream": True, "stream_options": {"include_usage": True}, "add_special_tokens": False}
+        if node.get('fixed_workload_replay'):
+            if schema is not None:
+                raise ValueError('Fixed replay must not use an answer schema')
+            payload.update(min_tokens=node['max_output_tokens'], ignore_eos=True)
         if schema is not None:
             field = self.fields[replica]
             payload[field] = {"json": copy.deepcopy(schema)} if field == "structured_outputs" else copy.deepcopy(schema)
@@ -125,6 +136,8 @@ class Backend:
                 raise ValueError("Invalid server token usage")
             if usage["prompt_tokens"] != len(tokens) or not 0 < usage["completion_tokens"] <= node["max_output_tokens"]:
                 raise ValueError("Server input/output token usage differs from sent budget")
+            if node.get('fixed_workload_replay') and usage['completion_tokens'] != node['max_output_tokens']:
+                raise ValueError('Fixed replay output length differs from the predeclared DAG budget')
             ended = time.monotonic()
             result = {"text": "".join(fragments), "usage": usage, "finish_reason": finish,
                       "start": started, "header_at": header, "finish": ended, "first_text_at": first, "last_text_at": last,
@@ -141,6 +154,26 @@ class Backend:
             append_json(log, {"event": "request_failed", "node": node["id"], "error": repr(exc),
                               "partial_text": "".join(fragments), "usage": usage})
             raise
+
+    async def fixed_canaries(self, out):
+        reference, rows = None, []
+        for replica, endpoint in enumerate(self.endpoints):
+            tok = Tokenizer(self.client, endpoint)
+            tokens = await tok.chat_tokens('Continue the text.', 'DABS fixed token replay.')
+            if reference is not None and tokens != reference:
+                raise ValueError('Replica canonical tokenization differs')
+            reference = tokens
+            if not await tok.decode(tokens):
+                raise ValueError('Detokenization canary failed')
+            pad = (await tok.encode(' .'))[-1]
+            tokens = tokens + [pad] * (3584 - len(tokens))
+            for count in (16, 32, 48, 64, 128):
+                node = {'id': f'fixed-canary-r{replica}-o{count}', 'tokens': tokens,
+                        'max_output_tokens': count, 'fixed_workload_replay': True}
+                result = await self.generate(replica, node, 190500, out / 'canaries.jsonl', schema=None)
+                rows.append({'replica': replica, 'passed': True, 'usage': result['usage'],
+                             'tokenization_equal': True, 'fixed_output_budget': count})
+        return rows
 
     async def canaries(self, out):
         reference = None

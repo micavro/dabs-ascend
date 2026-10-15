@@ -1,0 +1,177 @@
+"""Measured R234 tables and an offline browser view; no invented native data."""
+from __future__ import annotations
+
+import csv
+import html
+import io
+import statistics
+
+from .common import read_json, write_json
+from .r234 import LIMITS, METHODS
+
+
+def write_csv(path, rows):
+    if not rows:
+        return
+    buffer = io.StringIO(newline='')
+    writer = csv.DictWriter(buffer, fieldnames=list(rows[0]))
+    writer.writeheader()
+    writer.writerows(rows)
+    path.write_text(buffer.getvalue(), encoding='utf-8-sig')
+
+
+def paired_rows(summaries):
+    by_key = {(s['spec']['replicas'], s['spec']['rate'], s['spec']['repeat'], s['spec']['method']): s for s in summaries}
+    rows = []
+    for (replicas, rate, repeat, method), ours in by_key.items():
+        if method != 'Ours':
+            continue
+        for base in METHODS[:-1]:
+            reference = by_key.get((replicas, rate, repeat, base))
+            if reference is None:
+                continue
+            same = (reference['external_work_fingerprint'] == ours['external_work_fingerprint']
+                    and reference['arrival_offsets'] == ours['arrival_offsets'])
+            gain = ((reference['jct_mean_ms'] - ours['jct_mean_ms']) / reference['jct_mean_ms'] * 100) if same else None
+            rows.append({'replicas': replicas, 'rate': rate, 'repeat': repeat, 'reference': base,
+                         'paired_work_pass': same, 'ours_jct_ms': ours['jct_mean_ms'],
+                         'reference_jct_ms': reference['jct_mean_ms'], 'ours_jct_reduction_pct': gain})
+    return rows
+
+
+def procedure(out, record):
+    lines = ['# 本次复现过程', '', '本文件和 process.jsonl 自动生成；运行结束后保留整个输出目录。', '',
+             f"- 本次调用开始（UTC）：{record['utc']}",
+             f"- 主机项目目录：`{record['host_project'] or record['cwd']}`",
+             f"- 容器输出目录：`{out}`",
+             '- 容器 `/project/outputs/` 对应主机项目的 `outputs/`。',
+             f"- Git 提交：`{record['git_head'] or 'ZIP 下载无 Git 元数据；以 protocol.json 中逐文件 SHA256 为准'}`",
+             f"- 运行命令：`{record['host_command'] or ' '.join(record['argv'])}`",
+             '- 完整参数、Python 版本、镜像 ID 与所有调用历史：`process.jsonl`。', '',
+             '## 实际执行链', '',
+             '1. `run_dabs_r234.sh` → `run_dabs_existing.sh`：读取已选服务的 Docker 映射，启动临时 CPU 控制容器。',
+             '2. `tools/inspect_dabs_existing.py`：将服务、卡号、端口和启动选项保存到主机 `outputs/deployment_existing_*.json`。',
+             '3. `tools/run_dabs_existing.py` → `dabs_ascend.cli` → `dabs_ascend.r234_run`：校验冻结源码、模型、环境。',
+             '4. `dabs_ascend.backend`：逐服务验证 3584 输入以及 16/32/48/64/128 输出，随后 `calibration.py` 采集本机 HTTP 时延。',
+             '5. 新包 `wfsched/design.py` 提供 96 条件；`heterogeneous.py` 选取 balanced 工作流；`fixed_work.py` 填充固定输入。',
+             '6. `dabs_ascend.runner` 在 DAG 依赖满足后提交 HTTP 请求；`r234.py` 调用新包 RR/SLL、Ayo、V5 逻辑。',
+             '7. `dabs_ascend.r234_report` 每完成一个条件更新汇总、配对比较、网页与 CSV。', '',
+             '## 保存位置及查看顺序', '',
+             '- `TEST_REPORT.md`：完成数量、固定工作量检查、方法差异和比较结论。',
+             '- `RESULTS.html`：离线打开的指标表与曲线；只有实测完成条件才显示数据。',
+             '- `metrics.csv`、`paired_comparisons.csv`：逐条件指标与同 R/到达率/轮次的 Ours 对照差值。',
+             '- `workflow_metrics.csv`、`latency_decomposition.csv`、`replica_load.csv`：每个工作流、客户端关键路径与副本 HTTP 负载。',
+             '- `protocol.json`：固定实验计划、运行参数、源码 SHA256；`workload.json`：24 个源样本的重加权序列。',
+             '- `environment.json`、`servers.json`、`api_contract.json`：现场环境、物理映射和接口。',
+             '- `console.log`、`process.jsonl`：控制台、调用时间、条件开始结束、执行模块与输出路径。',
+             '- `conditions/<条件>/`：`spec.json`、`config.json`、`initial_nodes.json`、`input_proof.json`、`requests.jsonl`、`decisions.jsonl`、`nodes.json`、`quality.json`、`summary.json`、`status.json`、`artifacts.json`。',
+             '- 失败或中断：查看 `error.txt` 和最后一个条件的 `status.json`；原始过程保留，不自动重试或跳过。', '',
+             '## 结果口径', '',
+             '96/96 且检查通过才是完整跑完。`--max-conditions 4` 只完成前四个集成条件，状态为 paused。',
+             'Ours 收益 = (基线平均 JCT − Ours 平均 JCT) / 基线平均 JCT；正值为改善，负值为退化。',
+             '这是固定 token DAG 负载，无问答准确率。原生 KV 和引擎阶段指标不可得，保持 null。', '']
+    (out / 'REPRODUCE.md').write_text('\n'.join(lines), encoding='utf-8')
+
+
+def chart(summaries, metric, title):
+    # Standalone SVG, no plotting dependencies on the offline controller.
+    pieces = []
+    colors = ('#3366cc', '#d97706', '#059669', '#c026d3')
+    for replicas in (2, 3, 4):
+        points = {}
+        for method in METHODS:
+            for rate in (4, 8, 12, 16):
+                values = [s[metric] for s in summaries if s['spec']['replicas'] == replicas and s['spec']['method'] == method and s['spec']['rate'] == rate]
+                if values:
+                    points[(method, rate)] = statistics.mean(values)
+        if not points:
+            continue
+        top = max(points.values()) * 1.1 or 1
+        svg = [f'<svg viewBox="0 0 600 300" role="img" aria-label="R{replicas} {html.escape(title)}">',
+               f'<text x="60" y="22">R={replicas} {html.escape(title)}（已完成轮次均值）</text>',
+               '<path d="M60 40 V245 H560" fill="none" stroke="#777"/>']
+        for j in range(5):
+            value = top * j / 4
+            y = 245 - 190 * j / 4
+            svg += [f'<text x="4" y="{y:.1f}" font-size="11">{value:.1f}</text>',
+                    f'<path d="M60 {y:.1f} H560" stroke="#ddd"/>']
+        for method, color in zip(METHODS, colors):
+            line = []
+            for rate in (4, 8, 12, 16):
+                if (method, rate) not in points:
+                    continue
+                x, y = 80 + (rate - 4) * 38, 245 - points[(method, rate)] / top * 190
+                line.append(f'{x:.1f},{y:.1f}')
+                svg.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="4" fill="{color}"><title>{method} λ={rate}: {points[(method, rate)]:.2f}</title></circle>')
+            svg.append(f'<polyline points="{" ".join(line)}" fill="none" stroke="{color}"/>')
+        svg.extend(f'<text x="{80 + (rate - 4) * 38}" y="265">{rate}</text>' for rate in (4, 8, 12, 16))
+        svg += ['<text x="210" y="290">到达率（工作流/秒）</text>', '</svg>']
+        pieces.append(''.join(svg))
+    return ''.join(pieces)
+
+
+def make_report(out, plan, summaries, status, error=None):
+    env = read_json(out / 'environment.json') if (out / 'environment.json').exists() else {}
+    canaries = read_json(out / 'canary_summary.json') if (out / 'canary_summary.json').exists() else []
+    canary_ok = (len(canaries) == 20 and all(r['passed'] for r in canaries)
+                 and {(r['replica'], r['fixed_output_budget']) for r in canaries} == {(r, n) for r in range(4) for n in (16, 32, 48, 64, 128)})
+    rows, workflows, stages, loads = [], [], [], []
+    keys = ('completed_workflows', 'completed_requests', 'input_tokens', 'output_tokens', 'jct_mean_ms', 'jct_p95_ms',
+            'workflows_s', 'output_tokens_s', 'ttft_text_proxy_mean_ms', 'tpot_text_proxy_mean_ms',
+            'condition_wall_s', 'fixed_work_pass', 'dependency_handoff_pass', 'v5_decisions',
+            'v5_candidate_generated', 'v5_candidate_scored', 'selector_scored_decisions',
+            'nonreference_actions', 'expired_plan_count', 'busy_planner_count', 'planner_mean_wall_ms')
+    for s in summaries:
+        spec = {k: s['spec'][k] for k in ('label', 'replicas', 'rate', 'repeat', 'method')}
+        rows.append({**spec, **{k: s.get(k) for k in keys}, 'native_kv_hit_rate': None,
+                     'native_prefill_ms': None, 'native_decode_ms': None})
+        for w in s['workflow_rows']:
+            workflows.append({**spec, **{k: v for k, v in w.items() if k != 'critical_path_ms'}})
+            stages.append({**spec, 'wid': w['wid'], 'jct_ms': w['jct_ms'], **w['critical_path_ms']})
+        loads.extend({**spec, **r} for r in s.get('replica_rows', []))
+    pairs = paired_rows(summaries)
+    count_ok = len(summaries) == 96 and [s['spec'] for s in summaries] == plan
+    work_ok = bool(summaries) and all(s['functional_pass'] and s['fixed_work_pass'] for s in summaries)
+    passed = status == 'complete' and count_ok and work_ok and env.get('passed', False) and canary_ok and all(p['paired_work_pass'] for p in pairs) and len(pairs) == 72
+    ours = [s for s in summaries if s['spec']['method'] == 'Ours']
+    report = {'suite': 'dabs-r234-balanced-64', 'status': status, 'completed_conditions': len(summaries),
+              'declared_conditions': 96, 'functional_test_pass': bool(passed),
+              'fixed_work_pass': work_ok, 'http_inference_verified': canary_ok,
+              'real_npu_verified': False, 'strict_native_reproduction_pass': False,
+              'native_cache_observed': False, 'native_kv_hit_rate': None,
+              'ours_conditions_without_scoring': [s['spec']['label'] for s in ours if not s['selector_scored_decisions']],
+              'ours_selected_nonreference_actions': sum(s['nonreference_actions'] for s in ours),
+              'limits': LIMITS + env.get('limits', []), 'error': error}
+    write_json(out / 'acceptance.json', report)
+    for filename, values in [('metrics.csv', rows), ('paired_comparisons.csv', pairs),
+                             ('workflow_metrics.csv', workflows), ('latency_decomposition.csv', stages), ('replica_load.csv', loads)]:
+        write_csv(out / filename, values)
+    lines = ['# R234 昇腾运行报告', '', f'状态：{status}；完成 **{len(summaries)}/96** 个条件。',
+             f"完整负载运行检查：{'PASS' if passed else '未通过或尚未完成'}。", '',
+             '每条件 64 工作流 / 216 请求 / 774144 输入 token / 13184 输出 token。',
+             '完整实验：6144 工作流 / 20736 请求 / 1265664 输出 token（不含预检、预热和校准）。', '',
+             '过程与保存路径见 [REPRODUCE.md](REPRODUCE.md)，可视化见 [RESULTS.html](RESULTS.html)。', '',
+             '## Ours 与配对基线比较', '',
+             '正值表示 Ours 的平均 JCT 更低，负值表示更慢；仅纳入已完成配对，未完成不能作完整实验结论。', '',
+             '| 基线 | 已完成配对 / 24 | 平均 JCT 改善 |', '|---|---:|---:|']
+    for method in METHODS[:-1]:
+        values = [p['ours_jct_reduction_pct'] for p in pairs if p['reference'] == method and p['paired_work_pass']]
+        value = f'{statistics.mean(values):+.2f}%' if values else '尚无'
+        lines.append(f'| {method} | {len(values)} / 24 | {value} |')
+    lines += ['', f"Ours 已执行条件：{len(ours)}；其中未完成模型评分：{len(report['ours_conditions_without_scoring'])}；实际提交的非基线动作：{report['ours_selected_nonreference_actions']}。",
+              '无可执行候选、评分超时或收益不足时会保留基线；完整负载通过不等于 Ours 性能提升。', '',
+              '## 原生指标与适配边界', ''] + ['- ' + text for text in report['limits']]
+    if error:
+        lines += ['', '错误：`' + error.replace('`', "'") + '`；详见 error.txt。']
+    (out / 'TEST_REPORT.md').write_text('\n'.join(lines) + '\n', encoding='utf-8')
+    columns = ('label', 'jct_mean_ms', 'jct_p95_ms', 'workflows_s', 'output_tokens', 'nonreference_actions')
+    table = '<table><thead><tr>' + ''.join('<th>' + c + '</th>' for c in columns) + '</tr></thead><tbody>'
+    for row in rows:
+        table += '<tr>' + ''.join('<td>' + html.escape(f'{row[c]:.2f}' if isinstance(row[c], float) else str(row[c])) + '</td>' for c in columns) + '</tr>'
+    table += '</tbody></table>'
+    document = '<!doctype html><html lang="zh"><meta charset="utf-8"><title>R234 results</title><style>body{font:16px system-ui;max-width:1100px;margin:32px auto;padding:16px;color:#172033;background:#f5f7fb}table{border-collapse:collapse;background:white}td,th{padding:8px;border:1px solid #ddd}svg{max-width:530px;background:white;margin:8px}h1{color:#123452}</style>'
+    document += f'<h1>R234 昇腾实验：{len(summaries)}/96</h1><p>状态：{html.escape(status)}。固定 token DAG 回放；原生 KV / 引擎阶段时间未观测。</p><p>RR 蓝 · SLL 橙 · Ayo 绿 · Ours 紫。图表只展示已完成条件；完成前不能据此筛选条件。</p>'
+    document += chart(summaries, 'jct_mean_ms', '平均 JCT (ms)') + chart(summaries, 'workflows_s', '完成吞吐 (工作流/s)')
+    document += '<h2>逐条件结果</h2>' + table + '<p>过程：REPRODUCE.md · 结论：TEST_REPORT.md · 配对比较：paired_comparisons.csv</p></html>'
+    (out / 'RESULTS.html').write_text(document, encoding='utf-8')
+    return report

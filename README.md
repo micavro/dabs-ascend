@@ -1,6 +1,36 @@
 # DABS 昇腾一键运行
 
+## 2026-10-15 新实验：这次运行这个
+
+在 **Linux 宿主机**的新项目目录运行，沿用现场已启动的 Qwen 服务。Git 下载先 `git pull --ff-only`；ZIP 下载请从 [GitHub 下载最新 ZIP](https://github.com/micavro/dabs-ascend/archive/refs/heads/main.zip)，解压到新目录，保留旧结果。
+
+**一行跑全部 96 个新实验条件：**
+
+```bash
+bash run_dabs_r234.sh
+```
+
+默认连接 `wushibo-qwen-small-npu0`～`3`（端口 `8001`～`8004`），模型目录 `/data/model/Qwen2.5-1.5B-Instruct`。复用 MFE/现场已有的 vLLM-Ascend 镜像与服务，不重装环境、不加载第二份模型。宿主机需 `python3` ≥3.8 和 `sudo docker`；镜像内 Python ≥3.10、`httpx`、`numpy`，默认 Python 路径 `/usr/local/python3.12.13/bin/python`。四个服务需是同一模型、支持 4096 上下文、`/tokenize`、流式 usage、`min_tokens` 和 `ignore_eos`；入口会实际验证固定输出长度。
+
+| 用途 | 手敲命令 |
+|---|---|
+| 全部新实验 | `bash run_dabs_r234.sh` |
+| 仅环境检查，不跑实验 | `bash run_dabs_r234.sh check` |
+| 先跑前 4 个条件后暂停 | `bash run_dabs_r234.sh --max-conditions 4` |
+| 继续该次实验的剩余条件 | `bash run_dabs_r234.sh --resume outputs/上次目录名` |
+| 换用 4～7 号卡 | `DEVICE_IDS=4,5,6,7 bash run_dabs_r234.sh` |
+
+模型路径不同时先 `export MODEL_PATH=/实际路径`。默认控制端每副本并发 2；若现场决定改为 10，整次实验从开始统一用 `MAX_INFLIGHT=10 bash run_dabs_r234.sh`，续跑保持相同设置。避免其他负载同时使用这四个服务。长时间运行请在机器已有的 `tmux` / `screen` 会话里执行，防止终端断线。
+
+新范围为 **R=2/3/4 × 到达率=4/8/12/16 × RR/SLL/Ayo/Ours × 2 轮 = 96 条件**，两轮顺序互为镜像；每条件 64 个工作流、216 个请求、每请求 3584 输入 token、按 DAG 固定输出，总输出 13184 token。完整实验共 20736 请求。旧的 `benchmark` / `--suite grid` 不代表这批新实验。
+
+结果保存在 **`outputs/r234_ascend_时间_编号/`**，终端打印 `R234_REPORT=`。先看 `TEST_REPORT.md`（是否 96/96、Ours 配对比较），再打开 `RESULTS.html` 看曲线；`REPRODUCE.md`、`process.jsonl`、`console.log` 自动记录运行命令、目录、文件、时间和过程。CSV 与每条件的完整请求、调度、token、时延记录都保留。出现错误看 `error.txt`；失败不自动重试，只有 `--max-conditions` 正常暂停的目录可以续跑。
+
+新包的 373 个文件逐字节保留并校验，Ours 使用新增的 DAG-H V5。现有 HTTP 服务无法提供原生 KV 命中、引擎阶段统计或内部队列重排，报告将明确记为未观测；V5 需要原生缓存证据的路由候选因此不可用。此次跑的是昇腾上的新负载与可执行调度适配，不代表原生引擎机制或性能结论完全等价。固定 token 实验无需问答 EM/F1。详见 [新实验说明](docs/r234-ascend.md)。
+
 ## 现场已有 8 个 Qwen 容器：用这个入口
+
+以下是上一版实验，保留用于旧结果核对。
 
 在 **Linux 宿主机**的项目目录执行，不要进入模型容器。默认连接现有的 `wushibo-qwen-small-npu0`～`7`，端口 `8001`～`8008`；只新建临时 CPU 控制端，退出后模型服务继续运行。
 

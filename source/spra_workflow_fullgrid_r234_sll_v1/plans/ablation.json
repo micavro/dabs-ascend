@@ -1,0 +1,1254 @@
+{
+  "schema": "workflow-grid-plan-2",
+  "suite": "ablation",
+  "scope": "Same historical 64 MuSiQue development questions, four disjoint 16-question blocks; not unseen holdout",
+  "conditions": [
+    {
+      "label": "R4_L2_T1_B1_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 1,
+      "position": 1,
+      "method": "Affinity",
+      "seed": 190501,
+      "router_seed": 930101,
+      "packet_slice": [
+        0,
+        16
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T1_B1_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 1,
+      "position": 2,
+      "method": "DAG",
+      "seed": 190501,
+      "router_seed": 930101,
+      "packet_slice": [
+        0,
+        16
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T1_B1_DAG-Lite",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 1,
+      "position": 3,
+      "method": "DAG-Lite",
+      "seed": 190501,
+      "router_seed": 930101,
+      "packet_slice": [
+        0,
+        16
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T1_B2_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 2,
+      "position": 1,
+      "method": "DAG",
+      "seed": 190502,
+      "router_seed": 930102,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T1_B2_DAG-Lite",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 2,
+      "position": 2,
+      "method": "DAG-Lite",
+      "seed": 190502,
+      "router_seed": 930102,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T1_B2_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 2,
+      "position": 3,
+      "method": "Affinity",
+      "seed": 190502,
+      "router_seed": 930102,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T1_B3_DAG-Lite",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 3,
+      "position": 1,
+      "method": "DAG-Lite",
+      "seed": 190503,
+      "router_seed": 930103,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T1_B3_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 3,
+      "position": 2,
+      "method": "Affinity",
+      "seed": 190503,
+      "router_seed": 930103,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T1_B3_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 3,
+      "position": 3,
+      "method": "DAG",
+      "seed": 190503,
+      "router_seed": 930103,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T1_B4_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 4,
+      "position": 1,
+      "method": "Affinity",
+      "seed": 190504,
+      "router_seed": 930104,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T1_B4_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 4,
+      "position": 2,
+      "method": "DAG",
+      "seed": 190504,
+      "router_seed": 930104,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T1_B4_DAG-Lite",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 1,
+      "block": 4,
+      "position": 3,
+      "method": "DAG-Lite",
+      "seed": 190504,
+      "router_seed": 930104,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T2_B1_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 2,
+      "block": 1,
+      "position": 1,
+      "method": "Affinity",
+      "seed": 190501,
+      "router_seed": 930201,
+      "packet_slice": [
+        0,
+        16
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T2_B1_DAG-Lite",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 2,
+      "block": 1,
+      "position": 2,
+      "method": "DAG-Lite",
+      "seed": 190501,
+      "router_seed": 930201,
+      "packet_slice": [
+        0,
+        16
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T2_B1_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 2,
+      "block": 1,
+      "position": 3,
+      "method": "DAG",
+      "seed": 190501,
+      "router_seed": 930201,
+      "packet_slice": [
+        0,
+        16
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T2_B2_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 2,
+      "block": 2,
+      "position": 1,
+      "method": "DAG",
+      "seed": 190502,
+      "router_seed": 930202,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T2_B2_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 2,
+      "block": 2,
+      "position": 2,
+      "method": "Affinity",
+      "seed": 190502,
+      "router_seed": 930202,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T2_B2_DAG-Lite",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 2,
+      "block": 2,
+      "position": 3,
+      "method": "DAG-Lite",
+      "seed": 190502,
+      "router_seed": 930202,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T2_B3_DAG-Lite",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 2,
+      "block": 3,
+      "position": 1,
+      "method": "DAG-Lite",
+      "seed": 190503,
+      "router_seed": 930203,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T2_B3_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 2,
+      "block": 3,
+      "position": 2,
+      "method": "DAG",
+      "seed": 190503,
+      "router_seed": 930203,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T2_B3_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 2,
+      "block": 3,
+      "position": 3,
+      "method": "Affinity",
+      "seed": 190503,
+      "router_seed": 930203,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T2_B4_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 2,
+      "block": 4,
+      "position": 1,
+      "method": "Affinity",
+      "seed": 190504,
+      "router_seed": 930204,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T2_B4_DAG-Lite",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 2,
+      "block": 4,
+      "position": 2,
+      "method": "DAG-Lite",
+      "seed": 190504,
+      "router_seed": 930204,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T2_B4_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 2,
+      "block": 4,
+      "position": 3,
+      "method": "DAG",
+      "seed": 190504,
+      "router_seed": 930204,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T3_B1_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 3,
+      "block": 1,
+      "position": 1,
+      "method": "DAG",
+      "seed": 190501,
+      "router_seed": 930301,
+      "packet_slice": [
+        0,
+        16
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T3_B1_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 3,
+      "block": 1,
+      "position": 2,
+      "method": "Affinity",
+      "seed": 190501,
+      "router_seed": 930301,
+      "packet_slice": [
+        0,
+        16
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T3_B1_DAG-Lite",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 3,
+      "block": 1,
+      "position": 3,
+      "method": "DAG-Lite",
+      "seed": 190501,
+      "router_seed": 930301,
+      "packet_slice": [
+        0,
+        16
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T3_B2_DAG-Lite",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 3,
+      "block": 2,
+      "position": 1,
+      "method": "DAG-Lite",
+      "seed": 190502,
+      "router_seed": 930302,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T3_B2_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 3,
+      "block": 2,
+      "position": 2,
+      "method": "DAG",
+      "seed": 190502,
+      "router_seed": 930302,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T3_B2_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 3,
+      "block": 2,
+      "position": 3,
+      "method": "Affinity",
+      "seed": 190502,
+      "router_seed": 930302,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T3_B3_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 3,
+      "block": 3,
+      "position": 1,
+      "method": "Affinity",
+      "seed": 190503,
+      "router_seed": 930303,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T3_B3_DAG-Lite",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 3,
+      "block": 3,
+      "position": 2,
+      "method": "DAG-Lite",
+      "seed": 190503,
+      "router_seed": 930303,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T3_B3_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 3,
+      "block": 3,
+      "position": 3,
+      "method": "DAG",
+      "seed": 190503,
+      "router_seed": 930303,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T3_B4_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 3,
+      "block": 4,
+      "position": 1,
+      "method": "DAG",
+      "seed": 190504,
+      "router_seed": 930304,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T3_B4_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 3,
+      "block": 4,
+      "position": 2,
+      "method": "Affinity",
+      "seed": 190504,
+      "router_seed": 930304,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T3_B4_DAG-Lite",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 3,
+      "block": 4,
+      "position": 3,
+      "method": "DAG-Lite",
+      "seed": 190504,
+      "router_seed": 930304,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T4_B1_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 4,
+      "block": 1,
+      "position": 1,
+      "method": "DAG",
+      "seed": 190501,
+      "router_seed": 930401,
+      "packet_slice": [
+        0,
+        16
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T4_B1_DAG-Lite",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 4,
+      "block": 1,
+      "position": 2,
+      "method": "DAG-Lite",
+      "seed": 190501,
+      "router_seed": 930401,
+      "packet_slice": [
+        0,
+        16
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T4_B1_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 4,
+      "block": 1,
+      "position": 3,
+      "method": "Affinity",
+      "seed": 190501,
+      "router_seed": 930401,
+      "packet_slice": [
+        0,
+        16
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T4_B2_DAG-Lite",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 4,
+      "block": 2,
+      "position": 1,
+      "method": "DAG-Lite",
+      "seed": 190502,
+      "router_seed": 930402,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T4_B2_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 4,
+      "block": 2,
+      "position": 2,
+      "method": "Affinity",
+      "seed": 190502,
+      "router_seed": 930402,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T4_B2_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 4,
+      "block": 2,
+      "position": 3,
+      "method": "DAG",
+      "seed": 190502,
+      "router_seed": 930402,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T4_B3_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 4,
+      "block": 3,
+      "position": 1,
+      "method": "Affinity",
+      "seed": 190503,
+      "router_seed": 930403,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T4_B3_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 4,
+      "block": 3,
+      "position": 2,
+      "method": "DAG",
+      "seed": 190503,
+      "router_seed": 930403,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T4_B3_DAG-Lite",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 4,
+      "block": 3,
+      "position": 3,
+      "method": "DAG-Lite",
+      "seed": 190503,
+      "router_seed": 930403,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T4_B4_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 4,
+      "block": 4,
+      "position": 1,
+      "method": "DAG",
+      "seed": 190504,
+      "router_seed": 930404,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T4_B4_DAG-Lite",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 4,
+      "block": 4,
+      "position": 2,
+      "method": "DAG-Lite",
+      "seed": 190504,
+      "router_seed": 930404,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T4_B4_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 4,
+      "block": 4,
+      "position": 3,
+      "method": "Affinity",
+      "seed": 190504,
+      "router_seed": 930404,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T5_B1_DAG-Lite",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 5,
+      "block": 1,
+      "position": 1,
+      "method": "DAG-Lite",
+      "seed": 190501,
+      "router_seed": 930501,
+      "packet_slice": [
+        0,
+        16
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T5_B1_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 5,
+      "block": 1,
+      "position": 2,
+      "method": "Affinity",
+      "seed": 190501,
+      "router_seed": 930501,
+      "packet_slice": [
+        0,
+        16
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T5_B1_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 5,
+      "block": 1,
+      "position": 3,
+      "method": "DAG",
+      "seed": 190501,
+      "router_seed": 930501,
+      "packet_slice": [
+        0,
+        16
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T5_B2_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 5,
+      "block": 2,
+      "position": 1,
+      "method": "Affinity",
+      "seed": 190502,
+      "router_seed": 930502,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T5_B2_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 5,
+      "block": 2,
+      "position": 2,
+      "method": "DAG",
+      "seed": 190502,
+      "router_seed": 930502,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T5_B2_DAG-Lite",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 5,
+      "block": 2,
+      "position": 3,
+      "method": "DAG-Lite",
+      "seed": 190502,
+      "router_seed": 930502,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T5_B3_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 5,
+      "block": 3,
+      "position": 1,
+      "method": "DAG",
+      "seed": 190503,
+      "router_seed": 930503,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T5_B3_DAG-Lite",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 5,
+      "block": 3,
+      "position": 2,
+      "method": "DAG-Lite",
+      "seed": 190503,
+      "router_seed": 930503,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T5_B3_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 5,
+      "block": 3,
+      "position": 3,
+      "method": "Affinity",
+      "seed": 190503,
+      "router_seed": 930503,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T5_B4_DAG-Lite",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 5,
+      "block": 4,
+      "position": 1,
+      "method": "DAG-Lite",
+      "seed": 190504,
+      "router_seed": 930504,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T5_B4_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 5,
+      "block": 4,
+      "position": 2,
+      "method": "Affinity",
+      "seed": 190504,
+      "router_seed": 930504,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T5_B4_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 5,
+      "block": 4,
+      "position": 3,
+      "method": "DAG",
+      "seed": 190504,
+      "router_seed": 930504,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T6_B1_DAG-Lite",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 6,
+      "block": 1,
+      "position": 1,
+      "method": "DAG-Lite",
+      "seed": 190501,
+      "router_seed": 930601,
+      "packet_slice": [
+        0,
+        16
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T6_B1_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 6,
+      "block": 1,
+      "position": 2,
+      "method": "DAG",
+      "seed": 190501,
+      "router_seed": 930601,
+      "packet_slice": [
+        0,
+        16
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T6_B1_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 6,
+      "block": 1,
+      "position": 3,
+      "method": "Affinity",
+      "seed": 190501,
+      "router_seed": 930601,
+      "packet_slice": [
+        0,
+        16
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T6_B2_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 6,
+      "block": 2,
+      "position": 1,
+      "method": "Affinity",
+      "seed": 190502,
+      "router_seed": 930602,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T6_B2_DAG-Lite",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 6,
+      "block": 2,
+      "position": 2,
+      "method": "DAG-Lite",
+      "seed": 190502,
+      "router_seed": 930602,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T6_B2_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 6,
+      "block": 2,
+      "position": 3,
+      "method": "DAG",
+      "seed": 190502,
+      "router_seed": 930602,
+      "packet_slice": [
+        16,
+        32
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T6_B3_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 6,
+      "block": 3,
+      "position": 1,
+      "method": "DAG",
+      "seed": 190503,
+      "router_seed": 930603,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T6_B3_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 6,
+      "block": 3,
+      "position": 2,
+      "method": "Affinity",
+      "seed": 190503,
+      "router_seed": 930603,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T6_B3_DAG-Lite",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 6,
+      "block": 3,
+      "position": 3,
+      "method": "DAG-Lite",
+      "seed": 190503,
+      "router_seed": 930603,
+      "packet_slice": [
+        32,
+        48
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T6_B4_DAG-Lite",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 6,
+      "block": 4,
+      "position": 1,
+      "method": "DAG-Lite",
+      "seed": 190504,
+      "router_seed": 930604,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T6_B4_DAG",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 6,
+      "block": 4,
+      "position": 2,
+      "method": "DAG",
+      "seed": 190504,
+      "router_seed": 930604,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    },
+    {
+      "label": "R4_L2_T6_B4_Affinity",
+      "replicas": 4,
+      "rate": 2.0,
+      "repeat": 6,
+      "block": 4,
+      "position": 3,
+      "method": "Affinity",
+      "seed": 190504,
+      "router_seed": 930604,
+      "packet_slice": [
+        48,
+        64
+      ],
+      "workflow_count": 16,
+      "base_cap": 4096
+    }
+  ],
+  "expected_conditions": 72,
+  "methods": [
+    "Affinity",
+    "DAG",
+    "DAG-Lite"
+  ],
+  "workflows_per_condition": 16,
+  "sampling_contract": "original JSON answer-only, natural outputs; no forced equal work",
+  "input_namespace_contract": "original model-visible unique UUID per condition; prompts not identical across methods",
+  "cache_contract": "cold registered namespace initially; natural within-condition prefix reuse",
+  "arrival_contract": "original wave: 1s active at 2*lambda, 1s idle; finite N=16 truncation",
+  "replica_mapping": "first R verified dedicated service identities 0..R-1; unused pods remain running",
+  "engine_contract": "same native continuous batching, fixed prefill cap and total4096; no adaptive actions",
+  "dispatch_clock": "same original 200ms periodic loop for all methods; not unmodified Ray/NGINX end-to-end",
+  "primary": "mean of paired within-(cell,repeat,block) percentage changes of mean workflow JCT",
+  "ordering": "all 6 permutations per block",
+  "budget_candidate_generation_removed_only_for": "DAG-Lite",
+  "admission_intent_revision": "wf-admission-intent-repair-1",
+  "original_frozen_source_modified": false,
+  "no_posthoc_version_selection": true,
+  "all_results_retained": true,
+  "automatic_retry": false,
+  "guaranteed_10_percent": false
+}
