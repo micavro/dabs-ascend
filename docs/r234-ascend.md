@@ -1,5 +1,7 @@
 # 20261015 R234 新实验的昇腾执行说明
 
+**2026-10-16 修复更新：** 当前先运行 `bash run_dabs_r234.sh inspect`，复制 `SUMMARY.txt` 文字；不打包或上传。原生缓存/队列接口待现场版本确认，默认正式 benchmark 已阻止运行。下文运行命令均为显式 HTTP 诊断，细节见 [修复记录](repair-20261016.md)。
+
 输入：`DABS_R234_Balanced_SLL_FullSource_20261015.zip`，SHA256 `58f102b2695fc770783347622f3593b43a414d8ee16d04776ed3b1f5baef645a`。
 
 373 个文件中 317 个与此前工程一致，新增 56 个；全部保持原始字节，清单在 `provenance/r234_import.json`。没有在这份包中发现昇腾实测结果或模型权重。原包工具 `tools/run_dabs_r234.py`、`tools/dabs_r234_preflight.py`、`tools/plot_dabs_r234.py` 依赖原生 GPU 执行链，完整保留供核对；昇腾现场使用 `run_dabs_r234.sh`。
@@ -9,7 +11,7 @@
 在更新后的项目根目录、Linux 宿主机运行：
 
 ```bash
-bash run_dabs_r234.sh
+bash run_dabs_r234.sh diagnose
 ```
 
 默认现场配置与 README 一致：服务容器前缀 `wushibo-qwen-small-npu`，选择设备 `0,1,2,3`，端口基数 `8001`，宿主机模型 `/data/model/Qwen2.5-1.5B-Instruct`，控制端解释器 `/usr/local/python3.12.13/bin/python`。每个条件只用前 R 个所选服务。没有升级推理环境、重启服务、下载模型或占用第二份 NPU 权重。
@@ -17,12 +19,12 @@ bash run_dabs_r234.sh
 `DEVICE_IDS`、`MODEL_PATH`、`CONTAINER_PREFIX`、`CONTROLLER_PYTHON`、`BASE_PORT`、`MAX_INFLIGHT` 沿用现场入口的环境变量。例如：
 
 ```bash
-DEVICE_IDS=4,5,6,7 bash run_dabs_r234.sh
+DEVICE_IDS=4,5,6,7 bash run_dabs_r234.sh diagnose
 ```
 
 每副本默认最多 2 个 HTTP 在途请求，服务端保持原配置；原包 native controller 使用 64，二者不可直接作为同部署性能比较。若要提高客户端并发，应整次实验统一设置并在结果中保留参数，不能中途只改某一种方法。
 
-新程序依次执行：源码与数据校验、模型元数据/容器映射/HTTP 健康检查、每副本 5 种长度的固定 token canary、每副本 8 次 HTTP 标定、64 个工作流编译、96 条件、逐条件与总报告。预热和标定不算正式实验请求。已有服务需独占给本次实验，程序无法阻止其他用户向服务发请求。
+诊断模式依次执行：源码与数据校验、模型元数据/容器映射/HTTP 健康检查、每副本 5 种长度的固定 token canary、每副本 8 次 HTTP 标定、64 个工作流编译、前 8 条件、逐条件与总报告，然后正常暂停。预热和标定不算正式实验请求；HTTP 标定不是原生 batch-step 标定。实验需协调资源占用，程序无法阻止其他用户向服务发请求。
 
 ## 固定的实验内容
 
@@ -35,6 +37,7 @@ DEVICE_IDS=4,5,6,7 bash run_dabs_r234.sh
 | 方法 | RR、SLL（k=2 的 P2C）、Ayo 拓扑代理、Ours（DAG-H V5） |
 | 调度间隔 | 200ms，所有方法一致 |
 | 第一组 | R4、λ8，依次 RR / SLL / Ayo / Ours |
+| 修复版第二组 | R2、λ16；方法位置按组轮换，结果未产生前固定顺序 |
 | 第二轮 | 方法顺序和 R/λ 遍历顺序均镜像反转 |
 | 每条件 | 64 工作流、216 请求；来自 24 个固定公开源样本的 balanced 重加权 |
 | token | 每请求输入 3584；按图形输出 16/32/48/64/128，合计 13184 |
@@ -70,24 +73,24 @@ DEVICE_IDS=4,5,6,7 bash run_dabs_r234.sh
 1. `status.json` 应为 `complete`，`TEST_REPORT.md` 应为 `96/96` 且完整负载运行检查 PASS；4/96 只是集成检查。
 2. 每条件应是 216 请求、774144 输入 token、13184 输出 token，且依赖顺序满足。长度不符立即失败，不能忽略报错。
 3. `paired_comparisons.csv` 在相同 R/λ/轮次内比较：`(基线平均JCT − Ours平均JCT) / 基线平均JCT × 100%`。正值改善，负值退化。总摘要为配对百分比的算术平均，不能用全条件平均时延随意相除替代。
-4. 看 Ours `v5_decisions`、`v5_candidate_generated`、`v5_candidate_scored`、`nonreference_actions`、`expired_plan_count`。回退基线也是实际结果；负载完成不表示一定产生候选或获得加速。
-5. 将完整输出目录交回后，可据实解释性能和失败；本地 CPU 自检不能替代昇腾结果。
+4. 看 Ours `v5_decisions`、`v5_candidate_generated`、参考/候选评分开始与完成次数、`diagnostic_reasons.csv`。`v5_candidate_scored` 只统计可排名的完整候选；新版 `nonreference_actions` 表示客户端相对基线有实际提交差异，不是引擎应用证明。旧版该列口径更弱。回退基线也是实际结果。
+5. 完整目录保留在现场，复制报告文字和指定日志片段即可；不打包或上传。本地 CPU 自检不能替代昇腾结果。
 
 ## 暂停与续跑
 
 先跑前四个集成条件：
 
 ```bash
-bash run_dabs_r234.sh --max-conditions 4
+bash run_dabs_r234.sh diagnose --max-conditions 4
 ```
 
 它会在条件结束后标记 `paused`，输出续跑命令。复制终端的目录名：
 
 ```bash
-bash run_dabs_r234.sh --resume outputs/r234_ascend_具体编号
+bash run_dabs_r234.sh diagnose --resume outputs/r234_ascend_具体编号 --max-conditions 4
 ```
 
-继续原顺序的剩余条件，不重复已接受结果。续跑要求源码、参数、部署身份和标定一致，并核验已完成条件的原始文件哈希；不要在两段间 `git pull`、改并发、重建服务或编辑结果。`--max-conditions N` 表示本次最多再跑 N 条件。
+此命令继续原顺序的后四个条件，不重复已接受结果。续跑要求源码、参数、部署身份和标定一致，并核验已完成条件的原始文件哈希；不要在两段间 `git pull`、改并发、重建服务或编辑结果。`--max-conditions N` 表示本次最多再跑 N 条件。旧版记录不能跨版本续跑，新记录与旧结果不得混合。
 
 Ctrl+C、断线、超时或请求异常会保留失败现场，不视为干净暂停。失败目录不能续跑，也不会跳过失败条件。修正后新开目录重新运行，保留原失败记录。
 

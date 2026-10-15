@@ -4,6 +4,7 @@ from __future__ import annotations
 import copy
 import json
 import time
+import uuid
 
 from .common import append_json, source_paths
 from .runtime import MODEL_NAME
@@ -93,12 +94,16 @@ class Backend:
             field = self.fields[replica]
             payload[field] = {"json": copy.deepcopy(schema)} if field == "structured_outputs" else copy.deepcopy(schema)
         started = time.monotonic()
+        request_id = 'dabs-' + uuid.uuid4().hex
+        node['client_request_id'] = request_id
+        server_id = None
         fragments, first, last, usage, finish, done = [], None, None, None, None, False
         node["request_started_at"] = started
         append_json(log, {"event": "request", "node": node["id"], "replica": replica,
-                          "at": started, "payload": payload})
+                          "at": started, "client_request_id": request_id, "payload": payload})
         try:
-            async with self.client.stream("POST", self.endpoints[replica] + "/v1/completions", json=payload) as response:
+            async with self.client.stream("POST", self.endpoints[replica] + "/v1/completions", json=payload,
+                                          headers={'X-Request-Id': request_id}) as response:
                 header = time.monotonic()
                 if response.status_code != 200:
                     body = (await response.aread()).decode("utf-8", "replace")
@@ -112,6 +117,10 @@ class Backend:
                         done = True
                         break
                     value = json.loads(data)
+                    if value.get('id'):
+                        if server_id is not None and value['id'] != server_id:
+                            raise ValueError('SSE response ID changed within a request')
+                        server_id = value['id']
                     append_json(log, {"event": "stream", "node": node["id"], "at": now, "data": value})
                     if "error" in value:
                         raise RuntimeError("vLLM stream error: " + str(value["error"]))
@@ -140,6 +149,9 @@ class Backend:
                 raise ValueError('Fixed replay output length differs from the predeclared DAG budget')
             ended = time.monotonic()
             result = {"text": "".join(fragments), "usage": usage, "finish_reason": finish,
+                      'client_request_id': request_id, 'server_response_id': server_id,
+                      'http_request_id_header': response.headers.get('x-request-id'),
+                      'engine_action_acknowledged': None,
                       "start": started, "header_at": header, "finish": ended, "first_text_at": first, "last_text_at": last,
                       "request_ms": (ended - started) * 1000,
                       "ttft_text_proxy_ms": (first - started) * 1000,

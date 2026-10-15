@@ -10,6 +10,7 @@ from pathlib import Path
 
 from .common import read_json, sha, write_json
 from .runtime import MODEL_NAME, validate_model
+from .deployment import server_options
 
 
 def container_name(prefix, device):
@@ -24,24 +25,10 @@ def selected_endpoints(args):
 
 def deployment_records(rows):
     """Keep only deployment evidence; never persist Docker Env or raw Cmd secrets."""
-    allowed = {"--model", "--served-model-name", "--port", "--dtype", "--max-model-len",
-               "--max-num-seqs", "--max-num-batched-tokens", "--tensor-parallel-size",
-               "--gpu-memory-utilization", "--block-size", "--generation-config"}
-    switches = {"--enforce-eager", "--enable-prefix-caching", "--enable-chunked-prefill"}
     result = []
     for row in rows:
-        argv = row.get("Config", {}).get("Cmd") or []
-        options = {}
-        if isinstance(argv, list):
-            for i, arg in enumerate(argv):
-                flag, separator, value = arg.partition("=")
-                if flag in allowed:
-                    if separator:
-                        options[flag] = value
-                    elif i + 1 < len(argv) and not argv[i + 1].startswith("--"):
-                        options[flag] = argv[i + 1]
-                elif arg in switches:
-                    options[arg] = True
+        config = row.get('Config') or {}
+        options = server_options((config.get('Entrypoint') or []) + (config.get('Cmd') or []))
         result.append({"name": row["Name"].lstrip("/"), "container_id": row["Id"],
                        "image_id": row["Image"], "running": row["State"]["Running"],
                        "devices": row["HostConfig"].get("Devices") or [],

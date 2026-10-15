@@ -106,7 +106,7 @@ async def execute(args, out, plan, summaries, identity):
         servers = Servers(args, out)
     pool = None
     async with httpx.AsyncClient(timeout=httpx.Timeout(args.request_timeout, connect=10), trust_env=False,
-                                 limits=httpx.Limits(max_connections=256, max_keepalive_connections=128)) as client:
+                                 limits=httpx.Limits(max_connections=256, max_keepalive_connections=args.http_keepalive)) as client:
         try:
             await servers.start(client)
             backend = Backend(client, servers.endpoints)
@@ -164,6 +164,15 @@ async def execute(args, out, plan, summaries, identity):
                 write_json(directory / 'artifacts.json', {name: sha(directory / name) for name in names})
                 summaries.append(summary)
                 write_json(out / 'index.json', summaries)
+                if len(summaries) % 4 == 0:
+                    group = summaries[-4:]
+                    audit = {'last_condition': spec['label'], 'methods': [s['spec']['method'] for s in group],
+                             'workload_pass': all(s['functional_pass'] for s in group),
+                             'workload_identity_equal': len({s['external_work_fingerprint'] for s in group}) == 1,
+                             'engine_mechanisms_pass': False, 'execution_scope': args.execution_scope}
+                    append_json(out / 'group_audits.jsonl', audit)
+                    if set(audit['methods']) != set(r234.METHODS) or not audit['workload_pass'] or not audit['workload_identity_equal']:
+                        raise ValueError('Four-method group audit failed')
                 append_json(out / 'process.jsonl', {'event': 'condition_complete', 'utc': utc(), 'index': index + 1,
                             'label': spec['label'], 'mean_jct_ms': summary['jct_mean_ms'], 'output': str(directory)})
                 from .r234_report import make_report
@@ -186,6 +195,12 @@ def main(args):
                           'requests_per_condition': 216, 'output_tokens_per_condition': 13184,
                           'inference_executed': False}, ensure_ascii=False, indent=2))
         return 0
+    if args.mode == 'benchmark' and args.execution_scope != 'http-limited':
+        from .repair import mechanism_gate
+        print('R234_NATIVE_GATE=' + json.dumps(mechanism_gate(), ensure_ascii=False), file=sys.stderr)
+        print('Native mechanism reproduction is not implemented for the unidentified site version. '
+              'Run inspect first; diagnose is explicitly HTTP-limited.', file=sys.stderr)
+        return 2
     out = args.resume or args.out or ROOT / 'outputs' / ('r234_ascend_' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ_') + uuid.uuid4().hex[:8])
     out = out.expanduser().resolve()
     identity = source_identity()
@@ -208,6 +223,13 @@ def main(args):
                        'workflows_per_condition': 64, 'requests_per_condition': 216,
                        'input_tokens_per_request': 3584, 'output_tokens_per_condition': 13184,
                        'strict_native_reproduction': False, 'automatic_retry': False})
+            write_json(out / 'repair_protocol.json', {
+                'revision': '20261016-http-diagnostics-v2', 'execution_scope': args.execution_scope,
+                'plan_revision': 'R4-L8_then_R2-L16_rotating_methods_mirrored_round2',
+                'http_keepalive': args.http_keepalive, 'native_mechanism_test_pass': False,
+                'calibration_scope': 'HTTP TTFT/TPOT proxy; not native batch-step validation',
+                'group_audit_conditions': 4, 'first_checkpoint_conditions': 8,
+                'previous_results_combinable': False})
             write_json(out / 'index.json', [])
     except Exception as exc:
         print('R234_REFUSED=' + str(exc), file=sys.stderr)
@@ -284,5 +306,5 @@ def run_recorded(args, out, plan, summaries, identity):
     if status == 'paused':
         relative = out.relative_to(ROOT).as_posix() if out.is_relative_to(ROOT) else str(out)
         print('CLEAN_PAUSE: remaining=' + str(96 - len(summaries)), flush=True)
-        print('RESUME: bash run_dabs_r234.sh --resume ' + relative, flush=True)
+        print('RESUME: bash run_dabs_r234.sh --execution-scope http-limited --resume ' + relative, flush=True)
     return 0 if status in ('paused', 'environment_checked') or report['functional_test_pass'] else 1

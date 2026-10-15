@@ -39,13 +39,17 @@ class PlanTests(unittest.TestCase):
         self.assertEqual(len(plan), 96)
         self.assertEqual([s['method'] for s in plan[:4]], list(r234.METHODS))
         self.assertTrue(all(s['replicas'] == 4 and s['rate'] == 8 for s in plan[:4]))
+        self.assertTrue(all(s['replicas'] == 2 and s['rate'] == 16 for s in plan[4:8]))
+        self.assertEqual(plan, json.loads(json.dumps(plan)))
         keys = lambda seq: [(s['replicas'], s['rate'], s['method']) for s in seq]
         self.assertEqual(keys(plan[:48]), keys(list(reversed(plan[48:]))))
         self.assertEqual({s['seed'] for s in plan}, {190500})
         self.assertEqual({s['router_seed'] for s in plan}, {950100, 950200})
         self.assertEqual({(s['replicas'], s['rate']) for s in plan}, {(r, a) for r in (2, 3, 4) for a in (4, 8, 12, 16)})
         if frozen:
-            self.assertEqual(plan, frozen['conditions'])
+            self.assertEqual(sorted(plan, key=lambda s: s['label']), sorted(frozen['conditions'], key=lambda s: s['label']))
+        self.assertEqual(sorted(plan, key=lambda s: s['label']),
+                         sorted(r234.frozen('design').plan(r234.SUITE)['conditions'], key=lambda s: s['label']))
 
     def test_protocol_overrides_rejected(self):
         for extra in (['--rate', '2'], ['--seed', '4'], ['--repeats', '1'], ['--devices', '0,1'], ['--max-conditions', '0']):
@@ -106,11 +110,13 @@ class PlanTests(unittest.TestCase):
 class FixedBackendTests(unittest.IsolatedAsyncioTestCase):
     async def test_fixed_sampling_payload_and_short_generation_failure(self):
         payloads = []
+        request_ids = []
         completion = 16
 
         def handler(request):
             body = json.loads(request.content)
             payloads.append(body)
+            request_ids.append(request.headers['x-request-id'])
             events = [{'choices': [{'index': 0, 'text': 'text', 'finish_reason': 'length'}]},
                       {'choices': [], 'usage': {'prompt_tokens': len(body['prompt']), 'completion_tokens': completion}}]
             return httpx.Response(200, text=''.join('data: ' + json.dumps(e) + '\n\n' for e in events) + 'data: [DONE]\n\n')
@@ -133,6 +139,20 @@ class FixedBackendTests(unittest.IsolatedAsyncioTestCase):
                 await backend.generate(0, natural, 190500, log, schema=None)
                 self.assertNotIn('min_tokens', payloads[-1])
                 self.assertNotIn('ignore_eos', payloads[-1])
+                self.assertEqual(len(set(request_ids)), len(request_ids))
+                self.assertEqual(payloads[0]['prompt'], payloads[1]['prompt'])
+                self.assertIsNone(node['stream']['engine_action_acknowledged'])
+
+    async def test_stream_response_id_cannot_change(self):
+        def handler(request):
+            events = [{'id': 'one', 'choices': [{'index': 0, 'text': 'x', 'finish_reason': 'length'}]},
+                      {'id': 'two', 'usage': {'prompt_tokens': 3584, 'completion_tokens': 16}}]
+            return httpx.Response(200, text=''.join('data: ' + json.dumps(e) + '\n\n' for e in events) + 'data: [DONE]\n\n')
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            backend = Backend(client, ['http://fake'])
+            with tempfile.TemporaryDirectory() as directory, self.assertRaisesRegex(ValueError, 'response ID changed'):
+                await backend.generate(0, {'id': 'x', 'tokens': [1] * 3584, 'max_output_tokens': 16,
+                                          'fixed_workload_replay': True}, 1, Path(directory) / 'requests.jsonl', schema=None)
 
     async def test_fixed_inspection_needs_no_json_constraint(self):
         def handler(request):
@@ -201,6 +221,7 @@ class RecordedExecutionTests(unittest.TestCase):
             model = root / 'model'
             write_json(model / 'config.json', {'cpu_test_only': True})
             common = ['benchmark', '--suite', 'r234', '--devices', '0,1,2,3', '--model', str(model),
+                      '--execution-scope', 'http-limited',
                       '--deployment-manifest', str(root / 'fake.json'), '--max-conditions', '1']
             with patch('dabs_ascend.r234_run.device_locks', return_value=nullcontext()), \
                  patch('dabs_ascend.existing.preflight', preflight), \
@@ -224,6 +245,17 @@ class RecordedExecutionTests(unittest.TestCase):
                 self.assertIn('R234_CONDITION 2/96', (out / 'console.log').read_text())
                 self.assertTrue((out / 'REPRODUCE.md').exists())
                 self.assertFalse(read_json(out / 'acceptance.json')['functional_test_pass'])
+                import importlib.util
+                spec = importlib.util.spec_from_file_location('report_tool', ROOT / 'tools/report_dabs_r234.py')
+                report_tool = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(report_tool)
+                before = {p.relative_to(out).as_posix(): sha(p) for p in out.rglob('*') if p.is_file()}
+                report_tool.regenerate(out, root / 'regenerated')
+                after = {p.relative_to(out).as_posix(): sha(p) for p in out.rglob('*') if p.is_file()}
+                self.assertEqual(before, after)
+                self.assertTrue((root / 'regenerated/REGENERATION.json').exists())
+                with self.assertRaisesRegex(ValueError, 'new output'):
+                    report_tool.regenerate(out, out / 'new_report')
                 write_json(out / 'status.json', {'status': 'failed'})
                 self.assertEqual(run_suite(args), 2)
 
@@ -286,6 +318,9 @@ class FullWorkloadTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(summary['output_tokens'], 13184)
                 self.assertIsNone(summary['quality']['final_em'])
                 self.assertTrue(all(r['peak_http_inflight'] <= 2 for r in summary['replica_rows']))
+                self.assertEqual(summary['action_accounting_version'], 2)
+                self.assertIsNone(summary['engine_applied_nonreference_actions'])
+                self.assertGreaterEqual(summary['ttft_text_proxy_p95_ms'], 0)
             self.assertGreater(summaries[-1]['v5_decisions'], 0)
             report = make_report(Path(directory), r234.plan(), summaries, 'paused')
             self.assertFalse(report['functional_test_pass'])

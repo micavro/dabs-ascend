@@ -336,6 +336,10 @@ class WorkflowTests(unittest.IsolatedAsyncioTestCase):
             self.assertGreater(result["expired_plan_count"], 0)
             self.assertEqual(result["nonreference_actions"], 0)
             self.assertEqual(result["selector_scored_decisions"], 0)
+            decisions = [json.loads(line) for line in (Path(directory) / 'expired/decisions.jsonl').read_text().splitlines()]
+            late = [d for d in decisions if d.get('event') == 'expired_plan_diagnostic']
+            self.assertTrue(late)
+            self.assertTrue(all(d['engine_applied'] is None and not d['client_applied_nonreference'] for d in late))
 
 
 if __name__ == "__main__":

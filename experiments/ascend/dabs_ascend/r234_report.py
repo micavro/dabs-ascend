@@ -110,14 +110,15 @@ def chart(summaries, metric, title):
     return ''.join(pieces)
 
 
-def make_report(out, plan, summaries, status, error=None):
-    env = read_json(out / 'environment.json') if (out / 'environment.json').exists() else {}
-    canaries = read_json(out / 'canary_summary.json') if (out / 'canary_summary.json').exists() else []
+def make_report(out, plan, summaries, status, error=None, *, source_out=None):
+    source_out = source_out or out
+    env = read_json(source_out / 'environment.json') if (source_out / 'environment.json').exists() else {}
+    canaries = read_json(source_out / 'canary_summary.json') if (source_out / 'canary_summary.json').exists() else []
     canary_ok = (len(canaries) == 20 and all(r['passed'] for r in canaries)
                  and {(r['replica'], r['fixed_output_budget']) for r in canaries} == {(r, n) for r in range(4) for n in (16, 32, 48, 64, 128)})
-    rows, workflows, stages, loads = [], [], [], []
+    rows, workflows, stages, loads, reasons = [], [], [], [], []
     keys = ('completed_workflows', 'completed_requests', 'input_tokens', 'output_tokens', 'jct_mean_ms', 'jct_p95_ms',
-            'workflows_s', 'output_tokens_s', 'ttft_text_proxy_mean_ms', 'tpot_text_proxy_mean_ms',
+            'workflows_s', 'output_tokens_s', 'ttft_text_proxy_mean_ms', 'ttft_text_proxy_p95_ms', 'tpot_text_proxy_mean_ms',
             'condition_wall_s', 'fixed_work_pass', 'dependency_handoff_pass', 'v5_decisions',
             'v5_candidate_generated', 'v5_candidate_scored', 'selector_scored_decisions',
             'nonreference_actions', 'expired_plan_count', 'busy_planner_count', 'planner_mean_wall_ms')
@@ -125,6 +126,15 @@ def make_report(out, plan, summaries, status, error=None):
         spec = {k: s['spec'][k] for k in ('label', 'replicas', 'rate', 'repeat', 'method')}
         rows.append({**spec, **{k: s.get(k) for k in keys}, 'native_kv_hit_rate': None,
                      'native_prefill_ms': None, 'native_decode_ms': None})
+        diagnostics = s.get('score_diagnostics', {})
+        rows[-1].update({k: diagnostics.get(k) for k in ('reference_score_started', 'reference_score_rankable',
+                                                        'candidate_score_started', 'candidate_score_rankable', 'guard_rejected')})
+        rows[-1].update(client_applied_nonreference_actions=s.get('nonreference_actions') if s.get('action_accounting_version') == 2 else None,
+                        engine_applied_nonreference_actions=None,
+                        action_accounting_version=s.get('action_accounting_version', 1))
+        for kind in ('score_failure_reasons', 'commit_reject_reasons'):
+            reasons.extend({**spec, 'stage': kind, 'reason': reason, 'count': count}
+                           for reason, count in diagnostics.get(kind, {}).items())
         for w in s['workflow_rows']:
             workflows.append({**spec, **{k: v for k, v in w.items() if k != 'critical_path_ms'}})
             stages.append({**spec, 'wid': w['wid'], 'jct_ms': w['jct_ms'], **w['critical_path_ms']})
@@ -140,12 +150,19 @@ def make_report(out, plan, summaries, status, error=None):
               'real_npu_verified': False, 'strict_native_reproduction_pass': False,
               'native_cache_observed': False, 'native_kv_hit_rate': None,
               'ours_conditions_without_scoring': [s['spec']['label'] for s in ours if not s['selector_scored_decisions']],
-              'ours_selected_nonreference_actions': sum(s['nonreference_actions'] for s in ours),
+              'ours_conditions_without_rankable_candidate': [s['spec']['label'] for s in ours if not s['v5_candidate_scored']],
+              'ours_selected_nonreference_actions': sum(s.get('selected_nonreference_actions', s['nonreference_actions']) for s in ours),
+              'ours_client_applied_nonreference_actions': (sum(s['nonreference_actions'] for s in ours)
+                                                          if ours and all(s.get('action_accounting_version') == 2 for s in ours) else None),
+              'ours_engine_applied_nonreference_actions': None,
               'limits': LIMITS + env.get('limits', []), 'error': error}
     write_json(out / 'acceptance.json', report)
     for filename, values in [('metrics.csv', rows), ('paired_comparisons.csv', pairs),
-                             ('workflow_metrics.csv', workflows), ('latency_decomposition.csv', stages), ('replica_load.csv', loads)]:
+                             ('workflow_metrics.csv', workflows), ('latency_decomposition.csv', stages),
+                             ('replica_load.csv', loads), ('diagnostic_reasons.csv', reasons)]:
         write_csv(out / filename, values)
+    if not reasons:
+        (out / 'diagnostic_reasons.csv').write_text('label,replicas,rate,repeat,method,stage,reason,count\n', encoding='utf-8-sig')
     lines = ['# R234 昇腾运行报告', '', f'状态：{status}；完成 **{len(summaries)}/96** 个条件。',
              f"完整负载运行检查：{'PASS' if passed else '未通过或尚未完成'}。", '',
              '每条件 64 工作流 / 216 请求 / 774144 输入 token / 13184 输出 token。',
@@ -158,7 +175,10 @@ def make_report(out, plan, summaries, status, error=None):
         values = [p['ours_jct_reduction_pct'] for p in pairs if p['reference'] == method and p['paired_work_pass']]
         value = f'{statistics.mean(values):+.2f}%' if values else '尚无'
         lines.append(f'| {method} | {len(values)} / 24 | {value} |')
-    lines += ['', f"Ours 已执行条件：{len(ours)}；其中未完成模型评分：{len(report['ours_conditions_without_scoring'])}；实际提交的非基线动作：{report['ours_selected_nonreference_actions']}。",
+    lines += ['', f"Ours 已执行条件：{len(ours)}；无完整参考评分的条件：{len(report['ours_conditions_without_scoring'])}；无完整候选评分的条件：{len(report['ours_conditions_without_rankable_candidate'])}。",
+              f"选择非基线动作：{report['ours_selected_nonreference_actions']}；客户端实际产生不同提交序列/路由：{report['ours_client_applied_nonreference_actions']}；引擎应用次数：未知。",
+              '旧版 nonreference_actions 只计选择且未过期，不能当作引擎已应用；None 表示缺少证据。',
+              'v5_candidate_scored 只计完整、可排名的候选；开始次数另见 metrics.csv，失败原因见 diagnostic_reasons.csv。',
               '无可执行候选、评分超时或收益不足时会保留基线；完整负载通过不等于 Ours 性能提升。', '',
               '## 原生指标与适配边界', ''] + ['- ' + text for text in report['limits']]
     if error:

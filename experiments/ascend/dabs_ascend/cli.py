@@ -22,7 +22,7 @@ from .runtime import MODEL_NAME, Servers, device_ids, device_locks, preflight
 
 def parser(existing=False):
     p = argparse.ArgumentParser(description="DABS Linux Ascend functional port. Reuse the existing MFE container; no automatic installs.")
-    p.add_argument("mode", nargs="?", choices=("smoke", "benchmark", "check", "test", "plan"), default="smoke")
+    p.add_argument("mode", nargs="?", choices=("smoke", "benchmark", "check", "test", "plan", 'probe'), default="smoke")
     p.add_argument("--model", type=Path, default=Path(os.environ.get("MODEL_PATH", "/x/Qwen2.5-1.5B-Instruct")))
     p.add_argument("--devices", default=os.environ.get("DEVICE_IDS", "0,1,2,3"))
     p.add_argument("--out", type=Path)
@@ -35,6 +35,10 @@ def parser(existing=False):
     p.add_argument("--suite", choices=("smoke", "blocks", "case", "grid", 'r234', 'dabs-r234-balanced-64'), default=None)
     p.add_argument('--max-conditions', type=int, help='R234 only: clean pause after N additional conditions')
     p.add_argument('--resume', type=Path, help='R234 only: resume a cleanly paused output directory')
+    p.add_argument('--execution-scope', choices=('native', 'http-limited'), default='native',
+                   help='R234: native requires verified hooks; http-limited is diagnostic, not full mechanism reproduction')
+    p.add_argument('--http-keepalive', type=int, default=None,
+                   help='R234 idle HTTP pool size; 0 preserves the reported site workaround (not a performance claim)')
     p.add_argument("--repeats", type=int, default=None)
     p.add_argument("--rate", type=float, default=2.)
     p.add_argument("--blocks", type=int, nargs="+", default=[1, 2, 3, 4])
@@ -62,6 +66,9 @@ def prepare_args(argv=None, existing=False):
     if args.suite == 'r234':
         args.suite = 'dabs-r234-balanced-64'
     if args.suite == 'dabs-r234-balanced-64':
+        args.http_keepalive = 0 if args.http_keepalive is None else args.http_keepalive
+        if not 0 <= args.http_keepalive <= 256:
+            p.error('http-keepalive must be 0..256')
         if len(args.devices) != 4:
             p.error('R234 needs exactly four selected services/devices; each condition uses the first R')
         supplied = list(sys.argv[1:] if argv is None else argv)
@@ -71,10 +78,12 @@ def prepare_args(argv=None, existing=False):
             p.error('max-conditions must be 1..96')
         if args.resume is not None and (args.out is not None or args.mode != 'benchmark'):
             p.error('Use benchmark --resume PATH without --out')
-    elif args.resume is not None or args.max_conditions is not None:
-        p.error('resume/max-conditions are only available for suite r234')
+    elif args.resume is not None or args.max_conditions is not None or args.http_keepalive is not None or args.execution_scope != 'native':
+        p.error('resume/max-conditions/http-keepalive/execution-scope are only available for suite r234')
     if args.mode == "smoke" and args.suite != "smoke":
         p.error("Use benchmark --suite ... for larger suites")
+    if args.mode == 'probe' and (args.suite != 'dabs-r234-balanced-64' or not existing or args.resume or args.max_conditions):
+        p.error('probe requires existing services, suite r234, without resume/max-conditions')
     args.repeats = args.repeats if args.repeats is not None else (8 if args.suite == "case" else 1 if args.suite == "smoke" else 2)
     import math
     if args.repeats < 1 or not math.isfinite(args.rate) or args.rate < .5:
@@ -202,6 +211,9 @@ def main(argv=None, *, existing=False):
         result = unittest.TextTestRunner(verbosity=2).run(suite)
         return 0 if result.wasSuccessful() else 1
     if args.suite == 'dabs-r234-balanced-64':
+        if args.mode == 'probe':
+            from .r234_probe import main as probe_main
+            return probe_main(args)
         from .r234_run import main as r234_main
         return r234_main(args)
     plan = make_plan(args)

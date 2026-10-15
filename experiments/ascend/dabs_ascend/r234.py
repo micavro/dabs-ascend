@@ -47,7 +47,20 @@ def verify_import():
 
 
 def plan():
-    return copy.deepcopy(frozen('design').plan(SUITE)['conditions'])
+    conditions = copy.deepcopy(frozen('design').plan(SUITE)['conditions'])
+    by_key = {(s['replicas'], s['rate'], s['repeat'], s['method']): s for s in conditions}
+    cases = list(dict.fromkeys((s['replicas'], s['rate']) for s in conditions[:48]))
+    cases.remove((4, 8))
+    cases.remove((2, 16))
+    cases = [(4, 8), (2, 16)] + cases
+    first = []
+    for index, (replicas, rate) in enumerate(cases):
+        rotation = index % len(METHODS)
+        methods = METHODS[rotation:] + METHODS[:rotation]
+        first.extend(by_key[replicas, rate, 1, method] for method in methods)
+    # Predetermined before any outcome: first eight cover ordinary and loaded
+    # cases; method positions rotate, and round 2 mirrors the entire first round.
+    return first + [by_key[s['replicas'], s['rate'], 2, s['method']] for s in reversed(first)]
 
 
 def ready_projection(action, state):
@@ -114,6 +127,8 @@ def plan_ours(state, model, cfg, deadline):
                   surrogate_submitted_order='fixed_client_submission_fifo',
                   route_candidate_cache_unknown=len(state['ready']),
                   action_projection='ready_request_submission_order_only')
+    from .repair import score_diagnostics
+    result['diagnostics'] = score_diagnostics(result)
     if set(result['action']['order']) - set(state['ready']):
         raise ValueError('Unsupported engine-internal ordering')
     return result
@@ -121,6 +136,8 @@ def plan_ours(state, model, cfg, deadline):
 
 def submission_order(action, nodes):
     admitted = set(action['admit'])
+    if len(admitted) != len(action['admit']) or len(action['order']) != len(set(action['order'])):
+        raise ValueError('Duplicate request submission')
     ordered = [k for k in action['order'] if k in admitted]
     ordered += sorted(admitted - set(ordered), key=lambda k: (nodes[k]['ready_at'], k))
     if len(ordered) != len(admitted):

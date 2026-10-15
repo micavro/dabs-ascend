@@ -9,7 +9,7 @@ CONTROLLER_PYTHON="${CONTROLLER_PYTHON:-/usr/local/python3.12.13/bin/python}"
 MODE="${1:-smoke}"
 printf -v DABS_CONTROLLER_COMMAND '%q ' bash "$ROOT/run_dabs_existing.sh" "$@"
 if (( $# > 0 )); then shift; fi
-case "$MODE" in smoke|benchmark|check|test|plan) ;; *) echo 'Use smoke/benchmark/check/test/plan' >&2; exit 1;; esac
+case "$MODE" in smoke|benchmark|check|test|plan|probe) ;; *) echo 'Use smoke/benchmark/check/test/plan/probe' >&2; exit 1;; esac
 [[ "$DEVICE_IDS" =~ ^[0-9]+(,[0-9]+)*$ ]] || { echo 'Invalid DEVICE_IDS' >&2; exit 1; }
 [[ "$CONTAINER_PREFIX" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || { echo 'Invalid CONTAINER_PREFIX' >&2; exit 1; }
 # Host snapshot and controller selection must agree. Use environment overrides.

@@ -250,6 +250,14 @@ else:
         self.assertFalse(any("docker.sock" in x for x in run))
         self.assertEqual(len([c for c in calls if c[:2] == ["docker", "inspect"]]), 2)
 
+    def test_r234_diagnosis_is_explicit_and_pauses_at_eight_by_default(self):
+        run = self.run_host('diagnose', entry='run_dabs_r234.sh', devices='0,1,2,3')[-1]
+        self.assertEqual(run[run.index('--execution-scope') + 1], 'http-limited')
+        self.assertEqual(run[run.index('--max-conditions') + 1], '8')
+        run = self.run_host('diagnose', entry='run_dabs_r234.sh', devices='0,1,2,3', extra=('--max-conditions', '4'))[-1]
+        self.assertEqual(run.count('--max-conditions'), 1)
+        self.assertEqual(run[run.index('--max-conditions') + 1], '4')
+
     def test_test_and_plan_do_not_require_model_or_all_eight_containers(self):
         for mode in ("test", "plan"):
             with self.subTest(mode=mode):

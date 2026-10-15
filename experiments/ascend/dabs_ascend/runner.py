@@ -8,6 +8,7 @@ import time
 
 from .common import DATASET, append_json, percentile, write_json
 from .scheduler import baseline, plan_dag, snapshot
+from .repair import admission_check, aggregate_diagnostics, effect_signature, with_budget
 
 
 def summarize(nodes, start, finish, decisions, quality, *, fixed=False):
@@ -58,16 +59,22 @@ def summarize(nodes, start, finish, decisions, quality, *, fixed=False):
     return {"completed_workflows": len(groups), "completed_requests": len(nodes),
             "jct_mean_ms": statistics.mean(latencies), "jct_p95_ms": percentile(latencies, .95),
             "ttft_text_proxy_mean_ms": statistics.mean(n["stream"]["ttft_text_proxy_ms"] for n in nodes.values()),
+            'ttft_text_proxy_p95_ms': percentile([n['stream']['ttft_text_proxy_ms'] for n in nodes.values()], .95),
             "tpot_text_proxy_mean_ms": (statistics.mean(values) if (values := [n["stream"]["tpot_text_proxy_ms"] for n in nodes.values()
                                                                             if n["stream"]["tpot_text_proxy_ms"] is not None]) else None),
             "cohort_duration_s": duration, "condition_wall_s": finish - start,
             "workflows_s": len(groups) / duration, "output_tokens_s": output_tokens / duration,
             "output_tokens": output_tokens, "answer_contract_errors": schema_errors,
             "dependency_handoff_pass": dependency_ok, "functional_pass": dependency_ok and schema_errors == 0,
-            "scheduler_decisions": len(decisions),
-            "selector_scored_decisions": sum(bool(d.get("result", {}).get("model_selection")) for d in decisions),
-            "nonreference_actions": sum(not d.get('discarded_expired') and d.get("result", {}).get("selected_cell", '00') != '00' for d in decisions),
-            "expired_plan_count": sum(d.get("discarded_expired", False) for d in decisions),
+            "scheduler_decisions": sum(not d.get('event') for d in decisions),
+            "selector_scored_decisions": sum(bool(d.get("result", {}).get("model_selection")) for d in decisions if not d.get('event')),
+            'action_accounting_version': 2,
+            'selected_nonreference_actions': sum(d.get('result', {}).get('selected_cell', '00') != '00' for d in decisions),
+            "nonreference_actions": sum(d.get('client_applied_nonreference', False) for d in decisions),
+            'engine_applied_nonreference_actions': None,
+            'http_completed_requests': len(nodes),
+            'score_diagnostics': aggregate_diagnostics(decisions),
+            "expired_plan_count": sum(d.get("discarded_expired", False) for d in decisions if not d.get('event')),
             "busy_planner_count": sum(d.get("planner_busy", False) for d in decisions),
             "workflow_rows": workflows, "quality": quality["semantic_quality"],
             "native_kv_hit_rate": None, "native_prefill_decode_ms": None,
@@ -84,6 +91,7 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
     nodes = {}
     tasks = set()
     pending = None
+    pending_origin = None
     decisions, history, errors = [], {}, []
     fixed = spec.get('measurement_mode') == 'fixed_token_replay'
     if fixed:
@@ -156,8 +164,19 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
             spawn(arrive(keys))
         write_json(out / "status.json", {"status": "running", "spec": spec})
 
+        async def consume_late_plan():
+            nonlocal pending, pending_origin
+            # Preserve diagnostics from expired searches, never apply their action.
+            late = await pending
+            record = {'event': 'expired_plan_diagnostic', 'index': pending_origin,
+                      'discarded_expired': True, 'client_applied_nonreference': False,
+                      'engine_applied': None, 'result': late}
+            decisions.append(record)
+            append_json(out / 'decisions.jsonl', record)
+            pending, pending_origin = None, None
+
         async def loop():
-            nonlocal pending
+            nonlocal pending, pending_origin
             index = 0
             next_tick = start
             while not all(n["state"] == "done" for n in nodes.values()):
@@ -174,23 +193,25 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                 state = snapshot(nodes, history, cfg["replicas"], cfg, index, now)
                 if not state["ready"]:
                     if pending is not None and pending.done():
-                        pending.result()  # Never swallow a failure from an expired plan.
-                        pending = None
+                        await consume_late_plan()
                     continue
                 base = r234.baseline(state, cfg, spec['method']) if fixed else baseline(state, cfg, spec["method"])
                 result = {"action": base, "evaluations": [], "model_selection": False}
-                decision = {"index": index, "at": now, "snapshot": state}
+                decision = {"index": index, "at": now, "snapshot": state,
+                            'engine_accepted': None, 'engine_applied': None,
+                            'client_applied_nonreference': False}
                 if spec["method"] in ("DAG-Ascend", 'Ours'):
                     if pending is not None and pending.done():
-                        pending.result()
-                        pending = None
+                        await consume_late_plan()
                     if pending is None:
                         deadline = min(now + cfg["planning_soft_limit_s"], next_tick - cfg["commit_reserve_s"])
                         planner = r234.plan_ours if fixed else plan_dag
-                        pending = asyncio.get_running_loop().run_in_executor(executor, planner, state, model, cfg, deadline)
+                        pending_origin = index
+                        pending = asyncio.get_running_loop().run_in_executor(executor, with_budget, planner, state, model, cfg,
+                                                                            max(0., deadline - time.monotonic()))
                         try:
                             result = await asyncio.wait_for(asyncio.shield(pending), timeout=max(.001, deadline - time.monotonic()))
-                            pending = None
+                            pending, pending_origin = None, None
                         except asyncio.TimeoutError:
                             decision["discarded_expired"] = True
                     else:
@@ -204,10 +225,27 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                     continue
                 action = result["action"]
                 validate_action(action, state, cfg)
+                decision['requested_action'] = copy.deepcopy(action)
+                reason = admission_check(action, nodes, cfg, state['now'], time.monotonic())
+                if reason:
+                    decision['commit_reject_reason'] = reason
+                    fresh = snapshot(nodes, history, cfg['replicas'], cfg, index)
+                    action = r234.baseline(fresh, cfg, spec['method']) if fixed else baseline(fresh, cfg, spec['method'])
+                    validate_action(action, fresh, cfg)
+                    rejection = admission_check(action, nodes, cfg, fresh['now'], time.monotonic())
+                    if rejection:
+                        raise ValueError('Fresh reference admission failed: ' + rejection)
                 # Completion callbacks may have run during scoring. No submitted
                 # request can be cancelled, migrated or reordered by this port.
                 order = r234.submission_order(action, nodes) if fixed else sorted(action['admit'], key=lambda k: (nodes[k]['ready_at'], k))
+                decision['client_accepted_action'] = copy.deepcopy(action)
                 decision['applied_submission_order'] = order
+                decision['client_applied_nonreference'] = bool(
+                    not reason and not decision.get('discarded_expired') and order
+                    and result.get('selected_cell', '00') != '00'
+                    and effect_signature(action, nodes) != effect_signature(base, nodes))
+                decision['client_apply_at'] = time.monotonic()
+                decision['snapshot_to_client_apply_ms'] = (decision['client_apply_at'] - now) * 1000
                 for key in order:
                     node = nodes[key]
                     if node["state"] != "ready":
@@ -227,8 +265,7 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
             raise errors[0]
         finish = time.monotonic()
         if pending is not None:
-            await pending
-            pending = None
+            await consume_late_plan()
         # Gold is read only after all actual requests, including refusals, finish.
         quality = ({'semantic_quality': {'final_em': None, 'final_f1': None,
                     'quality_scope': 'nonsemantic_fixed_token_replay', 'applicable': False}}
@@ -273,7 +310,7 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
         if pending is not None:
             # Child search is time bounded; consume any exception and preserve its trace.
             try:
-                await pending
+                await consume_late_plan()
             except BaseException as exc:
                 append_json(out / "decisions.jsonl", {"event": "pending_plan_failed", "error": repr(exc)})
         if nodes:

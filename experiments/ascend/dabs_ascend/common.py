@@ -57,6 +57,7 @@ def source_identity():
                   ROOT / "tools/run_dabs_existing.py", ROOT / "tools/inspect_dabs_existing.py", ROOT / "run_dabs_existing.sh",
                   ROOT / "profiles/reference/configuration.json", ROOT / 'run_dabs_r234.sh',
                   ROOT / 'provenance/r234_import.json'])
+    paths.extend(ROOT / 'tools' / name for name in ('inspect_dabs_repair.py', 'probe_dabs_container.py', 'report_dabs_r234.py', 'explain_dabs_r234.py'))
     return {p.relative_to(ROOT).as_posix(): sha(p) for p in sorted(paths)}
 
 
