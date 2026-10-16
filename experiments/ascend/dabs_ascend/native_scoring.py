@@ -66,7 +66,8 @@ def check_model_range(model, replica, p, d, dc, pc):
     if model.get('timing_target') == TARGET and model.get('host_step_equivalence') is not False:
         raise ValueError('native_calibration_out_of_range:async accounting mislabeled as same-batch host step')
     from core18v2.service import phase
-    observed = model['validation'][str(replica)][phase(p, d)]['range']
+    measured = model.get('prediction_validation_map', {}).get(str(replica), str(replica))
+    observed = model['validation'][measured][phase(p, d)]['range']
     for key, value in dict(p=p, d=d, dc=dc, pc=pc).items():
         low, high = observed[key]
         if not low <= value <= high:

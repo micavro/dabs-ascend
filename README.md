@@ -1,5 +1,25 @@
 # DABS 昇腾复现
 
+## 先试跑四个条件（2026-10-16 新入口）
+
+现场最新单卡完整标定已有 **2681 条有效记录、0 条排除**；decode/mixed 留出误差通过，prefill 未通过（p95 相对误差约 45.46%，RMSE/均值约 36.39%）。按此次实验要求，可以先保留此偏差看效果：
+
+```bash
+bash run_native.sh explore
+```
+
+在新代码目录运行，自动寻找当前目录及同级 `dabs-ascend-main-*` 的最新完整标定，复制原始记录到新输出目录，检查现有四服务及单/四副本真实机制，再跑原计划前 **4 个条件（RR、SLL、Ayo、Ours）**。不重新标定、不自动安装或重启、不清空缓存。每条件仍是 64 工作流、216 请求、3584 输入 token/请求、13184 总输出 token；不筛选正收益。
+
+如果自动找到的目录不对，明确指定刚才的标定步骤目录：
+
+```bash
+bash run_native.sh explore --input /data/wushibo/dabs-ascend-main-2026101605/outputs/native_calibrate_20261016T083402Z_30da8518/01-native-calibrate-one
+```
+
+仅暂不要求**预测误差阈值**通过；原始计时关联、独立 train/holdout、样本数、覆盖、资源、DAG、动作期限、缓存及回执检查不变。若只有副本 0 标定，四卡在资源配置一致时共用该模型，记录 `model_transfer_from_replica_0: true`；不会伪造其他卡的标定指标。仍缺新接口的副本先运行 `bash run_native.sh install`，安装器保留备份并跳过已经可用的副本。
+
+成功结束是 `outputs/native_explore_*/r234_exploratory/status.json` 显示 `paused`、`completed_conditions: 4`；它不是失败，也不是 96 条件完成。查看 `TEST_REPORT.md`、`metrics.csv`、`paired_comparisons.csv` 和 `diagnostic_reasons.csv`。结果明确标记 `exploratory: true`、`formal_acceptance: false`，不能作为正式原生验收，也不会放行下面的 `experiment` 命令。预测修复另行验证，旧日志和结果保持不变。
+
 ## 本次标定修复：先单卡验证，再跑四卡
 
 从 GitHub main 下载到**新目录**，进入目录，在 Linux 宿主机按顺序执行。旧项目和失败输出都保留。

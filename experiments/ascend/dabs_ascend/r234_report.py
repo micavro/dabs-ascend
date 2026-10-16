@@ -118,7 +118,9 @@ def make_report(out, plan, summaries, status, error=None, *, source_out=None):
     env = read_json(source_out / 'environment.json') if (source_out / 'environment.json').exists() else {}
     canaries = read_json(source_out / 'canary_summary.json') if (source_out / 'canary_summary.json').exists() else []
     native_gate = read_json(source_out / 'native_gate.json') if (source_out / 'native_gate.json').exists() else {}
+    exploratory = native_gate.get('exploratory') is True
     native = bool(native_gate.get('pass') and native_gate.get('live_verified'))
+    observed_native = native or bool(exploratory and native_gate.get('mechanisms_live_verified'))
     profile = read_json(source_out / 'ascend_profile.json') if (source_out / 'ascend_profile.json').exists() else {}
     canary_ok = (len(canaries) == 20 and all(r['passed'] for r in canaries)
                  and {(r['replica'], r['fixed_output_budget']) for r in canaries} == {(r, n) for r in range(4) for n in (16, 32, 48, 64, 128)})
@@ -151,29 +153,34 @@ def make_report(out, plan, summaries, status, error=None, *, source_out=None):
     passed = status == 'complete' and count_ok and work_ok and env.get('passed', False) and canary_ok and all(p['paired_work_pass'] for p in pairs) and len(pairs) == 72
     ours = [s for s in summaries if s['spec']['method'] == 'Ours']
     report = {'suite': 'dabs-r234-balanced-64', 'status': status, 'completed_conditions': len(summaries),
+              'exploratory': exploratory, 'formal_acceptance': bool(native and not exploratory),
+              'calibration_error_deferred': native_gate.get('calibration_error_deferred', []),
+              'model_transfer_from_replica_0': native_gate.get('model_transfer_from_replica_0', False),
               'declared_conditions': 96, 'functional_test_pass': bool(passed),
               'fixed_work_pass': work_ok, 'http_inference_verified': canary_ok,
               'real_npu_verified': native, 'native_mechanism_test_pass': bool(native and passed),
               'strict_native_reproduction_pass': bool(native and passed and not native_gate.get('not_run', [])
                                                       and profile.get('original_gpu_timing_equivalent') is True),
-              'timing_target': profile.get('timing_target') if native else None,
+              'timing_target': profile.get('timing_target') if observed_native else None,
               'original_gpu_timing_equivalent': profile.get('original_gpu_timing_equivalent', False) if native else False,
               'native_optional_tests_not_run': native_gate.get('not_run', []),
               'native_acceptance_scope': native_gate.get('scope'),
-              'native_cache_observed': native, 'native_kv_hit_rate': None,
+              'native_cache_observed': observed_native, 'native_kv_hit_rate': None,
               'ours_conditions_without_scoring': [s['spec']['label'] for s in ours if not s['selector_scored_decisions']],
               'ours_conditions_without_rankable_candidate': [s['spec']['label'] for s in ours if not s['v5_candidate_scored']],
               'ours_selected_nonreference_actions': sum(s.get('selected_nonreference_actions', s['nonreference_actions']) for s in ours),
               'ours_client_applied_nonreference_actions': (sum(s['nonreference_actions'] for s in ours)
                                                           if ours and all(s.get('action_accounting_version') == 2 for s in ours) else None),
-              'ours_engine_applied_nonreference_actions': sum(s.get('engine_applied_nonreference_actions', 0) for s in ours) if native else None,
+              'ours_engine_applied_nonreference_actions': sum(s.get('engine_applied_nonreference_actions', 0) for s in ours) if observed_native else None,
               'limits': ([
                   'Native EngineCore snapshots/cache queries/receipts are in conditions/*/native_events.jsonl; HTTP timing remains explicitly separate.',
                   'Timing target: ' + str(profile.get('timing_target')) + '. Async completion accounting is a new throughput proxy, not the original GPU host-step target. NPU forward events remain auxiliary.',
                   'Only unsubmitted routing, admission permits and safe waiting/partial-prefill queue slots are supported. Decode/inflight requests cannot be moved.',
                   'Input/DAG/seeds/96-condition order remain frozen. Negative gains, zero deviations and failures are retained.',
                   'Mechanism validation is distinct from reproducing NVIDIA performance numbers.',
-                  'Optional destructive probes NOT_RUN: ' + ', '.join(native_gate.get('not_run', []))] if native else LIMITS) + env.get('limits', []), 'error': error}
+                  'Optional destructive probes NOT_RUN: ' + ', '.join(native_gate.get('not_run', []))] if observed_native else LIMITS) + env.get('limits', []), 'error': error}
+    if exploratory:
+        report['limits'].insert(0, 'EXPLORATORY ONLY: prediction accuracy not accepted; model transfer=' + str(native_gate.get('model_transfer_from_replica_0')))
     write_json(out / 'acceptance.json', report)
     for filename, values in [('metrics.csv', rows), ('paired_comparisons.csv', pairs),
                              ('workflow_metrics.csv', workflows), ('latency_decomposition.csv', stages),
@@ -201,6 +208,10 @@ def make_report(out, plan, summaries, status, error=None, *, source_out=None):
               '## 原生指标与适配边界', ''] + ['- ' + text for text in report['limits']]
     if error:
         lines += ['', '错误：`' + error.replace('`', "'") + '`；详见 error.txt。']
+    if exploratory:
+        lines[2:2] = ['**探索性试跑：暂不要求预测误差合格，不计正式验收。**',
+                      '共用副本 0 预测模型：' + str(native_gate.get('model_transfer_from_replica_0')),
+                      '原始误差保留于 native_gate.json 与 ascend_profile.json。', '']
     (out / 'TEST_REPORT.md').write_text('\n'.join(lines) + '\n', encoding='utf-8')
     columns = ('label', 'jct_mean_ms', 'jct_p95_ms', 'workflows_s', 'output_tokens', 'nonreference_actions')
     table = '<table><thead><tr>' + ''.join('<th>' + c + '</th>' for c in columns) + '</tr></thead><tbody>'
@@ -208,9 +219,11 @@ def make_report(out, plan, summaries, status, error=None, *, source_out=None):
         table += '<tr>' + ''.join('<td>' + html.escape(f'{row[c]:.2f}' if isinstance(row[c], float) else str(row[c])) + '</td>' for c in columns) + '</tr>'
     table += '</tbody></table>'
     document = '<!doctype html><html lang="zh"><meta charset="utf-8"><title>R234 results</title><style>body{font:16px system-ui;max-width:1100px;margin:32px auto;padding:16px;color:#172033;background:#f5f7fb}table{border-collapse:collapse;background:white}td,th{padding:8px;border:1px solid #ddd}svg{max-width:530px;background:white;margin:8px}h1{color:#123452}</style>'
-    boundary = '原生证据见 native_events.jsonl；引擎 host-step、辅助 NPU forward 和 HTTP 时延分开记录' if native else '原生 KV / 引擎阶段时间未观测'
+    boundary = '原生证据见 native_events.jsonl；引擎 host-step、辅助 NPU forward 和 HTTP 时延分开记录' if observed_native else '原生 KV / 引擎阶段时间未观测'
     document += f'<h1>R234 昇腾实验：{len(summaries)}/96</h1><p>状态：{html.escape(status)}。固定 token DAG 回放；{boundary}。</p><p>RR 蓝 · SLL 橙 · Ayo 绿 · Ours 紫。图表只展示已完成条件；完成前不能据此筛选条件。</p>'
     document += chart(summaries, 'jct_mean_ms', '平均 JCT (ms)') + chart(summaries, 'workflows_s', '完成吞吐 (工作流/s)')
     document += '<h2>逐条件结果</h2>' + table + '<p>过程：REPRODUCE.md · 结论：TEST_REPORT.md · 配对比较：paired_comparisons.csv</p></html>'
+    if exploratory:
+        document = document.replace('<h1>', '<p><strong>探索性试跑：预测误差未获验收；可能共用副本 0 的估计。不是正式复现结果。</strong></p><h1>', 1)
     (out / 'RESULTS.html').write_text(document, encoding='utf-8')
     return report

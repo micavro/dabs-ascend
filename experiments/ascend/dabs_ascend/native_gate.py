@@ -163,31 +163,36 @@ async def verify_live(native, paths):
     if not result['pass']:
         return result
     try:
-        # Exercise live read interfaces. Source metadata never determines whether
-        # a real engine is usable; epoch and effective resources do.
-        await native.inspect()
-        receipts = {}
-        for directory in paths.values():
-            for event in events(directory):
-                row, replica = event['response'], event['replica']
-                if engine_epoch(row.get('identity', {})) != engine_epoch(native.identities[replica]):
-                    raise ValueError('engine restarted since evidence capture at replica ' + str(replica))
-                if event['op'] in ('apply', 'admit', 'receipt') and row.get('action_id'):
-                    receipts[replica, row['action_id']] = row
-        # Re-read actual EngineCore ledger entries instead of trusting PASS or a
-        # locally supplied receipt summary. Transitions may have gained later
-        # scheduling details, so compare the stable application fields.
-        for (replica, aid), recorded in receipts.items():
-            live = await native.call(replica, 'receipt', action_id=aid)
-            for key in ('action_id', 'status', 'reason', 'requested', 'snapshot_id', 'applied', 'applied_step', 'admitted_permits'):
-                if live.get(key) != recorded.get(key):
-                    raise ValueError('live action receipt differs: ' + aid + '.' + key)
         model = read_json(Path(paths['native-calibrate']) / 'native_profile.json')
-        if ([engine_epoch(i) for i in model['identities']] != [engine_epoch(c['identity']) for c in native.capabilities]
-                or [resource_values(r) for r in model['resources']] != [resource_values(c['resources']) for c in native.capabilities]):
-            raise ValueError('calibrated service identity/configuration changed')
+        await check_live(native, paths, model)
     except (ValueError, KeyError, IndexError, OSError) as exc:
         result['missing'].append(str(exc))
     result['pass'] = not result['missing']
     result['live_verified'] = result['pass']
     return result
+
+
+async def check_live(native, paths, model, *, allow_single=False):
+    # Exercise live read interfaces. Source metadata never determines whether
+    # a real engine is usable; epoch and effective resources do.
+    await native.inspect()
+    receipts = {}
+    for directory in paths.values():
+        for event in events(directory):
+            row, replica = event['response'], event['replica']
+            if engine_epoch(row.get('identity', {})) != engine_epoch(native.identities[replica]):
+                raise ValueError('engine restarted since evidence capture at replica ' + str(replica))
+            if event['op'] in ('apply', 'admit', 'receipt') and row.get('action_id'):
+                receipts[replica, row['action_id']] = row
+    # Re-read actual EngineCore ledger entries instead of trusting PASS or a
+    # locally supplied receipt summary. Transitions may have gained later
+    # scheduling details, so compare the stable application fields.
+    for (replica, aid), recorded in receipts.items():
+        live = await native.call(replica, 'receipt', action_id=aid)
+        for key in ('action_id', 'status', 'reason', 'requested', 'snapshot_id', 'applied', 'applied_step', 'admitted_permits'):
+            if live.get(key) != recorded.get(key):
+                raise ValueError('live action receipt differs: ' + aid + '.' + key)
+    caps = native.capabilities[:1] if allow_single and len(model['identities']) == 1 else native.capabilities
+    if ([engine_epoch(i) for i in model['identities']] != [engine_epoch(c['identity']) for c in caps]
+            or [resource_values(r) for r in model['resources']] != [resource_values(c['resources']) for c in caps]):
+        raise ValueError('calibrated service identity/configuration changed')

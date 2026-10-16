@@ -145,10 +145,14 @@ async def execute(args, out, plan, summaries, identity):
                 write_json(out / 'native_transformations.json', transformation_manifest())
                 backend.native = NativeClient(client, servers.endpoints, out / 'native_preflight.jsonl')
                 caps = await backend.native.inspect()
-                gate = await verify_live(backend.native, native_paths(args))
-                if not gate['pass']:
-                    raise ValueError('native evidence gate failed: ' + str(gate['missing']))
-                model = read_json(Path(native_paths(args)['native-calibrate']) / 'native_profile.json')
+                if getattr(args, 'exploratory_calibration', False):
+                    from .native_explore import verify
+                    gate, model = await verify(backend.native, native_paths(args))
+                else:
+                    gate = await verify_live(backend.native, native_paths(args))
+                    if not gate['pass']:
+                        raise ValueError('native evidence gate failed: ' + str(gate['missing']))
+                    model = read_json(Path(native_paths(args)['native-calibrate']) / 'native_profile.json')
                 preserve_native_freeze(out, gate, model, args.resume)
                 write_json(out / 'native_gate.json', gate)
                 await backend.native.drain(4)
@@ -172,15 +176,19 @@ async def execute(args, out, plan, summaries, identity):
             cfg = configuration(4, caps[0]['resources'], args.max_inflight) if native else configuration(4)
             if native:
                 protocol = read_json(out / 'protocol.json')
-                protocol.update(limits=['Native capability/evidence gate passed; performance equivalence is not implied.',
+                protocol.update(limits=[('EXPLORATORY: prediction accuracy not accepted; see native_gate.json for measured errors and model transfer.'
+                    if gate.get('exploratory') else 'Native capability/evidence gate passed; performance equivalence is not implied.'),
                     '200 ms finite priority window; original FIFO continuation and 5 s age guard.',
                     'Ayo uses conservative reserved KV blocks divided by physical capacity.',
                     'Service model target: ' + model['timing_target'] + '; device events are auxiliary. See native-async-calibration.md for approximation limits.'],
                     timing_target=model['timing_target'], original_gpu_timing_equivalent=model.get('original_gpu_timing_equivalent', False),
-                    effective_resources=[c['resources'] for c in caps], client_max_inflight=args.max_inflight)
+                    effective_resources=[c['resources'] for c in caps], client_max_inflight=args.max_inflight,
+                    exploratory=bool(gate.get('exploratory')), formal_acceptance=gate['pass'])
                 write_json(out / 'protocol.json', protocol)
                 repair = read_json(out / 'repair_protocol.json')
-                repair['native_mechanism_test_pass'] = True
+                repair['native_mechanism_test_pass'] = gate['pass']
+                repair['exploratory'] = bool(gate.get('exploratory'))
+                repair['calibration_scope'] = model['timing_target']
                 write_json(out / 'repair_protocol.json', repair)
             if not native:
                 cfg['max_num_seqs'] = args.max_inflight
@@ -218,6 +226,10 @@ async def execute(args, out, plan, summaries, identity):
                             'output': str(directory), 'logical_to_physical_devices': args.devices[:spec['replicas']]})
                 print(f"R234_CONDITION {index + 1}/96 {spec['label']}", flush=True)
                 summary = await run_condition(backend, tok, packets, model, current, spec, directory, pool, servers.check_alive)
+                if native and gate.get('exploratory'):
+                    summary.update(exploratory=True, formal_acceptance=False,
+                                   model_transfer_from_replica_0=gate['model_transfer_from_replica_0'])
+                    write_json(directory / 'summary.json', summary)
                 write_json(directory / 'config.json', current)
                 write_json(directory / 'spec.json', spec)
                 verify_pairing(summaries, summary)
@@ -263,8 +275,16 @@ def main(args):
         return 0
     if args.mode == 'benchmark' and args.execution_scope != 'http-limited':
         from .repair import mechanism_gate
-        gate = mechanism_gate(native_paths(args))
-        if args.service_mode != 'existing' or not gate['pass']:
+        if getattr(args, 'exploratory_calibration', False):
+            from .native_explore import evaluate
+            try:
+                gate, _ = evaluate(native_paths(args))
+            except (ValueError, KeyError, OSError) as exc:
+                print('EXPLORATORY_REFUSED=' + str(exc), file=sys.stderr)
+                return 2
+        else:
+            gate = mechanism_gate(native_paths(args))
+        if args.service_mode != 'existing' or not (gate['pass'] or gate.get('exploratory_allowed')):
             print('R234_NATIVE_GATE=' + json.dumps(gate, ensure_ascii=False), file=sys.stderr)
             return 2
     prefix = 'r234_native_' if args.execution_scope == 'native' else 'r234_ascend_'
@@ -294,7 +314,7 @@ def main(args):
                 'revision': '20261016-native-v023-v1', 'execution_scope': args.execution_scope,
                 'plan_revision': 'R4-L8_then_R2-L16_rotating_methods_mirrored_round2',
                 'http_keepalive': args.http_keepalive, 'native_mechanism_test_pass': False,
-                'calibration_scope': model.get('timing_target') if args.execution_scope == 'native' else 'HTTP TTFT/TPOT proxy; not native batch-step validation',
+                'calibration_scope': 'pending native preflight' if args.execution_scope == 'native' else 'HTTP TTFT/TPOT proxy; not native batch-step validation',
                 'group_audit_conditions': 4, 'first_checkpoint_conditions': 8,
                 'previous_results_combinable': False})
             write_json(out / 'index.json', [])

@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import shlex
+import shutil
 import subprocess
 import sys
 import traceback
@@ -60,7 +61,8 @@ class Workflow:
     def save(self):
         write_json(self.out / 'run.json', self.record)
         lines = ['DABS 原生' + {'test': '测试', 'experiment': '实验', 'install': '安装',
-                 'smoke': '计时关联短诊断', 'calibrate': '单副本完整标定', 'audit': '旧事件离线审计'}[self.mode],
+                 'smoke': '计时关联短诊断', 'calibrate': '单副本完整标定', 'audit': '旧事件离线审计',
+                 'explore': '带预测偏差的四条件试跑（非正式验收）'}[self.mode],
                  '状态: ' + self.record['status'], '结果目录: ' + str(self.out)]
         for step in self.record['steps']:
             lines.append(step['label'] + ': ' + step['status'] + '；日志 ' + step['log'])
@@ -142,6 +144,49 @@ class Workflow:
 
     def audit(self):
         self.step('native-timing-audit', '离线统计已有原始事件（不发推理）', ['--input', str(self.input_path)])
+
+    def explore(self):
+        source = self.input_path
+        if source is None:
+            roots = [self.root, *sorted(self.root.parent.glob('dabs-ascend-main-*'))]
+            candidates = set()
+            for root in roots:
+                for pattern in ('native_calibrate_*/01-native-calibrate-one', 'native_test_*/04-native-calibrate'):
+                    for path in (root / 'outputs').glob(pattern):
+                        if (path / 'native_profile.json').is_file() and (path / 'calibration_plan.json').is_file():
+                            plan = read_json(path / 'calibration_plan.json')
+                            if plan.get('diagnostic_only') is False:
+                                candidates.add(path.resolve())
+            if not candidates:
+                raise Stopped('没有找到已有完整标定；用 bash run_native.sh explore --input 原标定步骤目录 指定（不要指定 smoke）。')
+            source = max(candidates, key=lambda p: (p / 'native_profile.json').stat().st_mtime_ns)
+        source = Path(source).resolve()
+        staged = self.out / 'calibration_source'
+        staged.mkdir()
+        # Plain local copies make old-directory evidence available to the CPU container.
+        for name in ('native_profile.json', 'calibration_plan.json', 'calibration_samples.json',
+                     'capabilities.json', 'native_events.jsonl'):
+            shutil.copyfile(source / name, staged / name)
+        self.record.update(calibration_source=str(source), exploratory=True, formal_acceptance=False)
+        self.save()
+        paths = {'native-calibrate': self.container_path(staged)}
+        self.step('native-check-four', '检查现有四服务接口（不安装、不重启）')
+        for mode in ('native-probe-one', 'native-probe-four'):
+            paths[mode] = self.container_path(self.step(mode, '确认实际原生机制：' + mode))
+        evidence = self.out / 'exploratory_evidence.json'
+        write_json(evidence, {'paths': paths, 'exploratory': True, 'formal_acceptance': False})
+        result_dir = self.out / 'r234_exploratory'
+        self.record['experiment_output'] = self.relative(result_dir)
+        self.step('benchmark', '忽略已记录预测误差，试跑原计划前四条件 RR/SLL/Ayo/Ours',
+                  ['--execution-scope', 'native', '--native-evidence', self.container_path(evidence),
+                   '--exploratory-calibration', '--max-conditions', '4',
+                   '--out', self.container_path(result_dir)], native=False)
+        result = read_json(result_dir / 'status.json')
+        summaries = read_json(result_dir / 'index.json')
+        if (result.get('status') != 'paused' or result.get('completed_conditions') != 4 or
+                len(summaries) != 4 or not all(s.get('functional_pass') is True and s.get('exploratory') is True for s in summaries)):
+            raise Stopped('四条件试跑未完整结束；保留实际失败，不计正式验收通过。')
+        self.record['completed_conditions'] = 4
 
     def smoke(self):
         self.step('native-calibration-smoke', '单副本短诊断（不能代替完整标定）', ['--replica', str(self.replica or 0)])
@@ -225,7 +270,7 @@ class Workflow:
 
 def main():
     parser = argparse.ArgumentParser(description='现场一键入口：install 安装并重启现有服务；test 测试验收；experiment 跑全部 96 条件。')
-    parser.add_argument('mode', choices=('install', 'smoke', 'calibrate', 'audit', 'test', 'experiment'))
+    parser.add_argument('mode', choices=('install', 'smoke', 'calibrate', 'audit', 'explore', 'test', 'experiment'))
     parser.add_argument('--replica', type=int, choices=range(4), help='install/smoke/calibrate: select one existing service')
     parser.add_argument('--input', type=Path, help='audit: existing calibration directory (read-only)')
     parser.add_argument('--invalidate-cache', action='store_true', help='仅 test：明确执行副本 0 缓存清空/失效测试；默认不执行')
@@ -234,8 +279,8 @@ def main():
     args = parser.parse_args()
     if args.replica is not None and args.mode not in ('install', 'smoke', 'calibrate'):
         parser.error('--replica 仅用于 install/smoke/calibrate')
-    if bool(args.input) != (args.mode == 'audit'):
-        parser.error('audit 必须提供 --input；其他模式不使用 --input')
+    if (args.mode == 'audit' and not args.input) or (args.input and args.mode not in ('audit', 'explore')):
+        parser.error('audit 必须提供 --input；explore 可用 --input 指定已有标定目录')
     if args.verify_restart and args.replica not in (None, 0):
         parser.error('--verify-restart 仅支持副本 0')
     if args.invalidate_cache and args.mode != 'test':

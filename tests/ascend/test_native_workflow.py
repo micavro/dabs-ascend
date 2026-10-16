@@ -53,6 +53,11 @@ class NativeWorkflowTests(unittest.TestCase):
             write_json(target / 'result.json', {'pass': False, 'failures': ['fixture failure']})
             return 7
         if mode == 'benchmark':
+            if '--exploratory-calibration' in command:
+                write_json(target / 'status.json', {'status': 'paused', 'completed_conditions': 4,
+                                                   'functional_test_pass': False})
+                write_json(target / 'index.json', [{'functional_pass': True, 'exploratory': True}] * 4)
+                return 0
             write_json(target / 'status.json', {'status': 'complete', 'completed_conditions': self.completed,
                                                'functional_test_pass': True})
             return 0
@@ -163,6 +168,23 @@ class NativeWorkflowTests(unittest.TestCase):
         run, code = self.run_workflow('experiment')
         self.assertEqual(code, 2)
         self.assertNotEqual(run.record['status'], 'passed')
+
+    def test_explore_reuses_old_calibration_but_never_unlocks_formal_experiment(self):
+        source = self.root / 'outputs/native_calibrate_old/01-native-calibrate-one'
+        source.mkdir(parents=True)
+        for name in ('native_profile.json', 'calibration_samples.json', 'capabilities.json', 'native_events.jsonl'):
+            (source / name).write_text('{}', encoding='utf8')
+        write_json(source / 'calibration_plan.json', {'diagnostic_only': False})
+        run, code = self.run_workflow('explore')
+        self.assertEqual(code, 0)
+        self.assertEqual([c[2] for c in self.commands], ['native-check-four', 'native-probe-one', 'native-probe-four', 'benchmark'])
+        self.assertIn('--exploratory-calibration', self.commands[-1])
+        self.assertEqual(self.commands[-1][self.commands[-1].index('--max-conditions') + 1], '4')
+        self.assertFalse(run.record['formal_acceptance'])
+        self.assertEqual((source / 'native_events.jsonl').read_text(), '{}')
+        self.commands = []
+        self.assertEqual(self.run_workflow('experiment')[1], 2)
+        self.assertEqual(self.commands, [])
 
     def test_interrupt_preserves_summary_and_failed_step(self):
         run = entry.Workflow(self.root, 'test')
