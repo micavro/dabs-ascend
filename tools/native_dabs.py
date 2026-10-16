@@ -48,6 +48,7 @@ def host(args):
         credentials = ROOT / 'outputs/native-control.json'
         keys = read_json(credentials) if credentials.exists() else {'keys': {}}
         ok = True
+        records = []
         for replica in selected:
             container = 'wushibo-qwen-small-npu' + str(replica)
             stage = '/tmp/dabs-native-' + uuid.uuid4().hex
@@ -71,7 +72,13 @@ def host(args):
             result = subprocess.run(command, input=secret, capture_output=True, text=True)
             (out / ('replica-' + str(replica) + '.txt')).write_text(result.stdout + '\n' + result.stderr, encoding='utf-8')
             print(result.stdout, result.stderr)
+            try:
+                value = json.loads(result.stdout)
+            except ValueError:
+                value = {'error': 'installer did not return JSON; see replica text log'}
+            records.append({'replica': replica, 'exit_code': result.returncode, 'result': value})
             ok &= result.returncode == 0
+        write_json(out / 'result.json', {'pass': ok, 'replicas': records})
         print('NATIVE_OUTPUT=' + str(out))
         print('No services restarted. No model configuration or inference stack upgrade performed.')
         return 0 if ok else 2

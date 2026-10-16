@@ -1,6 +1,6 @@
 # 原生适配：首次部署与逐步操作
 
-日常只需根目录 README 的 `bash run_native.sh test` 和 `bash run_native.sh experiment`。本页供首次安装、明确的重启/缓存失效测试、回滚及单步排查使用。所有命令均在项目根目录执行。
+首次推荐根目录 README 的 `bash run_native.sh install --verify-restart`：检查全部副本后逐个安装、重启并等待就绪；额外验证副本 0 重启失效。再用 `bash run_native.sh test --invalidate-cache` 测试验收，`bash run_native.sh experiment` 运行实验。普通日常测试使用 `bash run_native.sh test`。本页保留单副本安装、手动重启、回滚及排查命令，均在项目根目录执行。
 
 现场已有 **36/36 组、72/72 请求的 HTTP 探针成功记录**，不需要重跑 `prepare`。本版增加服务端原生适配、独立标定和验收；**CPU 测试不等于昇腾现场通过**。正式实验必须通过原始证据门禁，不能手填 PASS。
 

@@ -14,6 +14,7 @@ import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'experiments/ascend'))
+sys.path.insert(0, str(ROOT / 'tools'))
 from dabs_ascend.common import read_json, write_json
 
 
@@ -28,15 +29,16 @@ class Stopped(Exception):
 
 
 class Workflow:
-    def __init__(self, root, mode, invalidate_cache=False):
+    def __init__(self, root, mode, invalidate_cache=False, verify_restart=False, ready_timeout=900):
         self.root, self.mode = Path(root).resolve(), mode
         stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ_') + uuid.uuid4().hex[:8]
         self.out = self.root / 'outputs' / ('native_' + mode + '_' + stamp)
         self.out.mkdir(parents=True)
         self.invalidate_cache = invalidate_cache
+        self.verify_restart, self.ready_timeout = verify_restart, ready_timeout
         self.record = {'mode': mode, 'status': 'running', 'started_utc': utc(),
                        'output': self.relative(self.out), 'steps': [], 'next_commands': [],
-                       'explicit_cache_invalidation': invalidate_cache}
+                       'explicit_cache_invalidation': invalidate_cache, 'explicit_restart_test': verify_restart}
 
     def relative(self, path):
         return Path(path).resolve().relative_to(self.root).as_posix()
@@ -56,13 +58,13 @@ class Workflow:
 
     def save(self):
         write_json(self.out / 'run.json', self.record)
-        lines = ['DABS 原生' + ('测试' if self.mode == 'test' else '实验'),
+        lines = ['DABS 原生' + {'test': '测试', 'experiment': '实验', 'install': '安装'}[self.mode],
                  '状态: ' + self.record['status'], '结果目录: ' + str(self.out)]
         for step in self.record['steps']:
             lines.append(step['label'] + ': ' + step['status'] + '；日志 ' + step['log'])
         if self.record.get('reason'):
             lines.append('停止原因: ' + self.record['reason'])
-        for field in ('acceptance', 'experiment_output'):
+        for field in ('acceptance', 'experiment_output', 'rollback_file'):
             if field in self.record:
                 lines.append(field + ': ' + self.record[field])
         if self.record['next_commands']:
@@ -124,20 +126,25 @@ class Workflow:
             raise Stopped(label + '失败。' + detail + ' 日志: ' + self.relative(logfile), commands)
         return directory
 
+
+    def install(self):
+        from native_setup import Installer
+        installer = Installer(self, self.ready_timeout, self.verify_restart)
+        try:
+            installer.run()
+        except Exception as exc:
+            raise Stopped(str(exc) + ' 已完成的副本及备份保留；回滚命令见本目录 ROLLBACK.txt。') from exc
+
     def test(self):
         # Do not silently install hooks or restart services as part of ordinary tests.
         credentials = self.root / 'outputs/native-control.json'
         keys = read_json(credentials).get('keys', {}) if credentials.exists() else {}
         missing = [r for r in range(4) if not keys.get(str(r))]
         if missing:
-            replica = missing[0]
             raise Stopped('本目录缺少副本 ' + ', '.join(map(str, missing)) +
                           ' 的控制密钥。尚不能调用原生测试；先完成 README 中的一次性部署。'
                           ' 若已在另一个目录安装，请在原部署目录更新代码并运行，保留 outputs/native-control.json。',
-                          ['bash run_dabs_r234.sh native-install-check --replica ' + str(replica),
-                           'bash run_dabs_r234.sh native-install --replica ' + str(replica),
-                           'sudo docker restart wushibo-qwen-small-npu' + str(replica),
-                           'bash run_native.sh test'])
+                          ['bash run_native.sh install --verify-restart', 'bash run_native.sh test --invalidate-cache'])
         self.step('native-check-four', '检查四个服务的原生能力（不发推理请求）')
         paths = {}
         for mode, label in [('native-probe-one', '单副本机制测试'),
@@ -215,12 +222,18 @@ class Workflow:
 
 
 def main():
-    parser = argparse.ArgumentParser(description='现场一键入口：test 测试并验收；experiment 跑全部 96 条件。')
-    parser.add_argument('mode', choices=('test', 'experiment'))
+    parser = argparse.ArgumentParser(description='现场一键入口：install 安装并重启现有服务；test 测试验收；experiment 跑全部 96 条件。')
+    parser.add_argument('mode', choices=('install', 'test', 'experiment'))
     parser.add_argument('--invalidate-cache', action='store_true', help='仅 test：明确执行副本 0 缓存清空/失效测试；默认不执行')
+    parser.add_argument('--verify-restart', action='store_true', help='仅 install：明确额外重启副本 0 并验证旧身份失效')
+    parser.add_argument('--ready-timeout', type=int, default=900, help='install 每个服务加载等待秒数，默认 900')
     args = parser.parse_args()
     if args.invalidate_cache and args.mode != 'test':
         parser.error('--invalidate-cache 仅用于 test')
+    if args.verify_restart and args.mode != 'install':
+        parser.error('--verify-restart 仅用于 install')
+    if args.ready_timeout < 1:
+        parser.error('--ready-timeout 必须为正数')
     if sys.platform != 'linux':
         parser.error('请在昇腾 Linux 宿主机运行；开发机 CPU 检查仍用 python tools/run_ascend.py test')
     from dabs_ascend.runtime import device_locks
@@ -232,9 +245,9 @@ def main():
         with ExitStack() as stack:
             lock = stack.enter_context((ROOT / 'outputs/.native-entry.lock').open('a+'))
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            if args.mode == 'test':
+            if args.mode in ('test', 'install'):
                 stack.enter_context(device_locks(range(4), ROOT / 'outputs/.existing_controller_locks'))
-            return Workflow(ROOT, args.mode, args.invalidate_cache).run()
+            return Workflow(ROOT, args.mode, args.invalidate_cache, args.verify_restart, args.ready_timeout).run()
     except BlockingIOError:
         print('已有测试或实验使用这些服务；请等待当前任务结束。', file=sys.stderr)
         return 2

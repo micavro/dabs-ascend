@@ -135,7 +135,7 @@ class NativeWorkflowTests(unittest.TestCase):
         run, code = self.run_workflow()
         self.assertEqual(code, 2)
         self.assertEqual(self.commands, [])
-        self.assertEqual(run.record['next_commands'][0], 'bash run_dabs_r234.sh native-install-check --replica 0')
+        self.assertEqual(run.record['next_commands'][0], 'bash run_native.sh install --verify-restart')
         self.assertTrue((run.out / 'SUMMARY.txt').is_file())
 
     def test_zero_exit_without_live_acceptance_cannot_pass(self):
