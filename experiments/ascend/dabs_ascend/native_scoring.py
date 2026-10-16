@@ -75,10 +75,11 @@ def check_model_range(model, replica, p, d, dc, pc):
 
 
 def next_batch(state, action, model, replica, cfg):
-    import copy
     from core18v2.engine import CacheModel
     from .native_prediction import predict
-    ns = copy.deepcopy(state['nodes'])
+    # select_batch only changes scalar node progress. DAG lists are read-only;
+    # copying the whole 216-node nested graph for each guard wastes the window.
+    ns = {k: dict(n) for k, n in state['nodes'].items()}
     for key in action['admit']:
         ns[key].update(state='submitted', replica=action['placement'][key], computed=0, phase='prefill', output_done=0, accepted_at=state['now'])
     active = [k for k, n in ns.items() if n['state'] == 'submitted' and n['replica'] == replica]

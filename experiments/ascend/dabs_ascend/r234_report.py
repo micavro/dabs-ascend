@@ -141,7 +141,8 @@ def make_report(out, plan, summaries, status, error=None, *, source_out=None):
         rows[-1].update(client_applied_nonreference_actions=s.get('nonreference_actions') if s.get('action_accounting_version') == 2 else None,
                         engine_applied_nonreference_actions=s.get('engine_applied_nonreference_actions'),
                         action_accounting_version=s.get('action_accounting_version', 1))
-        for kind in ('score_failure_reasons', 'commit_reject_reasons', 'native_fallback_reasons'):
+        for kind in ('score_failure_reasons', 'commit_reject_reasons', 'native_fallback_reasons',
+                     'planner_stop_reasons', 'candidate_generation_reasons'):
             reasons.extend({**spec, 'stage': kind, 'reason': reason, 'count': count}
                            for reason, count in diagnostics.get(kind, {}).items())
         for w in s['workflow_rows']:

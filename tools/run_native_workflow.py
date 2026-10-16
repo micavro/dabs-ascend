@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'experiments/ascend'))
 sys.path.insert(0, str(ROOT / 'tools'))
 from dabs_ascend.common import read_json, write_json
+from dabs_ascend.copy_log import emit, folder
 
 
 def utc():
@@ -38,7 +39,7 @@ class Workflow:
         self.invalidate_cache = invalidate_cache
         self.verify_restart, self.ready_timeout = verify_restart, ready_timeout
         self.replica, self.input_path = replica, input_path
-        self.max_conditions = 4 if max_conditions is None else max_conditions
+        self.max_conditions = (8 if mode == 'verify' else 4) if max_conditions is None else max_conditions
         self.record = {'mode': mode, 'status': 'running', 'started_utc': utc(),
                        'output': self.relative(self.out), 'steps': [], 'next_commands': [],
                        'explicit_cache_invalidation': invalidate_cache, 'explicit_restart_test': verify_restart}
@@ -61,7 +62,7 @@ class Workflow:
 
     def save(self):
         write_json(self.out / 'run.json', self.record)
-        lines = ['DABS 原生' + {'test': '测试', 'experiment': '实验', 'install': '安装',
+        lines = ['DABS 原生' + {'test': '测试', 'verify': '规划验证（原计划前若干条件）', 'experiment': '实验', 'install': '安装',
                  'smoke': '计时关联短诊断', 'calibrate': '单副本完整标定', 'audit': '旧事件离线审计',
                  'refit': '旧数据离线重拟合（诊断，不作新验收）',
                  'explore': '带预测偏差的实验（非正式验收）'}[self.mode],
@@ -77,7 +78,8 @@ class Workflow:
                 lines.append(field + ': ' + self.record[field])
         if self.record['next_commands']:
             lines += ['下一步（按顺序，涉及重启时等待服务重新就绪）:', *self.record['next_commands']]
-        lines += ['结果保留为普通文本/JSON/CSV；只需复制本摘要和失败步骤日志，不打包、不上传。']
+        lines += ['复制用摘要（运行中持续追加）: ' + str(folder(self.out) / 'COPY.txt'),
+                  '原始证据保留；普通文本，不打包、不上传。']
         (self.out / 'SUMMARY.txt').write_text('\n'.join(lines) + '\n', encoding='utf-8')
 
     def launch(self, command, logfile):
@@ -110,9 +112,19 @@ class Workflow:
                 'log': self.relative(logfile), 'output': self.relative(directory), 'started_utc': utc()}
         self.record['steps'].append(step)
         self.save()
+        emit(self.out, 'STEP', n=number, mode=mode, command=shlex.join(command))
         print('\n[' + str(number) + '] ' + label, flush=True)
         code = self.launch(command, logfile)
         step.update(status='passed' if code == 0 else 'failed', exit_code=code, finished_utc=utc())
+        emit(self.out, 'STEP_END', n=number, mode=mode, exit=code)
+        if (directory / 'result.json').exists():
+            result = read_json(directory / 'result.json')
+            emit(self.out, 'CHECK', mode=mode, **{k: result[k] for k in
+                ('pass', 'live_verified', 'inference_executed', 'checks', 'missing', 'failures') if k in result})
+        if code and logfile.exists():
+            # Retain the useful tail once, without copying huge JSON/trace dumps.
+            tail = logfile.read_text(encoding='utf-8').splitlines()[-8:]
+            emit(self.out, 'ERROR_TAIL', step=mode, lines=[line[:500] for line in tail])
         self.save()
         if code:
             detail = ''
@@ -266,7 +278,7 @@ class Workflow:
         self.record['imported_test_source'] = str(tested)
         return evidence
 
-    def experiment(self):
+    def test_evidence(self):
         latest = self.root / 'outputs/native-entry-last-test.json'
         if self.input_path:
             evidence = self.import_test()
@@ -280,14 +292,52 @@ class Workflow:
             evidence = self.host_path(record['acceptance'])
         if not evidence.is_file():
             raise Stopped('测试原始验收记录缺失。', ['bash run_native.sh test'])
+        return evidence
+
+    def verify(self):
+        evidence = self.test_evidence()
+        result_dir = self.out / 'r234_native'
+        self.record.update(acceptance=self.relative(evidence), experiment_output=self.relative(result_dir))
+        self.step('benchmark', '复用原始证据并运行前 ' + str(self.max_conditions) + ' 条件，核对 Ours 完整评分',
+                  ['--execution-scope', 'native', '--native-evidence', self.container_path(evidence),
+                   '--max-conditions', str(self.max_conditions), '--out', self.container_path(result_dir)], native=False)
+        from dabs_ascend.planning_audit import audit
+        coverage = audit(result_dir, self.max_conditions)
+        write_json(self.out / 'planning_audit.json', coverage)
+        emit(self.out, 'PLANNING_AUDIT', **coverage)
+        if not coverage['pass']:
+            raise Stopped('规划验证未通过：' + '; '.join(coverage['missing']) + '。复制 copy_logs/COPY.txt；原结果保留。')
+        self.record['next_commands'] = ['bash run_native.sh experiment']
+
+    def experiment(self):
+        verified = self.root / 'outputs/native-entry-last-verify.json'
+        if not self.input_path and verified.exists():
+            prior = self.host_path(read_json(verified)['output'])
+            record = read_json(prior / 'run.json')
+            if record.get('mode') != 'verify' or record.get('status') != 'passed':
+                raise Stopped('最近一次规划验证未通过，不能退回旧测试 PASS。复制 ' + str(prior / 'copy_logs/COPY.txt'))
+            result_dir = self.host_path(record['experiment_output'])
+            evidence = self.host_path(record['acceptance'])
+            from dabs_ascend.planning_audit import audit
+            count = len(read_json(result_dir / 'index.json'))
+            coverage = audit(result_dir, count)
+            if not coverage['pass']:
+                raise Stopped('续跑前重新核对完整评分失败：' + str(coverage['missing']))
+            self.record.update(acceptance=self.relative(evidence), experiment_output=self.relative(result_dir),
+                               resumed_from=self.relative(prior), copy_log_owner=str(prior))
+            self.step('benchmark', '复核原始证据，从已完成条件继续到 96 条',
+                      ['--execution-scope', 'native', '--native-evidence', self.container_path(evidence),
+                       '--resume', self.container_path(result_dir)], native=False)
+        else:
+            evidence = self.test_evidence()
+            result_dir = self.out / 'r234_native'
+            self.record['acceptance'] = self.relative(evidence)
+            self.record['experiment_output'] = self.relative(result_dir)
+            self.step('benchmark', '重新核验原生证据，然后运行全部 96 条件',
+                      ['--execution-scope', 'native', '--native-evidence', self.container_path(evidence),
+                       '--out', self.container_path(result_dir)], native=False)
         # This pointer is convenience only: R234 recomputes raw evidence and
         # verifies live engine identities and resources before canaries or formal traffic.
-        result_dir = self.out / 'r234_native'
-        self.record['acceptance'] = self.relative(evidence)
-        self.record['experiment_output'] = self.relative(result_dir)
-        self.step('benchmark', '重新核验原生证据，然后运行全部 96 条件',
-                  ['--execution-scope', 'native', '--native-evidence', self.container_path(evidence),
-                   '--out', self.container_path(result_dir)], native=False)
         result = read_json(result_dir / 'status.json')
         if result.get('status') != 'complete' or result.get('completed_conditions') != 96 or result.get('functional_test_pass') is not True:
             raise Stopped('实验没有完整通过全部 96 条件；保留实际结果，不标记完成。')
@@ -297,6 +347,7 @@ class Workflow:
         write_json(self.root / ('outputs/native-entry-last-' + self.mode + '.json'),
                    {'output': self.relative(self.out)})
         self.save()
+        emit(self.out, 'START', mode=self.mode, output=self.relative(self.out))
         print('本次结果: ' + str(self.out), flush=True)
         try:
             getattr(self, self.mode)()
@@ -316,25 +367,41 @@ class Workflow:
                 step.update(status=self.record['status'], finished_utc=utc())
         self.record['finished_utc'] = utc()
         self.save()
+        emit(self.out, 'END', status=self.record['status'], reason=self.record.get('reason'),
+             experiment=self.record.get('experiment_output'), next=self.record['next_commands'])
         print('\n' + (self.out / 'SUMMARY.txt').read_text(encoding='utf-8'), flush=True)
         return code
 
 
 def main():
-    parser = argparse.ArgumentParser(description='现场一键入口：install 安装并重启现有服务；test 测试验收；experiment 跑全部 96 条件。')
-    parser.add_argument('mode', choices=('install', 'smoke', 'calibrate', 'audit', 'refit', 'explore', 'test', 'experiment'))
+    parser = argparse.ArgumentParser(description='现场入口：install 安装；test 完整验收；verify 前8条规划验证；experiment 全部96条/续跑；logs 打印复制摘要。')
+    parser.add_argument('mode', choices=('install', 'smoke', 'calibrate', 'audit', 'refit', 'explore', 'test', 'verify', 'experiment', 'logs'))
     parser.add_argument('--replica', type=int, choices=range(4), help='install/smoke/calibrate: select one existing service')
-    parser.add_argument('--input', type=Path, help='audit/refit/explore: calibration directory; experiment: prior native_test directory (read-only)')
+    parser.add_argument('--input', type=Path, help='audit/refit/explore: calibration directory; verify/experiment: prior native_test directory (read-only)')
     parser.add_argument('--invalidate-cache', action='store_true', help='仅 test：明确执行副本 0 缓存清空/失效测试；默认不执行')
     parser.add_argument('--verify-restart', action='store_true', help='仅 install：明确额外重启副本 0 并验证旧身份失效')
     parser.add_argument('--ready-timeout', type=int, default=900, help='install 每个服务加载等待秒数，默认 900')
-    parser.add_argument('--max-conditions', type=int, help='explore: first N conditions (1..96), default 4')
+    parser.add_argument('--max-conditions', type=int, help='explore: 1..96 default 4; verify: 4..92, multiple of 4, default 8')
     args = parser.parse_args()
-    if args.max_conditions is not None and (args.mode != 'explore' or not 1 <= args.max_conditions <= 96):
-        parser.error('--max-conditions 用于 explore，范围 1..96')
+    if args.mode == 'logs':
+        pointer = ROOT / 'outputs/native-entry-last-copy.json'
+        if not pointer.exists():
+            print('没有新版本生成的复制摘要；旧结果保持原样。', file=sys.stderr)
+            return 2
+        path = (ROOT / read_json(pointer)['file']).resolve()
+        if not path.is_relative_to(ROOT / 'outputs'):
+            parser.error('复制摘要路径不在 outputs 下')
+        print(path.read_text(encoding='utf-8'), end='')
+        return 0
+    if args.max_conditions is not None:
+        if args.mode == 'verify':
+            if not 4 <= args.max_conditions <= 92 or args.max_conditions % 4:
+                parser.error('verify --max-conditions 为 4..92 的 4 的倍数（完整方法组）')
+        elif args.mode != 'explore' or not 1 <= args.max_conditions <= 96:
+            parser.error('--max-conditions 用于 explore 或 verify')
     if args.replica is not None and args.mode not in ('install', 'smoke', 'calibrate'):
         parser.error('--replica 仅用于 install/smoke/calibrate')
-    if (args.mode in ('audit', 'refit') and not args.input) or (args.input and args.mode not in ('audit', 'refit', 'explore', 'experiment')):
+    if (args.mode in ('audit', 'refit') and not args.input) or (args.input and args.mode not in ('audit', 'refit', 'explore', 'verify', 'experiment')):
         parser.error('audit/refit 必须提供 --input；explore 可指定已有标定目录；experiment 可指定旧 native_test 结果目录')
     if args.verify_restart and args.replica not in (None, 0):
         parser.error('--verify-restart 仅支持副本 0')

@@ -9,6 +9,7 @@ import time
 from .common import DATASET, append_json, percentile, write_json
 from .scheduler import baseline, plan_dag, snapshot
 from .repair import admission_check, aggregate_diagnostics, effect_signature, with_budget
+from .native_planning import planning_window, run_planner, scorer_view
 
 
 def summarize(nodes, start, finish, decisions, quality, *, fixed=False):
@@ -95,6 +96,9 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
     decisions, history, errors = [], {}, []
     fixed = spec.get('measurement_mode') == 'fixed_token_replay'
     native = cfg.get('execution_scope') == 'native'
+    from .copy_log import ConditionLog, emit
+    copy_root = out.parent.parent if out.parent.name == 'conditions' else out.parent
+    compact = ConditionLog(copy_root, spec.get('label', spec['method']))
     if native:
         import uuid
         backend.native.salt = 'dabs-condition-' + uuid.uuid4().hex
@@ -193,6 +197,7 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                       'engine_applied': None, 'result': late}
             decisions.append(record)
             append_json(out / 'decisions.jsonl', record)
+            compact.decision(record)
             pending, pending_origin = None, None
 
         async def fresh_native_admission(decision, index, fallback_reason):
@@ -233,9 +238,13 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
             progress_at, activity_at = start, start
             previous_counts = (0, 0)
             while not all(n["state"] == "done" for n in nodes.values()):
+                progress_row = None
                 if errors:
                     raise errors[0]
                 alive()
+                if pending is not None and pending.done():
+                    # Persist old diagnostics before observing the next window.
+                    await consume_late_plan()
                 await asyncio.sleep(max(0., next_tick - time.monotonic()))
                 await asyncio.sleep(cfg["ready_coalesce_s"])
                 if errors:
@@ -276,29 +285,41 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                               ' fallbacks=' + str(progress['atomic_fallbacks']) +
                               ' deferred=' + str(progress['deferred_admissions']), flush=True)
                         progress_at = measured_at + 5
+                        progress_row = progress
                     if state['ready'] and not active and measured_at - activity_at >= cfg.get('native_idle_stall_s', 60):
                         raise ValueError('native admission stalled: ready requests but no inflight/completion/admission for ' +
                                          str(cfg.get('native_idle_stall_s', 60)) + 's; inspect decisions.jsonl and receipts')
                 if not state["ready"]:
                     if pending is not None and pending.done():
                         await consume_late_plan()
+                    if progress_row is not None:
+                        compact.progress(progress_row)
                     continue
                 base = r234.baseline(state, cfg, spec['method']) if fixed else baseline(state, cfg, spec["method"])
                 result = {"action": base, "evaluations": [], "model_selection": False}
                 decision = {"index": index, "at": now, "snapshot": state,
                             'engine_accepted': None, 'engine_applied': None,
                             'client_applied_nonreference': False}
+                wants_planner = spec["method"] in ("DAG-Ascend", 'Ours')
                 if native:
                     decision['reference_action'] = copy.deepcopy(base)
-                if spec["method"] in ("DAG-Ascend", 'Ours') and time.monotonic() < next_tick - cfg['commit_reserve_s']:
-                    if pending is not None and pending.done():
-                        await consume_late_plan()
+                if native and wants_planner:
+                    # Start the soft search budget AFTER observation/base work;
+                    # neither the fixed tick nor the snapshot lease is extended.
+                    window = planning_window(state, cfg, next_tick)
+                    decision['planning_window'] = window
+                if wants_planner and time.monotonic() < next_tick - cfg['commit_reserve_s'] and (not native or window['budget_ms'] >= 9):
                     if pending is None:
-                        deadline = min(now + cfg["planning_soft_limit_s"], next_tick - cfg["commit_reserve_s"])
+                        deadline = (window['deadline'] if native else
+                                    min(now + cfg["planning_soft_limit_s"], next_tick - cfg["commit_reserve_s"]))
                         planner = r234.plan_ours if fixed else plan_dag
                         pending_origin = index
-                        pending = asyncio.get_running_loop().run_in_executor(executor, with_budget, planner, state, model, cfg,
-                                                                            max(0., deadline - time.monotonic()))
+                        if native:
+                            pending = asyncio.get_running_loop().run_in_executor(executor, run_planner,
+                                planner, scorer_view(state), model, cfg, window)
+                        else:
+                            pending = asyncio.get_running_loop().run_in_executor(executor, with_budget, planner, state, model, cfg,
+                                                                                max(0., deadline - time.monotonic()))
                         try:
                             result = await asyncio.wait_for(asyncio.shield(pending), timeout=max(.001, deadline - time.monotonic()))
                             pending, pending_origin = None, None
@@ -306,6 +327,13 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                             decision["discarded_expired"] = True
                     else:
                         decision["planner_busy"] = True
+                        result['v5_stop_reason'] = 'previous_planner_still_running'
+                elif wants_planner and native:
+                    result['v5_stop_reason'] = 'insufficient_budget_before_dispatch'
+                if native and wants_planner and time.monotonic() >= window['deadline']:
+                    # A ready Future and its timeout can race on a busy loop.
+                    # Enforce the same absolute deadline again before commit.
+                    decision['discarded_expired'] = True
                 # Bound the age of plans even if the event loop was busy.
                 if time.monotonic() >= next_tick - cfg["commit_reserve_s"]:
                     decision["discarded_expired"] = True
@@ -353,6 +381,11 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                         spawn(execute(key, replica))
                     decisions.append(decision)
                     append_json(out / 'decisions.jsonl', decision)
+                    compact.decision(decision)
+                    if progress_row is not None:
+                        compact.progress(progress_row)
+                    if pending is not None and pending.done():
+                        await consume_late_plan()
                     continue
                 if reason:
                     decision['commit_reject_reason'] = reason
@@ -404,7 +437,8 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                 pass
             applied, routed, queued = 0, 0, 0
             for decision in decisions:
-                if decision.get('result', {}).get('selected_cell', '00') == '00' or decision.get('native_fallback_reason'):
+                if (decision.get('discarded_expired') or decision.get('event') or
+                        decision.get('result', {}).get('selected_cell', '00') == '00' or decision.get('native_fallback_reason')):
                     continue
                 route_effect, queue_effect = False, False
                 reference = decision['reference_action']
@@ -422,6 +456,7 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                         queue_effect = True
                     append_json(out / 'decisions.jsonl', {'event': 'final_engine_receipt', 'decision_index': decision['index'],
                         'replica': item['replica'], 'receipt': receipt})
+                    compact.receipt(decision['index'], item['replica'], receipt)
                 applied += route_effect or queue_effect
                 routed += route_effect; queued += queue_effect
             summary.update(execution_scope='native', native_cache_observed=True,
@@ -455,9 +490,11 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
             summary['functional_pass'] &= summary['fixed_work_pass']
         write_json(out / "quality.json", quality)
         write_json(out / "summary.json", summary)
+        compact.complete(summary)
         write_json(out / "status.json", {"status": "complete", "functional_pass": summary["functional_pass"]})
         return summary
     except BaseException as exc:
+        emit(copy_root, 'ERROR', condition=compact.label, error=repr(exc), raw=str(out / 'status.json'))
         write_json(out / "status.json", {"status": "failed", "error": repr(exc), "spec": spec})
         raise
     finally:

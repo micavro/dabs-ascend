@@ -10,6 +10,7 @@ import multiprocessing
 import os
 from pathlib import Path
 import signal
+import shlex
 import subprocess
 import sys
 import traceback
@@ -19,6 +20,8 @@ from . import r234
 from .common import (DATASET, ROOT, append_json, configuration, read_json, sha,
                      source_identity, verify_original_assets, write_json)
 from .runtime import MODEL_NAME, device_locks
+from .native_planning import CONTRACT as PLANNING_CONTRACT
+from .copy_log import emit
 
 
 def utc():
@@ -155,6 +158,8 @@ async def execute(args, out, plan, summaries, identity):
                     model = read_json(Path(native_paths(args)['native-calibrate']) / 'native_profile.json')
                 preserve_native_freeze(out, gate, model, args.resume)
                 write_json(out / 'native_gate.json', gate)
+                emit(out, 'GATE', passed=gate['pass'], timing=model['timing_target'], predictor=model.get('predictor'),
+                     resources=[c['resources'] for c in caps], client_inflight=args.max_inflight)
                 await backend.native.drain(4)
                 write_json(out / 'native_capabilities.json', caps)
             append_json(out / 'process.jsonl', {'event': 'canaries_start', 'utc': utc(), 'resumed': bool(args.resume)})
@@ -185,6 +190,7 @@ async def execute(args, out, plan, summaries, identity):
                     original_gpu_timing_equivalent=model.get('original_gpu_timing_equivalent', False),
                     effective_resources=[c['resources'] for c in caps], client_max_inflight=args.max_inflight,
                     exploratory=bool(gate.get('exploratory')), formal_acceptance=gate['pass'])
+                protocol['planning_contract'] = PLANNING_CONTRACT
                 write_json(out / 'protocol.json', protocol)
                 repair = read_json(out / 'repair_protocol.json')
                 repair['native_mechanism_test_pass'] = gate['pass']
@@ -206,7 +212,7 @@ async def execute(args, out, plan, summaries, identity):
             write_json(out / 'preparation.json', {'info': info, 'dataset_manifest': manifest,
                                                 'source_ids': [r['id'] for r in rows]})
             pool = ProcessPoolExecutor(1, mp_context=multiprocessing.get_context('spawn'))
-            await asyncio.get_running_loop().run_in_executor(pool, r234.planner_ready)
+            await asyncio.get_running_loop().run_in_executor(pool, r234.planner_ready, native)
             first = len(summaries)
             stop = min(len(plan), first + (args.max_conditions or len(plan)))
             for index in range(first, stop):
@@ -226,6 +232,8 @@ async def execute(args, out, plan, summaries, identity):
                                 'dabs_ascend.r234.plan_ours' if spec['method'] == 'Ours' else None],
                             'output': str(directory), 'logical_to_physical_devices': args.devices[:spec['replicas']]})
                 print(f"R234_CONDITION {index + 1}/96 {spec['label']}", flush=True)
+                emit(out, 'CONDITION', index=index + 1, label=spec['label'], seed=spec['seed'],
+                     output='conditions/' + spec['label'], planning=PLANNING_CONTRACT if native else 'http')
                 summary = await run_condition(backend, tok, packets, model, current, spec, directory, pool, servers.check_alive)
                 if native and gate.get('exploratory'):
                     summary.update(exploratory=True, formal_acceptance=False,
@@ -299,6 +307,8 @@ def main(args):
             protocol = read_json(out / 'protocol.json')
             if protocol['plan'] != plan or protocol['stable_arguments'] != stable_arguments(args):
                 raise ValueError('Frozen plan or deployment parameters differ from paused run')
+            if args.execution_scope == 'native' and protocol.get('planning_contract') != PLANNING_CONTRACT:
+                raise ValueError('Planning semantics differ from paused run; preserve old results and start a new directory')
             for name, expected in read_json(out / 'calibration_identity.json').items():
                 if sha(out / name) != expected:
                     append_json(out / 'process.jsonl', {'event': 'calibration_file_fingerprint_changed', 'file': name, 'actual': sha(out / name)})
@@ -310,7 +320,8 @@ def main(args):
                        'stable_arguments': stable_arguments(args), 'limits': r234.LIMITS,
                        'workflows_per_condition': 64, 'requests_per_condition': 216,
                        'input_tokens_per_request': 3584, 'output_tokens_per_condition': 13184,
-                       'strict_native_reproduction': False, 'automatic_retry': False})
+                       'strict_native_reproduction': False, 'automatic_retry': False,
+                       'planning_contract': PLANNING_CONTRACT if args.execution_scope == 'native' else None})
             write_json(out / 'repair_protocol.json', {
                 'revision': '20261016-native-v023-v1', 'execution_scope': args.execution_scope,
                 'plan_revision': 'R4-L8_then_R2-L16_rotating_methods_mirrored_round2',
@@ -383,6 +394,7 @@ def run_recorded(args, out, plan, summaries, identity):
         error = repr(exc)
         (out / 'error.txt').write_text(traceback.format_exc(), encoding='utf-8')
         print('R234_FAILED=' + error, file=sys.stderr, flush=True)
+        emit(out, 'ERROR', error=error, raw='error.txt')
     finally:
         signal.signal(signal.SIGTERM, prior)
         report = make_report(out, plan, summaries, status, error)
@@ -394,5 +406,10 @@ def run_recorded(args, out, plan, summaries, identity):
     if status == 'paused':
         relative = out.relative_to(ROOT).as_posix() if out.is_relative_to(ROOT) else str(out)
         print('CLEAN_PAUSE: remaining=' + str(96 - len(summaries)), flush=True)
-        print('RESUME: bash run_dabs_r234.sh --execution-scope ' + args.execution_scope + ' --resume ' + relative, flush=True)
+        command = ['bash', 'run_dabs_r234.sh', 'benchmark', '--execution-scope', args.execution_scope, '--resume', relative]
+        if getattr(args, 'native_evidence', None):
+            command += ['--native-evidence', str(args.native_evidence)]
+        if getattr(args, 'exploratory_calibration', False):
+            command += ['--exploratory-calibration']
+        print('RESUME: ' + shlex.join(command), flush=True)
     return 0 if status in ('paused', 'environment_checked') or report['functional_test_pass'] else 1

@@ -264,6 +264,52 @@ class NativeWorkflowTests(unittest.TestCase):
         self.assertIn('before failure', logfile.read_text(encoding='utf-8'))
         self.assertIn('failure detail', logfile.read_text(encoding='utf-8'))
 
+    def test_verify_reuses_raw_evidence_audits_scores_then_experiment_resumes(self):
+        from test_planning_audit import fixture
+        tested, code = self.run_workflow()
+        self.assertEqual(code, 0)
+        original = self.fake_launch
+        def launch(command, logfile):
+            if command[2] != 'benchmark': return original(command, logfile)
+            self.commands.append(command); logfile.write_text('CPU workflow double', encoding='utf-8')
+            key = '--resume' if '--resume' in command else '--out'
+            directory = self.current.host_path(command[command.index(key) + 1])
+            if key == '--resume':
+                write_json(directory / 'status.json', {'status': 'complete', 'completed_conditions': 96, 'functional_test_pass': True})
+            else: fixture(directory, int(command[command.index('--max-conditions') + 1]))
+            return 0
+        self.current = entry.Workflow(self.root, 'verify', input_path=tested.out, max_conditions=12)
+        with patch.object(self.current, 'launch', side_effect=launch), redirect_stdout(io.StringIO()):
+            self.assertEqual(self.current.run(), 0, self.current.record)
+        verified = self.current
+        self.assertTrue(read_json(verified.out / 'planning_audit.json')['pass'])
+        count = len(self.commands)
+        self.current = entry.Workflow(self.root, 'experiment')
+        with patch.object(self.current, 'launch', side_effect=launch), redirect_stdout(io.StringIO()):
+            self.assertEqual(self.current.run(), 0, self.current.record)
+        self.assertEqual(len(self.commands), count + 1)
+        self.assertIn('--resume', self.commands[-1])
+        self.assertNotIn('--max-conditions', self.commands[-1])
+        self.assertEqual(self.current.record['experiment_output'], verified.record['experiment_output'])
+        self.assertIn('status=passed', (verified.out / 'copy_logs/COPY.txt').read_text(encoding='utf-8'))
+
+    def test_failed_verify_cannot_default_to_older_passed_test(self):
+        self.assertEqual(self.run_workflow()[1], 0)
+        self.failure = 'benchmark'
+        self.assertEqual(self.run_workflow('verify')[1], 2)
+        count = len(self.commands)
+        self.assertEqual(self.run_workflow('experiment')[1], 2)
+        self.assertEqual(len(self.commands), count)
+
+    def test_logs_reads_latest_compact_text_without_docker(self):
+        from dabs_ascend.copy_log import emit
+        run = self.root / 'outputs/native_verify_example'
+        emit(run, 'CHECK', passed=False, reason='real_failure')
+        with patch.object(entry, 'ROOT', self.root), patch.object(entry.sys, 'argv', ['run_native_workflow.py', 'logs']), \
+             patch.object(entry.subprocess, 'Popen', side_effect=AssertionError('logs must be read-only')), redirect_stdout(io.StringIO()) as stream:
+            self.assertEqual(entry.main(), 0)
+        self.assertIn('real_failure', stream.getvalue())
+
     def test_short_modes_never_install_restart_or_launch_formal_experiment(self):
         for mode, child in [('smoke', 'native-calibration-smoke'), ('calibrate', 'native-calibrate-one')]:
             self.commands = []

@@ -82,9 +82,13 @@ def score_diagnostics(result):
 
 def aggregate_diagnostics(decisions):
     counters = Counter()
-    reasons, commits, fallbacks = Counter(), Counter(), Counter()
+    reasons, commits, fallbacks, stops, candidates = Counter(), Counter(), Counter(), Counter(), Counter()
     for decision in decisions:
         values = score_diagnostics(decision.get('result', {}))
+        result = decision.get('result', {})
+        if result.get('v5_stop_reason'):
+            stops[result['v5_stop_reason']] += 1
+        candidates.update(result.get('candidate_diagnostics', {}))
         reasons.update(values.pop('score_failure_reasons'))
         counters.update(values)
         if decision.get('commit_reject_reason'):
@@ -96,6 +100,7 @@ def aggregate_diagnostics(decisions):
             fallbacks.update(fallback if isinstance(fallback, list) else [fallback])
             counters['native_atomic_fallback_decisions'] += 1
     return {**dict(counters), 'score_failure_reasons': dict(reasons),
+            'planner_stop_reasons': dict(stops), 'candidate_generation_reasons': dict(candidates),
             'native_fallback_reasons': dict(fallbacks),
             'commit_reject_reasons': dict(commits)}
 

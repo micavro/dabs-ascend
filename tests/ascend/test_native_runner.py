@@ -7,6 +7,7 @@ from pathlib import Path
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 
 from dabs_ascend import r234
 from dabs_ascend.common import DATASET, append_json, configuration
@@ -70,6 +71,53 @@ class SlowObservationDouble(NativeDouble):
 
 
 class NativeRunnerIntegration(unittest.IsolatedAsyncioTestCase):
+    async def test_late_nonreference_selection_is_diagnostic_not_engine_application(self):
+        cfg = configuration(4, resources())
+        cfg.update(document_tokens_budget=2000, workflow_count=64, arrival_rate=1000,
+                   epoch_s=.1, planning_soft_limit_s=.04, commit_reserve_s=.01, condition_wall_s=60.)
+        def late(s, m, c, deadline):
+            time.sleep(.06)
+            return {'action': r234.baseline(s, c, 'Ours'), 'evaluations': [], 'selected_cell': 'late-cpu-fixture'}
+        tok = FakeTokenizer(); rows, _ = load_public(DATASET, 'pilot')
+        packets, _ = await compile_packets(rows, tok, cfg)
+        packets, _ = r234.frozen('heterogeneous').select_packets(packets, 'balanced')
+        with tempfile.TemporaryDirectory() as d, ThreadPoolExecutor(1) as pool:
+            out = Path(d) / 'late'
+            with patch.object(r234, 'plan_ours', side_effect=late):
+                summary = await run_condition(BackendDouble(), tok, packets, model(), cfg, r234.plan()[3], out, pool)
+            rows = [json.loads(line) for line in (out / 'decisions.jsonl').read_text().splitlines()]
+            expired = [r for r in rows if r.get('event') == 'expired_plan_diagnostic']
+            self.assertTrue(expired)
+            self.assertTrue(all(r['result']['selected_cell'] == 'late-cpu-fixture' and not r['client_applied_nonreference'] for r in expired))
+            self.assertEqual(summary['engine_applied_nonreference_actions'], 0)
+            self.assertTrue(summary['functional_pass'])
+
+    async def test_real_runner_dispatches_after_110ms_observation_with_original_fixed_deadline(self):
+        cfg = configuration(4, resources())
+        cfg.update(document_tokens_budget=2000, workflow_count=64, arrival_rate=1000,
+                   ready_coalesce_s=.001, condition_wall_s=30.)
+        class SlowButFresh(NativeDouble):
+            async def observe(self, *args, **kwargs):
+                await asyncio.sleep(.11)
+                return await super().observe(*args, **kwargs)
+        class Reached(Exception): pass
+        deadlines = []
+        def planner(s, m, c, deadline):
+            deadlines.append((deadline, time.monotonic(), len(s['nodes'])))
+            raise Reached('post-observation planner reached')
+        tok = FakeTokenizer(); rows, _ = load_public(DATASET, 'pilot')
+        packets, _ = await compile_packets(rows, tok, cfg)
+        packets, _ = r234.frozen('heterogeneous').select_packets(packets, 'balanced')
+        with tempfile.TemporaryDirectory() as d, ThreadPoolExecutor(1) as pool:
+            backend = BackendDouble(); backend.native = SlowButFresh()
+            with patch.object(r234, 'plan_ours', side_effect=planner), self.assertRaisesRegex(Reached, 'post-observation'):
+                await run_condition(backend, tok, packets, model(), cfg, r234.plan()[3], Path(d) / 'slow', pool)
+        self.assertTrue(deadlines)
+        deadline, dispatched, nodes = deadlines[0]
+        self.assertGreater(deadline, dispatched)  # old runner never reaches this
+        self.assertLessEqual(deadline - dispatched, .08)
+        self.assertEqual(nodes, 216)
+
     async def test_rejected_admission_cannot_silently_idle_until_condition_timeout(self):
         cfg = configuration(4, resources())
         cfg.update(document_tokens_budget=2000, workflow_count=64, arrival_rate=1000,

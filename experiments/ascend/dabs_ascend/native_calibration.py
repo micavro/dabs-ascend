@@ -238,6 +238,8 @@ async def run_calibration(backend, tokenizer, out, *, diagnostic=False):
             write_json(out / 'calibration_progress.json', {'validation': partial['validation'], 'excluded': excluded,
                 'samples': len(samples), 'diagnostic_only': diagnostic})
             print('NATIVE_CALIBRATION', replica, group, 'eligible', len(samples), 'excluded', len(excluded), flush=True)
+            from .copy_log import emit
+            emit(out, 'CALIBRATION', replica=replica, group=group, eligible=len(samples), excluded=len(excluded))
             if excluded or not samples:
                 partial['pass'] = partial['frozen'] = False
                 partial['failures'] += ['timing association failed early; inspect timing_audit.json/calibration_excluded.json']

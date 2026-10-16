@@ -102,9 +102,13 @@ def baseline(state, cfg, method):
     raise ValueError('Unknown R234 method: ' + str(method))
 
 
-def planner_ready():
+def planner_ready(native=False):
     frozen('v5_selector')
     frozen('ayo_topology')
+    if native:
+        from .native_algorithms import adapted
+        for name in ('engine', 'semantic_selector', 'v5_selector', 'routing', 'ayo_topology'):
+            adapted(name)
     return True
 
 

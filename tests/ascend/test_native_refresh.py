@@ -42,7 +42,7 @@ class RejectedThenExpired(NativeDouble):
     async def observe(self, nodes, cfg, index, model, **kwargs):
         s = await super().observe(nodes, cfg, index, model, **kwargs)
         s['native_observation_errors'] = []
-        if not kwargs.get('cache_queries', True):
+        if not kwargs.get('cache_queries', True) and self.rejected:
             self.refreshes += 1
             if self.refreshes == 1:
                 s['now'] -= 1
@@ -109,13 +109,22 @@ class RefreshIntegration(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(deferred['native_receipts'][0]['receipt']['status'], 'expired')
 
     async def test_permanently_stale_refresh_stops_with_recorded_stall_not_endless_retry(self):
-        self.cfg['native_idle_stall_s'] = .3
+        class PersistentAfterAttempts(ExpiringRefresh):
+            persistent = True
+            async def observe(self, nodes, cfg, *args, **kwargs):
+                result = await super().observe(nodes, cfg, *args, **kwargs)
+                if self.query_refreshes >= 3:
+                    # Trigger the short watchdog after exercising the refresh
+                    # failures; slow Windows file setup must not preempt them.
+                    cfg['native_idle_stall_s'] = .3
+                return result
         with tempfile.TemporaryDirectory() as directory, ThreadPoolExecutor(1) as pool:
             out = Path(directory) / 'persistent'
-            native = ExpiringRefresh(); native.persistent = True
+            native = PersistentAfterAttempts()
             with self.assertRaisesRegex(ValueError, 'native admission stalled'):
                 await self.run_case(native, r234.plan()[0], out, pool)
             self.assertEqual(native.admitted, 0)
+            self.assertGreaterEqual(native.query_refreshes, 3)
             self.assert_deferred(out)
             self.assertEqual(json.loads((out / 'status.json').read_text())['status'], 'failed')
 
