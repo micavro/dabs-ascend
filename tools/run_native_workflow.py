@@ -63,6 +63,7 @@ class Workflow:
         write_json(self.out / 'run.json', self.record)
         lines = ['DABS 原生' + {'test': '测试', 'experiment': '实验', 'install': '安装',
                  'smoke': '计时关联短诊断', 'calibrate': '单副本完整标定', 'audit': '旧事件离线审计',
+                 'refit': '旧数据离线重拟合（诊断，不作新验收）',
                  'explore': '带预测偏差的实验（非正式验收）'}[self.mode],
                  '状态: ' + self.record['status'], '结果目录: ' + str(self.out)]
         for step in self.record['steps']:
@@ -145,6 +146,11 @@ class Workflow:
 
     def audit(self):
         self.step('native-timing-audit', '离线统计已有原始事件（不发推理）', ['--input', str(self.input_path)])
+
+    def refit(self):
+        self.step('native-refit', '从原始事件比较旧模型与启动项模型（不发推理）', ['--input', str(self.input_path)])
+        self.record.update(diagnostic_only=True, formal_acceptance=False, fresh_holdout_required=True)
+        self.record['next_commands'] = ['bash run_native.sh calibrate']
 
     def explore(self):
         source = self.input_path
@@ -273,7 +279,7 @@ class Workflow:
 
 def main():
     parser = argparse.ArgumentParser(description='现场一键入口：install 安装并重启现有服务；test 测试验收；experiment 跑全部 96 条件。')
-    parser.add_argument('mode', choices=('install', 'smoke', 'calibrate', 'audit', 'explore', 'test', 'experiment'))
+    parser.add_argument('mode', choices=('install', 'smoke', 'calibrate', 'audit', 'refit', 'explore', 'test', 'experiment'))
     parser.add_argument('--replica', type=int, choices=range(4), help='install/smoke/calibrate: select one existing service')
     parser.add_argument('--input', type=Path, help='audit: existing calibration directory (read-only)')
     parser.add_argument('--invalidate-cache', action='store_true', help='仅 test：明确执行副本 0 缓存清空/失效测试；默认不执行')
@@ -285,8 +291,8 @@ def main():
         parser.error('--max-conditions 用于 explore，范围 1..96')
     if args.replica is not None and args.mode not in ('install', 'smoke', 'calibrate'):
         parser.error('--replica 仅用于 install/smoke/calibrate')
-    if (args.mode == 'audit' and not args.input) or (args.input and args.mode not in ('audit', 'explore')):
-        parser.error('audit 必须提供 --input；explore 可用 --input 指定已有标定目录')
+    if (args.mode in ('audit', 'refit') and not args.input) or (args.input and args.mode not in ('audit', 'refit', 'explore')):
+        parser.error('audit/refit 必须提供 --input；explore 可用 --input 指定已有标定目录')
     if args.verify_restart and args.replica not in (None, 0):
         parser.error('--verify-restart 仅支持副本 0')
     if args.invalidate_cache and args.mode != 'test':

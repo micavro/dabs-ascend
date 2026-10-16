@@ -14,12 +14,19 @@ from .common import ROOT, sha, verify_original_assets
 
 TRANSFORMS = {
     'engine': [
+        ("    R = snapshot['replicas']", "    R = snapshot['replicas']\n    from dabs_ascend.native_prediction import startup_extra\n    pipeline_warm = [any(b['replica'] == r for b in snapshot.get('inflight_batches', [])) for r in range(R)]"),
+        ("        if not active:\n            return", "        if not active:\n            pipeline_warm[r] = False\n            return"),
+        ("            last_finish[r] = now", "            if not active_keys[r] and busy[r] is None:\n                pipeline_warm[r] = False\n            last_finish[r] = now"),
+        ("        dt=max(.1,c[0]+c[1]*eff/1024.+c[2]*d/16.+c[3]*dc/65536.+c[4]*eff*context/4194304.+c[5]*eff*d/16384.)",
+         "        startup = not pipeline_warm[r]\n        extra = startup_extra(model, r, p, d, startup)\n        dt=max(.1,c[0]+c[1]*eff/1024.+c[2]*d/16.+c[3]*dc/65536.+c[4]*eff*context/4194304.+c[5]*eff*d/16384.+extra)\n        pipeline_warm[r] = True"),
+        ("'current_action_window': active_window, 'decode_steps': decode_steps}",
+         "'current_action_window': active_window, 'decode_steps': decode_steps, 'prefill_startup_predicted': startup}"),
         ("return len(active) < cfg['max_num_seqs']", "return len(active) < cfg['client_max_inflight']"),
         ("    for initial in snapshot.get('inflight_batches', []):", "    pending_native = [[] for _ in range(R)]\n    for initial in snapshot.get('inflight_batches', []):"),
         ("        if busy[r] is not None:raise ValueError('duplicate native inflight replica')\n", ""),
         ("        busy[r]=b;started_keys.update(dec+[k for k,_ in pre]);push(b['end_ms'],'complete',b)",
          "        pending_native[r].append(b)\n        started_keys.update(dec+[k for k,_ in pre])\n        if busy[r] is None:\n            busy[r]=b;push(b['end_ms'],'complete',b)"),
-        ("            busy[r] = None\n            last_finish[r] = now", "            busy[r] = None\n            if b.get('native_inflight_observation'):\n                pending_native[r].pop(0)\n                if pending_native[r]:\n                    busy[r] = pending_native[r][0]\n                    push(busy[r]['end_ms'], 'complete', busy[r])\n            last_finish[r] = now"),
+        ("            busy[r] = None\n", "            busy[r] = None\n            if b.get('native_inflight_observation'):\n                pending_native[r].pop(0)\n                if pending_native[r]:\n                    busy[r] = pending_native[r][0]\n                    push(busy[r]['end_ms'], 'complete', busy[r])\n"),
         ("        ns[k]['state'] = 'submitted'", "        ns[k]['accepted_at'] = snapshot['now'] + at / 1000\n        ns[k]['state'] = 'submitted'"),
     ],
     'semantic_selector': [

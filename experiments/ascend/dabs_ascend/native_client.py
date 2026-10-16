@@ -85,7 +85,7 @@ class NativeClient:
 
     async def observe(self, nodes, cfg, index, model):
         from .scheduler import snapshot
-        from joint18v2.model import predict
+        from .native_prediction import predict, pending_startup
         count = cfg['replicas']
         queries = [{'query_id': k, 'tokens': n['tokens'], 'salt': self.salt}
                    for k, n in nodes.items() if n['state'] == 'ready']
@@ -174,7 +174,7 @@ class NativeClient:
                 try:
                     if p or dec:
                         check_model_range(model, replica, p, len(dec), dc, pc)
-                    duration = predict(model, replica, p, len(dec), dc, pc) if p or dec else .001
+                    duration = predict(model, replica, p, len(dec), dc, pc, startup=pending_startup(batch)) if p or dec else .001
                     end = end + duration if end is not None else None
                 except ValueError as exc:
                     if not str(exc).startswith('native_calibration_out_of_range:'):
@@ -184,7 +184,8 @@ class NativeClient:
                 state['inflight_batches'].append({'replica': replica, 'batch_id': batch['batch_id'],
                     'prefill': pre, 'decode': dec, 'remaining_ms': end, 'cap': resource['step_tokens'],
                     'timing_target': model.get('timing_target'),
-                    'timing_source': 'frozen completion-charge prediction; serial rollout approximation' if end is not None else 'unknown; outside frozen model support'})
+                    'prefill_startup_observed': pending_startup(batch),
+                    'timing_source': 'loaded completion-charge prediction; serial rollout approximation' if end is not None else 'unknown; outside frozen model support'})
         state['native_pressure'] = list(state['pressure'])
         state['native_state_ages_s'] = list(state['state_ages_s'])
         state['pressure_source'] = 'engine running + 2*waiting'

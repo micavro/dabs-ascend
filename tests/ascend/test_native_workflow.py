@@ -246,6 +246,14 @@ class NativeWorkflowTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertEqual(self.commands, [])
 
+    def test_refit_is_diagnostic_and_does_not_run_inference(self):
+        self.current = entry.Workflow(self.root, 'refit', input_path=self.root / 'old-calibration')
+        with patch.object(self.current, 'launch', side_effect=self.fake_launch), redirect_stdout(io.StringIO()):
+            self.assertEqual(self.current.run(), 0)
+        self.assertEqual([c[2] for c in self.commands], ['native-refit'])
+        self.assertTrue(self.current.record['fresh_holdout_required'])
+        self.assertFalse(self.current.record['formal_acceptance'])
+
     def test_audit_old_directory_is_mounted_readonly_without_devices(self):
         old = self.root / 'older-checkout/outputs/calibration'; old.mkdir(parents=True)
         args = SimpleNamespace(mode='native-timing-audit', replica=None, backup=None,

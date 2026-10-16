@@ -70,7 +70,7 @@ def evaluate_probe(directory, replicas):
     return checks
 
 
-def evaluate_local(paths):
+def evaluate_local(paths, *, historical_predictor=False):
     checks, missing, hashes = {}, [], {}
     required = ('native-probe-one', 'native-probe-four', 'native-calibrate')
     optional = ('native-invalidate', 'native-restart-check')
@@ -101,6 +101,7 @@ def evaluate_local(paths):
                 restart['receipt']['status'] == 'rejected' and restart['receipt']['reason'] == 'engine_restarted'}
         calibration = Path(paths['native-calibrate'])
         model, samples = read_json(calibration / 'native_profile.json'), read_json(calibration / 'calibration_samples.json')
+        predictor = model.get('predictor', 'phase6_v1') if historical_predictor else None
         caps = read_json(calibration / 'capabilities.json')
         accounting = model.get('timing_target') == TARGET
         raw = {} if accounting else {(e['replica'], b['batch_id']): batch_features(b) for e in events(calibration) if e['op'] == 'batches'
@@ -111,13 +112,17 @@ def evaluate_local(paths):
         declared_plan = plan_record['plan']
         if accounting:
             from .native_calibration import calibration_plan
-            if plan_record.get('diagnostic_only') is not False or declared_plan != calibration_plan():
+            expected_plan = calibration_plan(predictor=predictor) if historical_predictor else calibration_plan()
+            if plan_record.get('diagnostic_only') is not False or declared_plan != expected_plan:
                 raise ValueError('diagnostic or incomplete/nondeclared calibration plan cannot open gate')
             raw_events = events(calibration)
             floors = collection_floors(raw_events, plan_record)
             if set(floors) != set(range(len(caps))):
                 raise ValueError('missing replica collection-start snapshot')
             rebuilt, excluded = reconstruct(raw_events, declared_plan, after_steps=floors)
+            from .native_prediction import PREDICTOR, check_startup_inputs
+            if model.get('predictor') == PREDICTOR:
+                check_startup_inputs(rebuilt, raw_events)
             raw = {(s['replica'], s['batch_id']): s for s in rebuilt}
             if excluded or len(samples) != len(raw):
                 raise ValueError('excluded or omitted raw calibration batches')
@@ -135,7 +140,7 @@ def evaluate_local(paths):
                     for q in raw_batches[key]['requests']):
                 raise ValueError('train/holdout group does not match engine request identity')
             seen.add(key)
-        recomputed = fit_model(samples, caps)
+        recomputed = fit_model(samples, caps, predictor=predictor)
         checks['calibration'] = {'frozen_independent_holdout': recomputed['pass'] and model['models'] == recomputed['models'] and
             model['validation'] == recomputed['validation'] and
             model['timing_target'] == recomputed['timing_target'] and
@@ -143,7 +148,7 @@ def evaluate_local(paths):
             model.get('frozen') is True and not model.get('diagnostic_only', False) and
             model['identities'] == recomputed['identities'] and model['resources'] == recomputed['resources'] and
             all(model.get(k) == recomputed.get(k) for k in ('original_gpu_timing_equivalent',
-                'accounting_model', 'prediction_semantics', 'pending_batch_model', 'thresholds_predeclared'))}
+                'accounting_model', 'prediction_semantics', 'pending_batch_model', 'thresholds_predeclared', 'predictor'))}
         for name in (*required, *(name for name in optional if name in paths)):
             directory = Path(paths[name])
             for path in directory.iterdir():

@@ -63,7 +63,7 @@ def preserve_native_freeze(out, gate, model, resume):
     def scientific_binding(value):
         return {'identities': [engine_epoch(i) for i in value['identities']],
                 'resources': [resource_values(r) for r in value['resources']],
-                **{k: value.get(k) for k in ('models', 'validation', 'timing_target', 'host_step_equivalence')}}
+                **{k: value.get(k) for k in ('models', 'validation', 'predictor', 'timing_target', 'host_step_equivalence')}}
     binding = scientific_binding(model)
     path = out / 'native_freeze.json'
     if resume:
@@ -181,7 +181,8 @@ async def execute(args, out, plan, summaries, identity):
                     '200 ms finite priority window; original FIFO continuation and 5 s age guard.',
                     'Ayo uses conservative reserved KV blocks divided by physical capacity.',
                     'Service model target: ' + model['timing_target'] + '; device events are auxiliary. See native-async-calibration.md for approximation limits.'],
-                    timing_target=model['timing_target'], original_gpu_timing_equivalent=model.get('original_gpu_timing_equivalent', False),
+                    timing_target=model['timing_target'], predictor=model.get('predictor', 'phase6_v1'),
+                    original_gpu_timing_equivalent=model.get('original_gpu_timing_equivalent', False),
                     effective_resources=[c['resources'] for c in caps], client_max_inflight=args.max_inflight,
                     exploratory=bool(gate.get('exploratory')), formal_acceptance=gate['pass'])
                 write_json(out / 'protocol.json', protocol)

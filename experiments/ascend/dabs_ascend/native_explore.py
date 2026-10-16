@@ -6,11 +6,10 @@ from .common import read_json
 from .native_calibration import fit_model
 from .native_gate import evaluate_local, check_live
 from .native_timing import TARGET
-from dabs_native.contracts import resource_values
 
 
 def evaluate(paths):
-    gate = evaluate_local(paths)
+    gate = evaluate_local(paths, historical_predictor=True)
     # evaluate_local still reconstructs every sample and every probe from raw events.
     allowed = ['calibration: frozen_independent_holdout']
     if gate['missing'] not in ([], allowed):
@@ -18,7 +17,8 @@ def evaluate(paths):
     directory = Path(paths['native-calibrate'])
     recorded = read_json(directory / 'native_profile.json')
     caps = read_json(directory / 'capabilities.json')
-    model = fit_model(read_json(directory / 'calibration_samples.json'), caps)
+    model = fit_model(read_json(directory / 'calibration_samples.json'), caps,
+                      predictor=recorded.get('predictor', 'phase6_v1'))
     if len(caps) not in (1, 4) or model['timing_target'] != TARGET:
         raise ValueError('exploration requires full async calibration of replica 0 or all four replicas')
     for key in ('models', 'validation', 'identities', 'resources', 'timing_target',
@@ -40,9 +40,10 @@ async def verify(native, paths):
     await check_live(native, paths, model, allow_single=True)
     original = copy.deepcopy(model)
     if len(model['identities']) == 1:
-        if any(resource_values(c['resources']) != resource_values(model['resources'][0])
-               for c in native.capabilities):
+        if any(c['resources'][key] != model['resources'][0][key] for c in native.capabilities
+               for key in ('step_tokens', 'block_size', 'server_max_seqs', 'context_tokens')):
             raise ValueError('single-replica exploratory model requires identical effective resources on all services')
+        # Physical capacity remains each engine's measured value, never borrowed.
         model['models'] = {str(r): copy.deepcopy(original['models']['0']) for r in range(4)}
         # Retain only actually measured validation. Never invent r1/r2/r3 measurements.
         model['prediction_validation_map'] = {str(r): '0' for r in range(4)}

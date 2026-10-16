@@ -24,7 +24,7 @@ from test_native_simplification import capability
 def fixture(root):
     probe_fixture(root / 'one', 1); probe_fixture(root / 'four', 4)
     out = root / 'cal'; out.mkdir()
-    plan = calibration_plan()
+    plan = calibration_plan(predictor='phase6_v1')
     # Two independently identified synthetic episodes per declared workload group.
     rows = pipeline([g for g in plan for _ in range(2)])
     cutoff = 2801 * 1_000_000
@@ -44,7 +44,8 @@ def fixture(root):
     samples, excluded = reconstruct(rows, plan)
     assert not excluded, excluded
     caps = [capability()]
-    model = fit_model(samples, caps)
+    model = fit_model(samples, caps, predictor='phase6_v1')
+    model.pop('predictor')  # Actual e73f636/fc2b581 files predate this metadata.
     assert not model['pass']
     start = {'snapshot_id': 'start', 'step': 0}
     rows.insert(0, {'op': 'snapshot', 'replica': 0, 'response': {
@@ -119,6 +120,9 @@ class ExploreTests(unittest.TestCase):
         native = self.live(); native.capabilities[3]['resources']['step_tokens'] = 4096
         with self.assertRaisesRegex(ValueError, 'identical effective resources'):
             asyncio.run(verify(native, self.paths))
+        native = self.live(); native.capabilities[3]['resources']['physical_blocks'] = 500
+        _, transferred = asyncio.run(verify(native, self.paths))
+        self.assertEqual(transferred['resources'][3]['physical_blocks'], 500)
 
     def test_report_keeps_exploration_separate_from_acceptance(self):
         from dabs_ascend.r234_report import make_report

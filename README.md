@@ -23,11 +23,31 @@ bash run_native.sh explore --max-conditions 96
 bash run_native.sh explore --input /data/wushibo/dabs-ascend-main-2026101605/outputs/native_calibrate_20261016T083402Z_30da8518/01-native-calibrate-one
 ```
 
-仅暂不要求**预测误差阈值**通过；原始计时关联、独立 train/holdout、样本数、覆盖、资源、DAG、动作期限、缓存及回执检查不变。若只有副本 0 标定，四卡在资源配置一致时共用该模型，记录 `model_transfer_from_replica_0: true`；不会伪造其他卡的标定指标。仍缺新接口的副本先运行 `bash run_native.sh install`，安装器保留备份并跳过已经可用的副本。
+仅暂不要求**预测误差阈值**通过；原始计时关联、独立 train/holdout、样本数、覆盖、资源、DAG、动作期限、缓存及回执检查不变。若只有副本 0 标定，四卡在步预算、块大小、序列数及上下文上限一致时共用该模型（KV 容量仍逐卡使用实测值），记录 `model_transfer_from_replica_0: true`；不会伪造其他卡的标定指标。仍缺新接口的副本先运行 `bash run_native.sh install`，安装器保留备份并跳过已经可用的副本。
 
 成功结束是 `outputs/native_explore_*/r234_exploratory/status.json` 显示所选数量的 `completed_conditions`；少于 96 条件时为 `paused`（正常暂停），全部 96 条件结束时为 `complete`。查看 `TEST_REPORT.md`、`metrics.csv`、`paired_comparisons.csv` 和 `diagnostic_reasons.csv`。结果明确标记 `exploratory: true`、`formal_acceptance: false`，不能作为正式原生验收，也不会放行下面的 `experiment` 命令。预测修复另行验证，旧日志和结果保持不变。
 
-## 本次标定修复：先单卡验证，再跑四卡
+## 预测器修复：先离线复用刚才的数据
+
+上述 `explore` 继续使用所选历史标定对应的预测器；不会因为新代码加入预测修复而自动替换旧模型。新标定使用 `phase6_prefill_startup_v2`：prefill 增加从实际在途状态获得的启动项，decode/mixed 保留原六特征。误差阈值不变。此改动仅在控制端，**已更新计时接口的副本 0 无需重新安装或重启**。
+
+先比较已有 2681 条原始记录的旧/新预测误差，不发推理、不改旧文件：
+
+```bash
+bash run_native.sh refit --input /data/wushibo/dabs-ascend-main-2026101605/outputs/native_calibrate_20261016T083402Z_30da8518/01-native-calibrate-one
+```
+
+查看新输出目录下 `01-native-refit/refit_comparison.json`：`previous` 为旧预测误差，`startup_aware` 为新误差及启动/流水线分组均值。`retrospective_error_check_pass: true` 仅表示这批旧数据上误差合格；仍为 `frozen: false`，不冒充新验收。若仍失败，保留这份对照，不盲目重采。
+
+离线对照合理后，单卡使用**新训练/留出种子**验证：
+
+```bash
+bash run_native.sh calibrate
+```
+
+这仍是 28 组完整标定，只有三阶段误差、样本数和覆盖均通过才冻结。正式实验种子、96 条件和工作量没有变；新标定不会使用试跑实验结果拟合。本地 CPU 测试通过不等于新的现场误差已经通过，完整数据仍在服务器，需现场运行上述离线对照验证。
+
+## 历史计时关联修复：尚未更新旧适配器时
 
 从 GitHub main 下载到**新目录**，进入目录，在 Linux 宿主机按顺序执行。旧项目和失败输出都保留。
 
@@ -63,7 +83,7 @@ bash run_native.sh test --invalidate-cache
 
 安装逐个处理缺少计时能力的副本；已加载新字段的副本跳过。测试不自动重启；`--invalidate-cache` 明确允许最后执行副本 0 缓存失效专项。普通测试仍可使用 `bash run_native.sh test`。完整验收通过以后才运行 `bash run_native.sh experiment`。
 
-**计时口径发生变化**：新标定是 `async_host_completion_accounting_v1`，按完成顺序计算不重叠的主机时间份额，包含首批启动时间，作为吞吐量近似模型。它不是旧 GPU 的同 batch host-step 时间，也不是 NPU forward 或 HTTP 时间；`host_step_equivalence` 正确保持 `false`。验收从原始事件重新计算，不能改 PASS 或 equivalent 标志放行。具体定义、限制和差异见 [异步标定协议](docs/native-async-calibration.md)。本地无 NPU，尚不能宣称新口径已在现场通过。
+**计时口径发生变化**：新标定是 `async_host_completion_accounting_v1`，按完成顺序计算不重叠的主机时间份额，包含首批启动时间，作为吞吐量近似模型。它不是旧 GPU 的同 batch host-step 时间，也不是 NPU forward 或 HTTP 时间；`host_step_equivalence` 正确保持 `false`。验收从原始事件重新计算，不能改 PASS 或 equivalent 标志放行。具体定义、限制和差异见 [异步标定协议](docs/native-async-calibration.md)。现场已证明计时关联可用；新的预测器误差与完整验收仍待现场验证。
 
 ## 日常测试和实验
 

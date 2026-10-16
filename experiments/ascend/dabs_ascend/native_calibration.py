@@ -6,6 +6,7 @@ import uuid
 
 from .common import write_json, source_identity, sha
 from .native_timing import TARGET, audit, read_events, reconstruct, require_timing, collection_floors
+from .native_prediction import PREDICTOR, regression_features, check_startup_inputs
 
 PHASES = ('prefill_only', 'decode_only', 'mixed')
 
@@ -35,11 +36,14 @@ def batch_features(batch):
             'host_batch_span_ms_approximation': batch['host_batch_span_ms'], 'batch_id': batch['batch_id']}
 
 
-def fit_model(samples, capabilities):
+def fit_model(samples, capabilities, *, predictor=None):
     import numpy as np
     from .common import percentile
     models, validation, failures = {}, {}, []
     accounting = any(s.get('timing_target') == TARGET for s in samples)
+    predictor = predictor or (PREDICTOR if accounting else 'phase6_v1')
+    if predictor not in (PREDICTOR, 'phase6_v1'):
+        raise ValueError('unknown predictor')
     if accounting and any(s.get('timing_target') != TARGET for s in samples):
         raise ValueError('mixed timing targets')
     eligible = [s for s in samples if (s.get('accounting_valid') is True if accounting else s.get('host_step_equivalent') is True)]
@@ -67,18 +71,18 @@ def fit_model(samples, capabilities):
             if len(train) < 20 or len(holdout) < 20:
                 failures.append(f'r{replica}/{phase}: require >=20 batches in EACH independent train/holdout split; actual train={len(train)}, holdout={len(holdout)}; target={TARGET if accounting else "same-batch host call"}')
                 continue
-            x, y = np.asarray([s['x'] for s in train]), np.asarray([s['y'] for s in train])
+            x, y = np.asarray([regression_features(s, predictor) for s in train]), np.asarray([s['y'] for s in train])
             # Nonnegative least squares by deterministic coordinate descent.
-            coef = np.zeros(6)
+            coef = np.zeros(x.shape[1])
             for _ in range(2000):
                 old = coef.copy()
-                for j in range(6):
+                for j in range(len(coef)):
                     denom = float(x[:, j] @ x[:, j])
                     if denom:
                         coef[j] = max(0., float(x[:, j] @ (y - x @ coef + x[:, j] * coef[j])) / denom)
                 if float(np.max(np.abs(old - coef))) < 1e-10:
                     break
-            pred = [max(.1, float(np.asarray(s['x']) @ coef)) for s in holdout]
+            pred = [max(.1, float(np.asarray(regression_features(s, predictor)) @ coef)) for s in holdout]
             errors = [abs(p - s['y']) / max(.1, s['y']) for p, s in zip(pred, holdout)]
             rmse = math.sqrt(sum((p - s['y']) ** 2 for p, s in zip(pred, holdout)) / len(holdout))
             mean = sum(s['y'] for s in holdout) / len(holdout)
@@ -86,7 +90,21 @@ def fit_model(samples, capabilities):
             checks[phase].update({
                 'p95_relative_error': percentile(errors, .95), 'rmse_ms': rmse, 'holdout_mean_ms': mean,
                 'pass': passed, 'range': {k: [min(s[k] for s in train), max(s[k] for s in train)] for k in ('p', 'd', 'dc', 'pc')}})
-            phases[phase] = {'coef': coef.tolist()}
+            phases[phase] = {'coef': coef[:6].tolist()}
+            if predictor == PREDICTOR and phase == 'prefill_only':
+                regimes = sorted({s['regime'] for s in train})
+                phases[phase].update(startup_extra_ms=float(coef[6]), observed_regimes=regimes)
+                checks[phase]['regimes'] = {}
+                for regime in ('startup', 'pipeline'):
+                    selected = [(s, p) for s, p in zip(holdout, pred) if s['regime'] == regime]
+                    checks[phase]['regimes'][regime] = {
+                        'train_batches': sum(s['regime'] == regime for s in train),
+                        'holdout_batches': len(selected),
+                        'actual_mean_ms': sum(s['y'] for s, _ in selected) / len(selected) if selected else None,
+                        'predicted_mean_ms': sum(p for _, p in selected) / len(selected) if selected else None}
+                    if selected and regime not in regimes:
+                        passed = checks[phase]['pass'] = False
+                        failures.append(f'r{replica}/{phase}: holdout has untrained regime {regime}')
             if not passed:
                 failures.append(f'r{replica}/{phase}: frozen holdout error thresholds exceeded')
         combined = [s for s in eligible if s['replica'] == replica and s['split'] == 'train']
@@ -95,7 +113,7 @@ def fit_model(samples, capabilities):
                 or max(s['d'] for s in combined) < 2):
             failures.append(f'r{replica}: actual batch coverage does not cover the fixed R234/client-inflight=2 workload')
         models[str(replica)], validation[str(replica)] = {'phases': phases}, checks
-    return {'models': models, 'validation': validation, 'failures': failures, 'pass': not failures,
+    return {'models': models, 'validation': validation, 'failures': failures, 'pass': not failures, 'predictor': predictor,
             'timing_target': TARGET if accounting else 'engine_host_ms: actual EngineCore step entry to return, only unambiguous same-batch calls',
             'excluded_ambiguous_host_batches': ambiguous, 'eligible_host_batches': len(eligible),
             'host_step_equivalence': False if accounting else not failures,
@@ -108,7 +126,7 @@ def fit_model(samples, capabilities):
             'source_sha256': source_identity(), 'frozen': not failures}
 
 
-def calibration_plan(diagnostic=False):
+def calibration_plan(diagnostic=False, *, predictor=PREDICTOR):
     # Fixed in advance; no adapting cases/thresholds to holdout outcomes.
     cases = [(128, 1, 16, False), (129, 1, 16, False), (1024, 1, 32, False),
              (2048, 1, 48, False), (3584, 1, 64, False), (3584, 1, 128, False),
@@ -119,7 +137,7 @@ def calibration_plan(diagnostic=False):
         cases = [(3584, 1, 16, False), (3584, 2, 32, False)]
     repeats = 1  # Fixed budget; insufficient phase coverage is reported, never padded.
     return [{'split': split, 'length': length, 'concurrency': concurrency, 'output': output,
-             'hot': hot, 'repeat': repeat, 'seed': 271800 + offset * 100000 + repeat * 10000 + i * 100 + concurrency}
+             'hot': hot, 'repeat': repeat, 'seed': (271800 if predictor == 'phase6_v1' else 2271800) + offset * 100000 + repeat * 10000 + i * 100 + concurrency}
             for offset, split in enumerate(('train', 'holdout'))
             for repeat in range(repeats)
             for i, (length, concurrency, output, hot) in enumerate(cases)]
@@ -133,7 +151,35 @@ def rebuild(directory):
     write_json(directory / 'timing_audit.json', audit(rows))
     write_json(directory / 'calibration_samples.json', samples)
     write_json(directory / 'calibration_excluded.json', excluded)
+    check_startup_inputs(samples, rows)
     return samples, excluded
+
+
+def refit_existing(directory, out):
+    """Retrospective diagnosis only: previously examined holdout cannot certify v2."""
+    from .common import read_json
+    rows = list(read_events(directory / 'native_events.jsonl'))
+    record = read_json(directory / 'calibration_plan.json')
+    samples, excluded = reconstruct(rows, record['plan'], after_steps=collection_floors(rows, record))
+    write_json(out / 'timing_audit.json', audit(rows))
+    write_json(out / 'calibration_excluded.json', excluded)
+    write_json(out / 'calibration_samples.json', samples)
+    if excluded or not samples:
+        raise ValueError('raw association failed; inspect calibration_excluded.json')
+    check_startup_inputs(samples, rows)
+    caps = read_json(directory / 'capabilities.json')
+    old = fit_model(samples, caps, predictor='phase6_v1')
+    model = fit_model(samples, caps)
+    retrospective_pass = model['pass']
+    model.update(frozen=False, diagnostic_only=True, retrospective_validation=True,
+                 acceptance_granted=False, fresh_holdout_required=True, source_directory=str(directory))
+    write_json(out / 'native_profile.json', model)
+    comparison = {'previous': old['validation'], 'startup_aware': model['validation'],
+                  'models': model['models'], 'failures': model['failures'], 'predictor': model['predictor'],
+                  'retrospective_error_check_pass': retrospective_pass, 'frozen': False,
+                  'fresh_holdout_required': True, 'acceptance_granted': False}
+    write_json(out / 'refit_comparison.json', comparison)
+    return comparison
 
 
 async def run_calibration(backend, tokenizer, out, *, diagnostic=False):

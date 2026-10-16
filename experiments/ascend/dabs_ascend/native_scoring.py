@@ -77,7 +77,7 @@ def check_model_range(model, replica, p, d, dc, pc):
 def next_batch(state, action, model, replica, cfg):
     import copy
     from core18v2.engine import CacheModel
-    from joint18v2.model import predict
+    from .native_prediction import predict
     ns = copy.deepcopy(state['nodes'])
     for key in action['admit']:
         ns[key].update(state='submitted', replica=action['placement'][key], computed=0, phase='prefill', output_done=0, accepted_at=state['now'])
@@ -93,8 +93,10 @@ def next_batch(state, action, model, replica, cfg):
         check_model_range(model, replica, p, d, dc, pc)
     if d:
         check_model_range(model, replica, 0, d, dc, 0)
+    startup = not any(b['replica'] == replica for b in state.get('inflight_batches', []))
     return {'prefill': p, 'decode': d, 'decode_context': dc, 'cache_credit': 0,
             'timing_target': model.get('timing_target'),
-            'max_prefill_context': pc, 'step_ms': predict(model, replica, p, d, dc, pc) if p or d else 0.,
-            'decode_only_ms': predict(model, replica, 0, d, dc, 0) if d else 0.,
+            'prefill_startup_predicted': startup,
+            'max_prefill_context': pc, 'step_ms': predict(model, replica, p, d, dc, pc, startup=startup) if p or d else 0.,
+            'decode_only_ms': predict(model, replica, 0, d, dc, 0, startup=False) if d else 0.,
             'new_decode_next_step': sum(ns[k]['computed'] + n == ns[k]['prompt'] for k, n in pre)}

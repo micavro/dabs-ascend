@@ -16,7 +16,7 @@ from dabs_ascend.common import read_json, write_json, source_paths
 
 MODES = ('native-install-check', 'native-install', 'native-verify', 'native-rollback',
          'native-check', 'native-check-four', 'native-probe-one', 'native-probe-four', 'native-calibrate',
-         'native-calibrate-one', 'native-calibration-smoke', 'native-timing-audit',
+         'native-calibrate-one', 'native-calibration-smoke', 'native-timing-audit', 'native-refit',
          'native-invalidate', 'native-restart-arm', 'native-restart-check', 'native-accept')
 
 
@@ -105,6 +105,16 @@ async def worker(args, out):
     from dabs_ascend.native_probe import probe, invalidation_probe
     from dabs_ascend.native_gate import verify_live
     from dabs_ascend.native_calibration import run_calibration
+    if args.mode == 'native-refit':
+        from dabs_ascend.native_calibration import refit_existing
+        result = refit_existing(args.input, out)
+        result.update(pass_=result['retrospective_error_check_pass'], diagnostic_only=True)
+        result['pass'] = result.pop('pass_')
+        write_json(out / 'result.json', result)
+        summary = json.dumps(result, ensure_ascii=False, indent=2)
+        (out / 'SUMMARY.txt').write_text(summary, encoding='utf-8')
+        print(summary)
+        return 0 if result['pass'] else 2
     if args.mode == 'native-timing-audit':
         from dabs_ascend.native_timing import audit, read_events, reconstruct, collection_floors
         rows = list(read_events(args.input / 'native_events.jsonl'))
@@ -192,13 +202,13 @@ def main():
     parser.add_argument('--backup')
     parser.add_argument('--out', type=Path, help='new output directory inside project outputs; never overwrite')
     parser.add_argument('--evidence', type=Path, help='native-accept only: explicit JSON with raw evidence paths')
-    parser.add_argument('--input', type=Path, help='native-timing-audit: old calibration directory, read-only')
+    parser.add_argument('--input', type=Path, help='native-timing-audit/native-refit: old calibration directory, read-only')
     parser.add_argument('--worker', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
     if args.evidence and args.mode != 'native-accept':
         parser.error('--evidence is only for native-accept')
-    if (args.mode == 'native-timing-audit') != bool(args.input):
-        parser.error('--input is required only for native-timing-audit')
+    if (args.mode in ('native-timing-audit', 'native-refit')) != bool(args.input):
+        parser.error('--input is required only for native-timing-audit/native-refit')
     if args.mode not in (*MODES[:4], 'native-check', 'native-calibrate-one', 'native-calibration-smoke') and args.replica not in (None, 0):
         parser.error('--replica 1..3 is for install/check/verify/rollback; active one-replica probes use replica 0, four-replica probes use all four')
     if not args.worker:
