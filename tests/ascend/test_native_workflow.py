@@ -54,9 +54,10 @@ class NativeWorkflowTests(unittest.TestCase):
             return 7
         if mode == 'benchmark':
             if '--exploratory-calibration' in command:
-                write_json(target / 'status.json', {'status': 'paused', 'completed_conditions': 4,
+                count = int(command[command.index('--max-conditions') + 1])
+                write_json(target / 'status.json', {'status': 'complete' if count == 96 else 'paused', 'completed_conditions': count,
                                                    'functional_test_pass': False})
-                write_json(target / 'index.json', [{'functional_pass': True, 'exploratory': True}] * 4)
+                write_json(target / 'index.json', [{'functional_pass': True, 'exploratory': True}] * count)
                 return 0
             write_json(target / 'status.json', {'status': 'complete', 'completed_conditions': self.completed,
                                                'functional_test_pass': True})
@@ -73,8 +74,8 @@ class NativeWorkflowTests(unittest.TestCase):
         write_json(target / 'result.json', result)
         return 0 if result['pass'] else 2
 
-    def run_workflow(self, mode='test', invalidate_cache=False):
-        self.current = entry.Workflow(self.root, mode, invalidate_cache)
+    def run_workflow(self, mode='test', invalidate_cache=False, max_conditions=None):
+        self.current = entry.Workflow(self.root, mode, invalidate_cache, max_conditions=max_conditions)
         with patch.object(self.current, 'launch', side_effect=self.fake_launch), redirect_stdout(io.StringIO()):
             code = self.current.run()
         return self.current, code
@@ -181,6 +182,11 @@ class NativeWorkflowTests(unittest.TestCase):
         self.assertIn('--exploratory-calibration', self.commands[-1])
         self.assertEqual(self.commands[-1][self.commands[-1].index('--max-conditions') + 1], '4')
         self.assertFalse(run.record['formal_acceptance'])
+        for count in (1, 24, 96):
+            run, code = self.run_workflow('explore', max_conditions=count)
+            self.assertEqual(code, 0)
+            self.assertEqual(run.record['completed_conditions'], count)
+            self.assertFalse(run.record['formal_acceptance'])
         self.assertEqual((source / 'native_events.jsonl').read_text(), '{}')
         self.commands = []
         self.assertEqual(self.run_workflow('experiment')[1], 2)

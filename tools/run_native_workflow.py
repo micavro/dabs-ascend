@@ -30,7 +30,7 @@ class Stopped(Exception):
 
 
 class Workflow:
-    def __init__(self, root, mode, invalidate_cache=False, verify_restart=False, ready_timeout=900, replica=None, input_path=None):
+    def __init__(self, root, mode, invalidate_cache=False, verify_restart=False, ready_timeout=900, replica=None, input_path=None, max_conditions=None):
         self.root, self.mode = Path(root).resolve(), mode
         stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ_') + uuid.uuid4().hex[:8]
         self.out = self.root / 'outputs' / ('native_' + mode + '_' + stamp)
@@ -38,6 +38,7 @@ class Workflow:
         self.invalidate_cache = invalidate_cache
         self.verify_restart, self.ready_timeout = verify_restart, ready_timeout
         self.replica, self.input_path = replica, input_path
+        self.max_conditions = 4 if max_conditions is None else max_conditions
         self.record = {'mode': mode, 'status': 'running', 'started_utc': utc(),
                        'output': self.relative(self.out), 'steps': [], 'next_commands': [],
                        'explicit_cache_invalidation': invalidate_cache, 'explicit_restart_test': verify_restart}
@@ -62,7 +63,7 @@ class Workflow:
         write_json(self.out / 'run.json', self.record)
         lines = ['DABS 原生' + {'test': '测试', 'experiment': '实验', 'install': '安装',
                  'smoke': '计时关联短诊断', 'calibrate': '单副本完整标定', 'audit': '旧事件离线审计',
-                 'explore': '带预测偏差的四条件试跑（非正式验收）'}[self.mode],
+                 'explore': '带预测偏差的实验（非正式验收）'}[self.mode],
                  '状态: ' + self.record['status'], '结果目录: ' + str(self.out)]
         for step in self.record['steps']:
             lines.append(step['label'] + ': ' + step['status'] + '；日志 ' + step['log'])
@@ -167,7 +168,8 @@ class Workflow:
         for name in ('native_profile.json', 'calibration_plan.json', 'calibration_samples.json',
                      'capabilities.json', 'native_events.jsonl'):
             shutil.copyfile(source / name, staged / name)
-        self.record.update(calibration_source=str(source), exploratory=True, formal_acceptance=False)
+        self.record.update(calibration_source=str(source), exploratory=True, formal_acceptance=False,
+                           requested_conditions=self.max_conditions)
         self.save()
         paths = {'native-calibrate': self.container_path(staged)}
         self.step('native-check-four', '检查现有四服务接口（不安装、不重启）')
@@ -177,16 +179,17 @@ class Workflow:
         write_json(evidence, {'paths': paths, 'exploratory': True, 'formal_acceptance': False})
         result_dir = self.out / 'r234_exploratory'
         self.record['experiment_output'] = self.relative(result_dir)
-        self.step('benchmark', '忽略已记录预测误差，试跑原计划前四条件 RR/SLL/Ayo/Ours',
+        self.step('benchmark', '保留预测偏差，运行原计划前 ' + str(self.max_conditions) + ' 个条件',
                   ['--execution-scope', 'native', '--native-evidence', self.container_path(evidence),
-                   '--exploratory-calibration', '--max-conditions', '4',
+                   '--exploratory-calibration', '--max-conditions', str(self.max_conditions),
                    '--out', self.container_path(result_dir)], native=False)
         result = read_json(result_dir / 'status.json')
         summaries = read_json(result_dir / 'index.json')
-        if (result.get('status') != 'paused' or result.get('completed_conditions') != 4 or
-                len(summaries) != 4 or not all(s.get('functional_pass') is True and s.get('exploratory') is True for s in summaries)):
-            raise Stopped('四条件试跑未完整结束；保留实际失败，不计正式验收通过。')
-        self.record['completed_conditions'] = 4
+        expected_status = 'complete' if self.max_conditions == 96 else 'paused'
+        if (result.get('status') != expected_status or result.get('completed_conditions') != self.max_conditions or
+                len(summaries) != self.max_conditions or not all(s.get('functional_pass') is True and s.get('exploratory') is True for s in summaries)):
+            raise Stopped('所选条件没有完整结束；保留实际失败，不计正式验收通过。')
+        self.record['completed_conditions'] = self.max_conditions
 
     def smoke(self):
         self.step('native-calibration-smoke', '单副本短诊断（不能代替完整标定）', ['--replica', str(self.replica or 0)])
@@ -276,7 +279,10 @@ def main():
     parser.add_argument('--invalidate-cache', action='store_true', help='仅 test：明确执行副本 0 缓存清空/失效测试；默认不执行')
     parser.add_argument('--verify-restart', action='store_true', help='仅 install：明确额外重启副本 0 并验证旧身份失效')
     parser.add_argument('--ready-timeout', type=int, default=900, help='install 每个服务加载等待秒数，默认 900')
+    parser.add_argument('--max-conditions', type=int, help='explore: first N conditions (1..96), default 4')
     args = parser.parse_args()
+    if args.max_conditions is not None and (args.mode != 'explore' or not 1 <= args.max_conditions <= 96):
+        parser.error('--max-conditions 用于 explore，范围 1..96')
     if args.replica is not None and args.mode not in ('install', 'smoke', 'calibrate'):
         parser.error('--replica 仅用于 install/smoke/calibrate')
     if (args.mode == 'audit' and not args.input) or (args.input and args.mode not in ('audit', 'explore')):
@@ -303,7 +309,7 @@ def main():
             if args.mode in ('test', 'install', 'smoke', 'calibrate'):
                 stack.enter_context(device_locks(range(4), ROOT / 'outputs/.existing_controller_locks'))
             return Workflow(ROOT, args.mode, args.invalidate_cache, args.verify_restart, args.ready_timeout,
-                            args.replica, args.input).run()
+                            args.replica, args.input, args.max_conditions).run()
     except BlockingIOError:
         print('已有测试或实验使用这些服务；请等待当前任务结束。', file=sys.stderr)
         return 2

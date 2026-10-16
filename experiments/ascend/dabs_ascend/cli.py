@@ -38,7 +38,7 @@ def parser(existing=False):
     p.add_argument('--execution-scope', choices=('native', 'http-limited'), default='native',
                    help='R234: native requires verified hooks; http-limited is diagnostic, not full mechanism reproduction')
     p.add_argument('--native-evidence', type=Path, help='native acceptance.json; default uses outputs/native-latest.json raw paths')
-    p.add_argument('--exploratory-calibration', action='store_true', help='Explicit four-condition trial with measured prediction error; not formal acceptance')
+    p.add_argument('--exploratory-calibration', action='store_true', help='Exploratory run with measured prediction error; not formal acceptance')
     p.add_argument('--http-keepalive', type=int, default=None,
                    help='R234 idle HTTP pool size; 0 preserves the reported site workaround (not a performance claim)')
     p.add_argument("--repeats", type=int, default=None)
@@ -69,8 +69,8 @@ def prepare_args(argv=None, existing=False):
         args.suite = 'dabs-r234-balanced-64'
     if args.exploratory_calibration and (not existing or args.mode != 'benchmark' or
             args.suite != 'dabs-r234-balanced-64' or args.execution_scope != 'native' or
-            args.max_conditions != 4 or args.resume is not None or args.native_evidence is None):
-        p.error('exploratory-calibration requires existing native R234 benchmark, raw evidence, max-conditions 4, and a new output')
+            args.resume is not None or args.native_evidence is None):
+        p.error('exploratory-calibration requires existing native R234 benchmark, raw evidence and a new output')
     if args.suite == 'dabs-r234-balanced-64':
         args.http_keepalive = 0 if args.http_keepalive is None else args.http_keepalive
         if not 0 <= args.http_keepalive <= 256:

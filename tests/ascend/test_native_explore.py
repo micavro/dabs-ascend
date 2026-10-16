@@ -132,12 +132,14 @@ class ExploreTests(unittest.TestCase):
         self.assertTrue(report['native_cache_observed'])
         self.assertIn('探索性试跑', (self.root / 'TEST_REPORT.md').read_text(encoding='utf8'))
 
-    def test_cli_limits_exploration_to_new_four_condition_native_run(self):
+    def test_cli_allows_more_conditions_but_keeps_exploration_separate(self):
         from dabs_ascend.cli import prepare_args
         argv = ['benchmark', '--suite', 'r234', '--devices', '0,1,2,3',
                 '--deployment-manifest', 'fixture.json', '--native-evidence', 'evidence.json',
                 '--max-conditions', '4', '--exploratory-calibration']
         self.assertTrue(prepare_args(argv, existing=True).exploratory_calibration)
-        for extra in (['--max-conditions', '96'], ['--resume', 'old'], ['--execution-scope', 'http-limited']):
+        for count in (1, 24, 96):
+            self.assertEqual(prepare_args(argv + ['--max-conditions', str(count)], existing=True).max_conditions, count)
+        for extra in (['--max-conditions', '97'], ['--resume', 'old'], ['--execution-scope', 'http-limited']):
             with self.assertRaises(SystemExit), redirect_stderr(io.StringIO()):
                 prepare_args(argv + extra, existing=True)
