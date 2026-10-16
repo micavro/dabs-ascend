@@ -47,6 +47,8 @@ def evaluate_probe(directory, replicas):
     active_scheduled = [rid for b in matching if b['queue_application']['phase'] == 'current_action'
                         for rid in b['scheduled_tokens'] if rid in queue.get('applied', [])]
     checks['priority_reached_execution_within_window'] = bool(active_scheduled)
+    seen_order = list(dict.fromkeys(active_scheduled))
+    checks['executed_priority_order'] = bool(seen_order) and seen_order == [r for r in queue.get('requested', {}).get('order', []) if r in seen_order]
     dag = meta['dag']
     mapping_rows = [m for e in rows if e['op'] == 'mapping' for m in e['response'].get('mappings', [])]
     checks['fork_join'] = (all(b['start'] >= dag['root']['finish'] for b in dag['branches']) and

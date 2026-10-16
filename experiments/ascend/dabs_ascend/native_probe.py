@@ -22,9 +22,10 @@ async def probe(backend, tokenizer, out, replicas):
         return row
     query = lambda n, salt=None: {'query_id': str(n), 'tokens': tokens[:n], 'salt': salt or native.salt}
     await snap('cold', 0, [query(1025)])
-    async def request(replica, name, prompt=tokens, output=32):
-        node = {'id': name, 'tokens': prompt, 'max_output_tokens': output, 'fixed_workload_replay': True}
-        await native.reserve(replica, node)
+    async def request(replica, name, prompt=tokens, output=32, prepared=None):
+        node = prepared or {'id': name, 'tokens': prompt, 'max_output_tokens': output, 'fixed_workload_replay': True}
+        if prepared is None:
+            await native.reserve(replica, node)
         result = await backend.generate(replica, node, 341100, out / 'requests.jsonl', schema=None)
         return {'node_id': name, 'start': result['start'], 'finish': result['finish'],
                 'mapping': result['native_mapping']['mappings'][0]}
@@ -50,7 +51,12 @@ async def probe(backend, tokenizer, out, replicas):
     # 12 requests explicitly exceed the engine's 10 sequences. This is a probe
     # load, separate from the formal per-replica client limit of two.
     long = (tokens * 4)[:3584]
-    tasks = [asyncio.create_task(request(0, 'waiting-' + uuid.uuid4().hex, long, 16 if j < 10 else 512)) for j in range(12)]
+    waiting_nodes = [{'id': 'waiting-' + uuid.uuid4().hex, 'tokens': long,
+                     'max_output_tokens': 16 if j < 10 else 512, 'fixed_workload_replay': True} for j in range(12)]
+    # Complete every admission action before testing priority; a later admission
+    # action must not supersede the window whose expiration we are measuring.
+    await asyncio.gather(*(native.reserve(0, n) for n in waiting_nodes))
+    tasks = [asyncio.create_task(request(0, n['id'], prepared=n)) for n in waiting_nodes]
     queue_action, queue_receipt, before = None, None, None
     deadline = time.monotonic() + 25
     try:
