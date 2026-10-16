@@ -86,6 +86,9 @@ def scoring_action(action, state):
 
 
 def baseline(state, cfg, method):
+    if cfg.get('execution_scope') == 'native':
+        from .native_algorithms import baseline as native_baseline
+        return native_baseline(state, cfg, method)
     if method in ('RR', 'SLL'):
         return frozen('routing').reference(state, {**cfg, 'wf_routing_policy': method})
     if method == 'Ayo':
@@ -103,6 +106,9 @@ def planner_ready():
 
 
 def plan_ours(state, model, cfg, deadline):
+    if cfg.get('execution_scope') == 'native':
+        from .native_algorithms import choose
+        return choose(state, model, cfg, deadline)
     selector = frozen('v5_selector')
     original_reference, original_proposals, original_evaluate = selector.reference, selector.proposals, selector.evaluate
 

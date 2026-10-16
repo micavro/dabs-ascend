@@ -31,6 +31,15 @@ def admission_check(action, nodes, cfg, snapshot_at, now):
         return 'invalid_replica'
     if action['caps'] != [cfg['base_cap']] * cfg['replicas']:
         return 'unsupported_step_budget_change'
+    if cfg.get('execution_scope') == 'native':
+        for replica in range(cfg['replicas']):
+            active = sum(n['state'] == 'submitted' and n.get('replica') == replica for n in nodes.values())
+            new = sum(action['placement'][k] == replica for k in admitted)
+            if active + new > cfg['client_max_inflight']:
+                return 'client_capacity_changed'
+        # Physical capacity, engine state/version, evidence and queue safety are
+        # checked atomically by EngineCore; never replace them with HTTP proxies.
+        return None
     fresh = snapshot(nodes, {}, cfg['replicas'], cfg, 0, now)
     accepted = resources(action, fresh, cfg)
     if set(accepted['admit']) != set(admitted):
@@ -92,8 +101,11 @@ MISSING_NATIVE = [
 ]
 
 
-def mechanism_gate():
-    # Fail closed. A client flag, Docker option or global cache-hit metric cannot
-    # substitute for a tested native adapter. No user-supplied PASS file is read.
-    return {'pass': False, 'adapter': 'ascend-http-v1', 'missing': MISSING_NATIVE,
-            'next_command': 'bash run_dabs_r234.sh inspect', 'inference_executed': False}
+def mechanism_gate(paths=None):
+    from .native_gate import evaluate_local
+    result = evaluate_local(paths or {})
+    result.update(adapter='dabs-native-v023-1', inference_executed=False,
+                  next_command='bash run_dabs_r234.sh native-install-check')
+    # Local evidence is necessary; a second LIVE signature/config/epoch check
+    # is mandatory inside r234_run before any native experiment requests.
+    return result

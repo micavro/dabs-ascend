@@ -32,6 +32,9 @@ def snapshot(nodes, history, replicas, cfg, index, now=None):
                        for n in active.values() if n["state"] == "submitted" and n["replica"] == r)
                    for r in range(replicas)]
     capacity = math.ceil(math.ceil(cfg['max_model_len'] / block_size) * cfg["max_num_seqs"] / cfg["admission_reserve_fraction"])
+    if cfg.get('execution_scope') == 'native':
+        # Engine-derived capacity; NativeClient supplies each replica's value.
+        capacity = cfg['effective_native_resources']['physical_blocks']
     return {"nodes": active, "ready": [k for k, n in active.items() if n["state"] == "ready"],
             "replicas": replicas, "now": now, "pressure": loads,
             "reserved_blocks": reservation, "capacity_blocks": [capacity] * replicas,

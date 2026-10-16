@@ -37,6 +37,7 @@ def parser(existing=False):
     p.add_argument('--resume', type=Path, help='R234 only: resume a cleanly paused output directory')
     p.add_argument('--execution-scope', choices=('native', 'http-limited'), default='native',
                    help='R234: native requires verified hooks; http-limited is diagnostic, not full mechanism reproduction')
+    p.add_argument('--native-evidence', type=Path, help='native acceptance.json; default uses outputs/native-latest.json raw paths')
     p.add_argument('--http-keepalive', type=int, default=None,
                    help='R234 idle HTTP pool size; 0 preserves the reported site workaround (not a performance claim)')
     p.add_argument("--repeats", type=int, default=None)
