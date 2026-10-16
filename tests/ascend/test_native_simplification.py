@@ -24,6 +24,7 @@ def capability():
             'resources': {'step_tokens': 1024, 'block_size': 128, 'server_max_seqs': 10,
                           'context_tokens': 4096, 'physical_blocks': 1000},
             'supported_actions': ['admission_permits', 'unsubmitted_route', 'safe_prefill_queue_order'],
+            'control_semantics': {'admission_only_preserves_queue': True, 'mutation_time_window_check': True},
             'host_step_boundary': 'EngineCore.step', 'adapter_sha256': {'older.py': 'different'}}
 
 

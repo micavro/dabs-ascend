@@ -172,6 +172,12 @@ class Backend:
                 mapping = await self.native.call(replica, 'mapping', client_request_ids=[request_id])
                 if len(mapping['mappings']) != 1 or mapping['mappings'][0].get('rejected'):
                     raise ValueError('native engine request binding failed')
+                bound = mapping['mappings'][0]
+                expected = {'node_id': node['id'], 'client_request_id': request_id,
+                            'server_request_id': server_id, 'action_id': node['native_action_id']}
+                if (not server_id or not isinstance(bound.get('engine_request_id'), str) or
+                        not bound['engine_request_id'] or any(bound.get(k) != v for k, v in expected.items())):
+                    raise ValueError('native engine request binding differs from submitted node/client/server/action')
                 result['native_mapping'] = mapping
                 result['engine_action_acknowledged'] = mapping['mappings'][0]['action_id']
             node["answer_contract"] = parse(result["text"], finish) if schema is not None else None

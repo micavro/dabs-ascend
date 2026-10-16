@@ -9,7 +9,7 @@ from urllib.request import Request, ProxyHandler, build_opener
 import uuid
 import os
 
-from dabs_native.contracts import validate_capabilities, validate_observation
+from dabs_native.contracts import validate_capabilities, validate_observation, require_control_semantics
 from dabs_ascend.common import read_json, write_json
 from dabs_ascend.telemetry import metric_pressure, parse_metrics
 from dabs_ascend.native_timing import require_timing
@@ -91,6 +91,7 @@ class Installer:
             self.http(replica, '/health')
             row = json.loads(self.http(replica, '/dabs/v1/control', {'op': 'capabilities'}))
             validate_capabilities(row)
+            require_control_semantics(row)
             require_timing(row)
             snapshot = json.loads(self.http(replica, '/dabs/v1/control', {'op': 'snapshot'}))
             validate_observation(snapshot)

@@ -52,6 +52,8 @@ def check_action(action, snapshot, identity, now_ns, current_step):
         return 'invalid_fixed_action_window'
     if now_ns >= end:
         return 'expired_action_window'
+    if now_ns < begin:
+        return 'action_not_started'
     if current_step < snapshot['step']:
         return 'scheduler_step_regressed'
     if action.get('resource_digest') != digest(snapshot['resources']):
@@ -178,6 +180,15 @@ def validate_capabilities(row):
     if missing:
         raise ValueError('missing native capability: ' + ', '.join(missing))
     return row
+
+
+def require_control_semantics(row):
+    """Required behavior of the admission/window interfaces, not a code hash."""
+    fields = ('admission_only_preserves_queue', 'mutation_time_window_check')
+    missing = [name for name in fields if row.get('control_semantics', {}).get(name) is not True]
+    if missing:
+        raise ValueError('missing native control semantics: ' + ', '.join(missing) +
+                         '; run bash run_native.sh install to load the boundary fixes')
 
 
 def validate_observation(row):

@@ -158,7 +158,7 @@ class EngineAdapter:
         self.snapshots[sid] = (observed, payload.get('queries', []))
         return observed
 
-    def apply(self, action):
+    def apply(self, action, *, admission_only=False):
         receipt, new = self.receipts.begin(action)
         if not new:
             return self.observed(receipt)
@@ -210,25 +210,43 @@ class EngineAdapter:
         if len({s['client_request_id'] for s in admissions}) != len(admissions) or needed > available:
             receipt.update(status='rejected', reason='physical_reservation_unavailable')
             return self.observed(receipt)
-        receipt['status'] = 'accepted'
-        receipt['transitions'].append({'status': 'accepted', 'at_ns': time.monotonic_ns()})
         mutable = {r.request_id for r in list(self.s.waiting) + list(self.s.running) if self.request_row(r)['queue_mutable']}
         eligible = [rid for rid in action.get('order', []) if rid in mutable]
         for rid in action.get('order', []):
             if rid not in mutable:
                 receipt['rejected'][rid] = 'not_waiting_or_prefill_safe_boundary'
+        # Cache/resource validation can consume the remaining action window.
+        # Recheck immediately before the first queue/permit mutation.
+        now = time.monotonic_ns()
+        reason = check_action(action, snapshot, self.identity, now, self.step)
+        if reason:
+            receipt.update(status='expired' if 'expired' in reason else 'rejected', reason=reason)
+            return self.observed(receipt)
+        receipt['status'] = 'accepted'
+        receipt['transitions'].append({'status': 'accepted', 'at_ns': now})
         previous_control = self.active_control
-        self.active_control = {'action_id': action['action_id'], 'order': eligible,
-            'clients': [s['client_request_id'] for s in admissions],
-            'not_before_ns': action['not_before_ns'], 'action_expires_ns': action['action_expires_ns']}
-        queue_application = self.reorder_boundary(now)
+        if admission_only:
+            # No rank publication, FIFO restoration or window replacement here.
+            # schedule() remains responsible for expiry at its next boundary.
+            queue_application = {'phase': 'admission_only', 'at_ns': now, 'queues': {},
+                'control_before': copy.deepcopy(previous_control), 'control_after': copy.deepcopy(self.active_control),
+                'preserved_control_action_id': previous_control['action_id'] if previous_control else None}
+            for name in ('running', 'waiting'):
+                ids = [r.request_id for r in getattr(self.s, name)]
+                queue_application['queues'][name] = {'before': ids, 'after': list(ids), 'reason': 'unchanged_admission_only'}
+        else:
+            self.active_control = {'action_id': action['action_id'], 'order': eligible,
+                'clients': [s['client_request_id'] for s in admissions],
+                'not_before_ns': action['not_before_ns'], 'action_expires_ns': action['action_expires_ns']}
+            queue_application = self.reorder_boundary(now)
         age_rejected = {rid for q in queue_application['queues'].values() if q['reason'] == 'age_fifo'
                         for rid in q['before'] if rid in eligible}
         receipt['rejected'].update({rid: 'prefill_age_guard_5s' for rid in age_rejected})
         eligible = [rid for rid in eligible if rid not in age_rejected]
-        self.active_control['order'] = eligible
-        if not eligible and not admissions:
-            self.active_control = previous_control
+        if not admission_only:
+            self.active_control['order'] = eligible
+            if not eligible and not admissions:
+                self.active_control = previous_control
         for spec in admissions:
             # The action was validated/applied within the 120 ms snapshot TTL.
             # Its reserved resources get a separate bounded delivery lease;
@@ -240,7 +258,9 @@ class EngineAdapter:
             admitted_permits=[s['client_request_id'] for s in admissions],
             admission_delivery_lease_ms=2000,
             applied_step=self.step, applied_at_ns=time.monotonic_ns(),
+            mutation_at_ns=now,
             application_boundary='EngineCore utility loop between schedule calls',
+            queue_control_changed=not admission_only,
             queue_application=queue_application,
             not_before_ns=action['not_before_ns'], action_expires_ns=action['action_expires_ns'],
             effective_waiting_order=[r.request_id for r in self.s.waiting],
@@ -424,7 +444,7 @@ class EngineAdapter:
                 'snapshot_id': row['snapshot_id'], 'expires_ns': row['expires_ns'],
                 'not_before_ns': row['captured_ns'], 'action_expires_ns': row['captured_ns'] + 200_000_000,
                 'resource_digest': digest(row['resources']), 'order': [],
-                'admissions': payload['admissions'], 'fallback': 'atomic_admission_only'})
+                'admissions': payload['admissions'], 'fallback': 'atomic_admission_only'}, admission_only=True)
         if op == 'receipt':
             return self.observed(self.receipts.rows[payload['action_id']])
         if op == 'mapping':
@@ -440,6 +460,7 @@ class EngineAdapter:
                 'timing_fields': ['host_call_serial', 'pending_before', 'pending_after', 'completion_predecessor'],
                 'operations': ['capabilities', 'snapshot', 'apply', 'admit', 'receipt', 'mapping', 'batches', 'ack-trace'],
                 'supported_actions': ['admission_permits', 'unsubmitted_route', 'safe_prefill_queue_order'],
+                'control_semantics': {'admission_only_preserves_queue': True, 'mutation_time_window_check': True},
                 'unsupported_actions': ['migrate_submitted', 'decode_reorder', 'budget_change', 'preempt'],
                 'native_execution': len(workers) == 1 and all(w['npu_available'] for w in workers)})
         if op == 'batches':

@@ -25,6 +25,21 @@ def evaluate_probe(directory, replicas):
     def cache(name):
         return role(name).get('cache', [])
     checks = {}
+    admissions = [e['response'] for e in rows if e['op'] == 'admit' and e['response'].get('status') == 'applied']
+    checks['admission_only_preserves_queue'] = bool(admissions) and all(
+        r.get('queue_control_changed') is False and r.get('queue_application', {}).get('phase') == 'admission_only' and
+        'control_before' in r['queue_application'] and
+        r['queue_application']['control_before'] == r['queue_application'].get('control_after') and
+        set(r['queue_application'].get('queues', {})) == {'running', 'waiting'} and
+        all(q.get('reason') == 'unchanged_admission_only' and q.get('before') == q.get('after')
+            for q in r['queue_application']['queues'].values()) for r in admissions)
+    applied = [e['response'] for e in rows if e['op'] in ('apply', 'admit') and
+               e['response'].get('status') in ('applied', 'partially_applied')]
+    checks['application_within_window'] = bool(applied) and all(
+        type(r.get('mutation_at_ns')) is int and
+        r.get('requested', {}).get('not_before_ns', 10**30) <= r['mutation_at_ns'] <
+        r.get('requested', {}).get('action_expires_ns', -1) and
+        r['mutation_at_ns'] <= r.get('requested', {}).get('expires_ns', -1) for r in applied)
     checks['cold'] = len(cache('cold')) == 1 and cache('cold')[0]['state'] == 'miss'
     checks['hot'] = len(cache('warm')) == 1 and cache('warm')[0]['state'] == 'hit' and cache('warm')[0]['reusable_tokens'] == 1024
     checks['namespace'] = len(cache('namespace')) == 1 and cache('namespace')[0]['state'] == 'miss' and cache('namespace')[0]['salt_digest'] != cache('warm')[0]['salt_digest']

@@ -17,7 +17,14 @@ def probe_fixture(out, replicas):
     out.mkdir()
     roles, events = {}, []
     def emit(op, row, replica=0):
+        if op in ('apply', 'admit') and row.get('status') == 'applied':
+            row = {**row, 'mutation_at_ns': 150,
+                   'requested': {'not_before_ns': 100, 'action_expires_ns': 300, 'expires_ns': 220}}
         events.append({'op': op, 'replica': replica, 'response': {**row, 'identity': capability()['identity']}})
+    emit('admit', {'action_id': 'admission', 'status': 'applied', 'queue_control_changed': False,
+                  'queue_application': {'phase': 'admission_only', 'control_before': None, 'control_after': None,
+                      'queues': {q: {'before': [], 'after': [], 'reason': 'unchanged_admission_only'}
+                                 for q in ('running', 'waiting')}}})
     def snapshot(role, cache=None, replica=0, **kw):
         row = {'snapshot_id': role, 'cache': cache or [], **kw}
         emit('snapshot', row, replica); roles[role] = {'replica': replica, 'snapshot_id': role}
@@ -94,6 +101,19 @@ def calibration_fixture(out):
 
 
 class EvidenceTests(unittest.TestCase):
+    def test_wrong_admission_mutation_or_late_application_cannot_pass(self):
+        with tempfile.TemporaryDirectory() as directory:
+            out = Path(directory) / 'probe'; rows = probe_fixture(out, 1)
+            self.assertTrue(all(evaluate_probe(out, 1).values()))
+            admission = next(e['response'] for e in rows if e['op'] == 'admit')
+            admission['queue_application']['control_after'] = {'action_id': 'replaced'}
+            (out / 'native_events.jsonl').write_text(''.join(json.dumps(r) + '\n' for r in rows))
+            self.assertFalse(evaluate_probe(out, 1)['admission_only_preserves_queue'])
+            admission['queue_application']['control_after'] = None
+            admission['mutation_at_ns'] = admission['requested']['action_expires_ns']
+            (out / 'native_events.jsonl').write_text(''.join(json.dumps(r) + '\n' for r in rows))
+            self.assertFalse(evaluate_probe(out, 1)['application_within_window'])
+
     def test_unsigned_raw_records_recompute_without_source_hash_gate(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

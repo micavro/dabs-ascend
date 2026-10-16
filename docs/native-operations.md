@@ -2,7 +2,9 @@
 
 首次部署入口：`bash run_native.sh install` → `bash run_native.sh test` → `bash run_native.sh experiment`。在 Linux 宿主机的新项目目录运行。环境与结果位置见 [README](../README.md)。普通 test 连接现有服务，不重新安装、不重启、不主动清空缓存。
 
-**已通过测试的现场，本次仅控制器修复，无需安装/重启/重采标定**：新目录用 `bash run_native.sh experiment --input 旧项目/outputs/native_test_时间`。复制原始普通文件后，实验入口重新核验记录及当前服务；不会因路径变化单独拒绝，也不会仅凭旧 PASS 放行。慢观察过期后改用 EngineCore 原子准入，丢弃过期排序；查询负载上限、进度显示、回退统计及成功判据见 README 首节。旧实验保持原状，新结果写入新目录。
+**本次边界审查补修含服务端修改**：执行 `bash run_native.sh install && bash run_native.sh test && bash run_native.sh experiment`。安装器在运行的原容器内备份安装，然后逐个重启四个服务；不要先手动停容器。它会检查 `admission_only_preserves_queue` 与 `mutation_time_window_check`，缺少则更新，已有则复用；不是版本/源码哈希门禁。重启使旧服务身份失效，需要新测试和标定记录。具体修复及现场成功判据见 [审查记录](native-boundary-review.md) 和 README 首节。
+
+只修改控制器、服务未重启时，跨目录可用 `bash run_native.sh experiment --input 旧项目/outputs/native_test_时间`；原始记录必须满足当前检查并匹配当前引擎。复制普通文件后重新核验，不仅凭旧 PASS 放行。旧实验保持原状，新结果写入新目录。
 
 **仅尚未更新异步计时接口的旧服务**执行单副本流程：`bash run_native.sh install --replica 0` → `bash run_native.sh smoke` → `bash run_native.sh calibrate`，成功后再安装其余副本并执行四卡 test。旧记录的只读审计、成功判据和新计时口径见 [异步标定协议](native-async-calibration.md)。安装检查实际需要的在途批次/完成边界字段，缺少时更新；不是版本或哈希门禁。
 

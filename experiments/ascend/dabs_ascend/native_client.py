@@ -7,7 +7,7 @@ from pathlib import Path
 import time
 import uuid
 
-from dabs_native.contracts import digest, prefix_key, validate_capabilities, engine_epoch, validate_observation
+from dabs_native.contracts import digest, prefix_key, validate_capabilities, engine_epoch, validate_observation, require_control_semantics
 from .common import append_json
 
 
@@ -44,6 +44,7 @@ class NativeClient:
         for replica, row in enumerate(self.capabilities):
             try:
                 validate_capabilities(row)
+                require_control_semantics(row)
                 validate_observation(await self.call(replica, 'snapshot'))
                 for op, field, payload in [('mapping', 'mappings', {'client_request_ids': []}), ('batches', 'batches', {'after_step': 0})]:
                     observed = await self.call(replica, op, **payload)

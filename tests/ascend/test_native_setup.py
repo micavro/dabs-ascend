@@ -161,6 +161,16 @@ class SetupTests(unittest.TestCase):
             self.assertIsNone(self.installer.ready(0))
         self.assertIn('pending_before', self.installer.last_ready_error)
 
+    def test_working_old_admit_interface_requires_queue_and_window_boundary_fix(self):
+        from test_native_simplification import capability
+        from dabs_ascend.native_timing import FIELDS
+        old = capability(); old['timing_fields'] = list(FIELDS)
+        del old['control_semantics']
+        with patch.object(self.installer, 'http', side_effect=['', json.dumps(old)]):
+            self.assertIsNone(self.installer.ready(0))
+        self.assertIn('admission_only_preserves_queue', self.installer.last_ready_error)
+        self.assertIn('mutation_time_window_check', self.installer.last_ready_error)
+
     def test_selected_install_touches_only_one_replica(self):
         self.w.replica = 2
         self.run_setup()
