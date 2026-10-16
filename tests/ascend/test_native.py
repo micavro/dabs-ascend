@@ -58,6 +58,7 @@ def fake_engine():
     a.snapshots, a.pending, a.batches, a.permits, a.mappings = {}, {}, [], {}, {}
     a.receipts, a.client_ids, a.receipt_for_step = Receipts(), set(), []
     a.active_control, a.host_call, a.host_call_serial = None, None, 0
+    a.engine_ids_by_client, a.batch_index = {}, {}
     a.accepted_ns = {'x': time.monotonic_ns() - 2_000_000, 'y': time.monotonic_ns() - 1_000_000}
     def req(rid, phase='WAITING', computed=0):
         return SimpleNamespace(request_id=rid, status=SimpleNamespace(name=phase), num_computed_tokens=computed,
@@ -92,6 +93,7 @@ class NativeContracts(unittest.TestCase):
         self.assertEqual(row['status'], 'rejected')
         self.assertEqual(row['rejected']['x'], 'prefill_age_guard_5s')
         self.assertEqual([r.request_id for r in a.s.waiting], ['x', 'y'])
+        self.assertIsNone(a.active_control)  # rejected rank cannot activate later
 
     def test_actual_queue_reorder_receipt_and_duplicate(self):
         a = fake_engine(); snap = a.snapshot({}); cmd = action(a, snap, ['y', 'x'])
@@ -219,6 +221,7 @@ class NativeTiming(unittest.TestCase):
             a.host_call['completed_batch_ids'].append('A')
             a.batches.append({'batch_id': 'A', 'host_begin_ns': time.monotonic_ns() - 10_000_000})
             a.pending['B'] = {'batch_id': 'B'}
+            a.batch_index.update(A=a.batches[-1], B=a.pending['B'])
         a.host_step(step_with_batch_queue)
         self.assertFalse(a.batches[0]['host_step_equivalent'])
         self.assertGreater(a.batches[0]['host_batch_span_ms'], a.batches[0]['engine_host_ms'])

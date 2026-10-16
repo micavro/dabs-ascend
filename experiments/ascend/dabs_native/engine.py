@@ -40,6 +40,7 @@ class EngineAdapter:
         self.client_ids = set()
         self.receipt_for_step = []
         self.accepted_ns, self.active_control = {}, None
+        self.engine_ids_by_client, self.batch_index = {}, {}
         self.host_call, self.host_call_serial = None, 0
         self.completed_progress = {}
         self.resources = self.read_resources()
@@ -224,6 +225,7 @@ class EngineAdapter:
         for rid in action.get('order', []):
             if rid not in mutable:
                 receipt['rejected'][rid] = 'not_waiting_or_prefill_safe_boundary'
+        previous_control = self.active_control
         self.active_control = {'action_id': action['action_id'], 'order': eligible,
             'clients': [s['client_request_id'] for s in admissions],
             'not_before_ns': action['not_before_ns'], 'action_expires_ns': action['action_expires_ns']}
@@ -232,6 +234,9 @@ class EngineAdapter:
                         for rid in q['before'] if rid in eligible}
         receipt['rejected'].update({rid: 'prefill_age_guard_5s' for rid in age_rejected})
         eligible = [rid for rid in eligible if rid not in age_rejected]
+        self.active_control['order'] = eligible
+        if not eligible and not admissions:
+            self.active_control = previous_control
         for spec in admissions:
             # The action was validated/applied within the 120 ms snapshot TTL.
             # Its reserved resources get a separate bounded delivery lease;
@@ -263,6 +268,7 @@ class EngineAdapter:
                 request.abort_immediately = True
                 return original(request, *args, **kwargs)
             cid = binding['client_request_id']
+            self.engine_ids_by_client[cid] = request.request_id
             permit = self.permits.get(cid)
             if permit is None or permit['expires_ns'] < time.monotonic_ns() or cid in self.client_ids:
                 request.abort_immediately = True
@@ -289,8 +295,7 @@ class EngineAdapter:
         active = bool(control and control['not_before_ns'] <= now < control['action_expires_ns'])
         priority = list(control['order']) if active else []
         if active:
-            by_client = {m['client_request_id']: rid for rid, m in self.mappings.items()}
-            priority += [by_client[c] for c in control['clients'] if c in by_client]
+            priority += [self.engine_ids_by_client[c] for c in control['clients'] if c in self.engine_ids_by_client]
         records = {'phase': 'current_action' if active else 'common_continuation',
                    'action_id': control['action_id'] if control else None,
                    'action_expires_ns': control['action_expires_ns'] if control else None,
@@ -327,9 +332,9 @@ class EngineAdapter:
         # A call can submit B while completing A. Do not assign B's dispatch
         # elapsed time to A, or silently call overlapping host time equivalent.
         related = set(call['scheduled_batch_ids']) | set(call['completed_batch_ids'])
-        for batch in list(self.pending.values()) + self.batches:
-            if batch['batch_id'] in related:
-                batch.setdefault('host_calls', []).append(copy.deepcopy(call))
+        for bid in related:
+            batch = self.batch_index[bid]
+            batch.setdefault('host_calls', []).append(copy.deepcopy(call))
             if batch['batch_id'] in call['completed_batch_ids']:
                 batch['engine_host_ms'] = call['engine_host_ms']
                 batch['host_step_equivalent'] = (call['scheduled_batch_ids'] == [batch['batch_id']]
@@ -366,6 +371,7 @@ class EngineAdapter:
                  'scheduled_ns': started}
         output.dabs_batch_id, output.dabs_batch_meta = bid, batch
         self.pending[bid] = batch
+        self.batch_index[bid] = batch
         if self.host_call is not None:
             self.host_call['scheduled_batch_ids'].append(bid)
         remaining_receipts = []
@@ -399,6 +405,7 @@ class EngineAdapter:
         batch = self.pending.pop(output.dabs_batch_id)
         batch = {**batch, 'engine_output_observed_ns': time.monotonic_ns(), 'engine_output_completed': True}
         self.batches.append(batch)
+        self.batch_index[batch['batch_id']] = batch
         if self.host_call is not None:
             self.host_call['completed_batch_ids'].append(batch['batch_id'])
         if len(self.batches) > 200000:
@@ -423,7 +430,8 @@ class EngineAdapter:
         if op == 'receipt':
             return self.signed(self.receipts.rows[payload['action_id']])
         if op == 'mapping':
-            return self.signed({'mappings': [m for m in self.mappings.values() if m['client_request_id'] in payload['client_request_ids']]})
+            return self.signed({'mappings': [self.mappings[self.engine_ids_by_client[cid]]
+                for cid in payload['client_request_ids'] if cid in self.engine_ids_by_client]})
         if op == 'verify':
             return {'valid': [self.verify(row) for row in payload['records']], 'identity': self.identity}
         if op == 'capabilities':
@@ -447,6 +455,9 @@ class EngineAdapter:
             if type(step) is not int or step < 0 or step > self.step:
                 raise ValueError('invalid trace acknowledgement')
             self.core.collective_rpc('dabs_timing_ack', args=(step,))
+            for b in self.batches:
+                if b['step'] <= step:
+                    self.batch_index.pop(b['batch_id'], None)
             self.batches[:] = [b for b in self.batches if b['step'] > step]
             return self.signed({'acknowledged_step': step})
         if op == 'invalidate-cache':
