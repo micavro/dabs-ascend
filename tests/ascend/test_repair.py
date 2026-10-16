@@ -36,6 +36,15 @@ def action():
 
 
 class RepairContracts(unittest.TestCase):
+    def test_native_fallback_counts_retain_expiry_and_observation_reasons(self):
+        totals = aggregate_diagnostics([
+            {'native_fallback_reason': 'expired_decision_window'},
+            {'native_fallback_reason': ['snapshot_expired_in_transit', 'unmapped_inflight_batch']},
+            {'native_fallback_reason': []}])
+        self.assertEqual(totals['native_atomic_fallback_decisions'], 2)
+        self.assertEqual(totals['native_fallback_reasons'], {'expired_decision_window': 1,
+            'snapshot_expired_in_transit': 1, 'unmapped_inflight_batch': 1})
+
     def setUp(self):
         self.cfg = {**configuration(2), 'max_num_seqs': 2}
         self.nodes = ready_nodes()

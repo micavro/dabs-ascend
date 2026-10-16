@@ -118,6 +118,37 @@ class NativeWorkflowTests(unittest.TestCase):
         self.assertEqual(blocked.record['next_commands'], ['bash run_native.sh test'])
         self.assertTrue((previous.out / 'run.json').exists())
 
+    def test_new_checkout_imports_plain_raw_test_evidence_without_recalibration(self):
+        tested, code = self.run_workflow()
+        self.assertEqual(code, 0)
+        original = (tested.out / 'run.json').read_bytes()
+        new_root = self.root / 'new-checkout'
+        self.current = entry.Workflow(new_root, 'experiment', input_path=tested.out)
+        with patch.object(self.current, 'launch', side_effect=self.fake_launch), redirect_stdout(io.StringIO()):
+            self.assertEqual(self.current.run(), 0)
+        self.assertEqual((tested.out / 'run.json').read_bytes(), original)
+        evidence = read_json(self.current.out / 'imported_evidence.json')
+        self.assertTrue(evidence['requires_raw_and_live_revalidation'])
+        self.assertNotIn('pass', evidence)
+        for value in evidence['paths'].values():
+            self.assertTrue((self.current.host_path(value) / 'result.json').is_file())
+        self.assertEqual(self.commands[-1][2], 'benchmark')
+        self.assertNotIn('--exploratory-calibration', self.commands[-1])
+
+    def test_import_does_not_turn_failed_test_into_pass_or_follow_external_paths(self):
+        tested, _ = self.run_workflow()
+        record = read_json(tested.out / 'run.json')
+        record['status'] = 'failed'
+        write_json(tested.out / 'run.json', record)
+        workflow = entry.Workflow(self.root, 'experiment', input_path=tested.out)
+        with self.assertRaises(entry.Stopped):
+            workflow.import_test()
+        record['status'] = 'passed'
+        write_json(tested.out / 'run.json', record)
+        write_json(self.root / record['acceptance'], {'paths': {'native-calibrate': '../../outside'}})
+        with self.assertRaises(entry.Stopped):
+            workflow.import_test()
+
     def test_normal_test_does_not_require_or_reuse_destructive_evidence(self):
         self.destructive_evidence()
         run, code = self.run_workflow()

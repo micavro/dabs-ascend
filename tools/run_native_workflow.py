@@ -226,15 +226,58 @@ class Workflow:
         self.record['acceptance'] = self.relative(accepted)
         self.record['optional_tests_not_run'] = result.get('not_run', [])
 
+    def import_test(self):
+        """Copy plain evidence from an old checkout; no PASS flag grants acceptance."""
+        tested = Path(self.input_path).resolve()
+        if tested.parent.name != 'outputs':
+            raise Stopped('--input 必须指向旧项目 outputs/native_test_* 测试结果目录。')
+        source_root = tested.parent.parent
+        record = read_json(tested / 'run.json')
+        if record.get('mode') != 'test' or record.get('status') != 'passed':
+            raise Stopped('指定测试没有完成；保留原始失败，不放行实验。')
+
+        def source_path(value):
+            raw = str(value)
+            if raw.startswith('/project/'):
+                raw = raw[len('/project/'):]
+            path = (source_root / raw).resolve()
+            if not path.is_relative_to(source_root / 'outputs'):
+                raise Stopped('证据路径不在原项目 outputs 下: ' + raw)
+            return path
+
+        original = source_path(record['acceptance'])
+        accepted = read_json(original)
+        paths = {}
+        for mode, value in accepted['paths'].items():
+            if mode not in ('native-probe-one', 'native-probe-four', 'native-calibrate',
+                            'native-invalidate', 'native-restart-check'):
+                raise Stopped('未知原始证据类型: ' + mode)
+            source = source_path(value)
+            target = self.out / 'imported_test' / mode
+            target.mkdir(parents=True)
+            for path in source.iterdir():
+                if path.is_file() and path.suffix in ('.json', '.jsonl', '.txt', '.csv', '.md'):
+                    shutil.copyfile(path, target / path.name)
+            paths[mode] = self.container_path(target)
+        shutil.copyfile(original, self.out / 'original_acceptance.json')
+        evidence = self.out / 'imported_evidence.json'
+        write_json(evidence, {'paths': paths, 'source_test': str(tested),
+                              'requires_raw_and_live_revalidation': True})
+        self.record['imported_test_source'] = str(tested)
+        return evidence
+
     def experiment(self):
         latest = self.root / 'outputs/native-entry-last-test.json'
-        if not latest.exists():
+        if self.input_path:
+            evidence = self.import_test()
+        elif not latest.exists():
             raise Stopped('尚未完成一键原生测试。', ['bash run_native.sh test'])
-        tested = self.host_path(read_json(latest)['output'])
-        record = read_json(tested / 'run.json')
-        if record.get('mode') != 'test' or record.get('status') != 'passed' or not record.get('acceptance'):
-            raise Stopped('最近一次测试未通过；先查看 ' + str(tested / 'SUMMARY.txt'), ['bash run_native.sh test'])
-        evidence = self.host_path(record['acceptance'])
+        else:
+            tested = self.host_path(read_json(latest)['output'])
+            record = read_json(tested / 'run.json')
+            if record.get('mode') != 'test' or record.get('status') != 'passed' or not record.get('acceptance'):
+                raise Stopped('最近一次测试未通过；先查看 ' + str(tested / 'SUMMARY.txt'), ['bash run_native.sh test'])
+            evidence = self.host_path(record['acceptance'])
         if not evidence.is_file():
             raise Stopped('测试原始验收记录缺失。', ['bash run_native.sh test'])
         # This pointer is convenience only: R234 recomputes raw evidence and
@@ -281,7 +324,7 @@ def main():
     parser = argparse.ArgumentParser(description='现场一键入口：install 安装并重启现有服务；test 测试验收；experiment 跑全部 96 条件。')
     parser.add_argument('mode', choices=('install', 'smoke', 'calibrate', 'audit', 'refit', 'explore', 'test', 'experiment'))
     parser.add_argument('--replica', type=int, choices=range(4), help='install/smoke/calibrate: select one existing service')
-    parser.add_argument('--input', type=Path, help='audit: existing calibration directory (read-only)')
+    parser.add_argument('--input', type=Path, help='audit/refit/explore: calibration directory; experiment: prior native_test directory (read-only)')
     parser.add_argument('--invalidate-cache', action='store_true', help='仅 test：明确执行副本 0 缓存清空/失效测试；默认不执行')
     parser.add_argument('--verify-restart', action='store_true', help='仅 install：明确额外重启副本 0 并验证旧身份失效')
     parser.add_argument('--ready-timeout', type=int, default=900, help='install 每个服务加载等待秒数，默认 900')
@@ -291,8 +334,8 @@ def main():
         parser.error('--max-conditions 用于 explore，范围 1..96')
     if args.replica is not None and args.mode not in ('install', 'smoke', 'calibrate'):
         parser.error('--replica 仅用于 install/smoke/calibrate')
-    if (args.mode in ('audit', 'refit') and not args.input) or (args.input and args.mode not in ('audit', 'refit', 'explore')):
-        parser.error('audit/refit 必须提供 --input；explore 可用 --input 指定已有标定目录')
+    if (args.mode in ('audit', 'refit') and not args.input) or (args.input and args.mode not in ('audit', 'refit', 'explore', 'experiment')):
+        parser.error('audit/refit 必须提供 --input；explore 可指定已有标定目录；experiment 可指定旧 native_test 结果目录')
     if args.verify_restart and args.replica not in (None, 0):
         parser.error('--verify-restart 仅支持副本 0')
     if args.invalidate_cache and args.mode != 'test':

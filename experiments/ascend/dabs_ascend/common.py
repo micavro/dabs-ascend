@@ -96,6 +96,7 @@ def configuration(replicas, native_resources=None, client_max_inflight=2):
                    max_num_seqs=resources['server_max_seqs'], client_max_inflight=client_max_inflight,
                    long_prefill_token_threshold=resources.get('long_prefill_token_threshold', 0),
                    effective_native_resources=resources, phase_model_required=True)
+        cfg.update(native_cache_query_limit=8, native_cache_query_token_limit=8192)
     return cfg
 
 

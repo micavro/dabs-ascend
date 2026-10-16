@@ -83,16 +83,18 @@ class NativeClient:
         node['native_action_id'] = result['action_id']
         return result
 
-    async def observe(self, nodes, cfg, index, model):
+    async def observe(self, nodes, cfg, index, model, *, cache_queries=True):
         from .scheduler import snapshot
         from .native_prediction import predict, pending_startup
+        from .native_observation import prefix_queries
         count = cfg['replicas']
-        queries = [{'query_id': k, 'tokens': n['tokens'], 'salt': self.salt}
-                   for k, n in nodes.items() if n['state'] == 'ready']
+        queries, bindings, query_stats = prefix_queries(nodes, cfg, self.salt, enabled=cache_queries)
         started = time.monotonic()
         raw = await asyncio.gather(*(self.call(r, 'snapshot', queries=queries) for r in range(count)))
         now = time.monotonic()
         state = snapshot(nodes, {}, count, cfg, index, now)
+        state['native_query_budget'] = query_stats
+        state['native_observe_ms'] = (now - started) * 1000
         for key, n in state['nodes'].items():
             n['prefix_hash'] = prefix_key(nodes[key]['tokens'][:n['share']], self.salt)
         state.update(native_snapshots=raw, native_mutable=[], native_queue_groups={}, native_running={}, cache_evidence=[],
@@ -106,7 +108,9 @@ class NativeClient:
             resource = row['resources']
             if resource != self.capabilities[replica]['resources']:
                 raise ValueError('runtime resources changed')
-            ttl = (row['expires_ns'] - row['captured_ns']) / 1e9 - (now - started)
+            # inspect() verifies the shared host monotonic clock namespace.
+            age = max(0., now - row['captured_ns'] / 1e9)
+            ttl = row['expires_ns'] / 1e9 - now
             if ttl <= 0:
                 state['native_observation_errors'].append('snapshot_expired_in_transit')
             physical = row['physical']
@@ -114,7 +118,7 @@ class NativeClient:
             state['physical_reserved_blocks'].append(physical['total_usable_blocks'] - physical['available_for_new_reservations'])
             state['physical_active_blocks'].append(physical['active_blocks'])
             state['pressure'].append(row['running_count'] + 2 * row['waiting_count'])
-            state['state_ages_s'].append(now - started)
+            state['state_ages_s'].append(age)
             mapping, groups = {}, {'running_prefill': [], 'waiting': []}
             for group, records in [('running_prefill', row['running']), ('waiting', row['waiting'] + row['skipped_waiting'])]:
                 for request in records:
@@ -145,8 +149,15 @@ class NativeClient:
             if any(n['state'] == 'submitted' and n['replica'] == replica and k not in mapping.values()
                    for k, n in state['nodes'].items()):
                 state['native_observation_errors'].append('request_in_API_EngineCore_transit')
-            for evidence in row['cache']:
-                key = evidence['query_id']
+            evidence_by_query = {e['query_id']: e for e in row['cache']}
+            for key in state['ready']:
+                evidence = evidence_by_query.get(bindings.get(key))
+                if evidence is None:
+                    state['cache_evidence'].append({'prefix_hash': state['nodes'][key]['prefix_hash'],
+                        'replica': replica, 'known': False, 'tokens': None, 'state': 'unknown',
+                        'valid_until_ms': 0, 'native': None,
+                        'reason': 'not_queried_observation_budget' if cache_queries else 'admission_only_refresh'})
+                    continue
                 # Distinguish every concrete input, including its namespace.
                 known = ttl > 0 and evidence['state'] != 'unknown'
                 shared = state['nodes'][key]['share'] // resource['block_size'] * resource['block_size']
