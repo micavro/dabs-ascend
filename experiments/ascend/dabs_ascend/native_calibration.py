@@ -26,7 +26,7 @@ def batch_features(batch):
     equivalent = (call['scheduled_batch_ids'] == [batch['batch_id']] and call['completed_batch_ids'] == [batch['batch_id']])
     if batch.get('host_step_equivalent') != equivalent or not math.isfinite(batch['engine_host_ms']) or batch['engine_host_ms'] < 0:
         raise ValueError('invalid host timing equivalence or elapsed time')
-    return {'phase': phase(p, d), 'x': features(p, d, dc, pc), 'p': p, 'd': d, 'dc': dc, 'pc': pc,
+    return {'phase': phase(p, d), 'x': list(features(p, d, dc, pc)), 'p': p, 'd': d, 'dc': dc, 'pc': pc,
             'logical_prefill_tokens': sum(r['logical_prefill_tokens'] for r in rows),
             'cache_input_skipped_tokens': sum(r['cache_input_skipped_tokens'] for r in rows),
             'y': batch['engine_host_ms'], 'host_step_equivalent': equivalent,

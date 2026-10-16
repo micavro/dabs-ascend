@@ -202,6 +202,16 @@ class NativeContracts(unittest.TestCase):
 
 
 class NativeTiming(unittest.TestCase):
+    def test_host_features_survive_json_evidence_round_trip(self):
+        batch = {'batch_id': 'A', 'requests': [{'prefill_tokens': 128, 'decode_tokens': 0,
+            'context_tokens': 0, 'logical_prefill_tokens': 256, 'cache_input_skipped_tokens': 128}],
+            'host_calls': [{'call_id': 'host-A', 'scheduled_batch_ids': ['A'], 'completed_batch_ids': ['A'], 'engine_host_ms': 3.}],
+            'engine_host_ms': 3., 'host_batch_span_ms': 3., 'host_step_equivalent': True,
+            'device': {'batch_id': 'A', 'device_event_complete': True, 'npu_forward_ms': 1.}}
+        sample = batch_features(batch)
+        self.assertEqual(sample, json.loads(json.dumps(sample)))
+        self.assertEqual(sample['y'], 3.)  # not the 1 ms auxiliary forward
+
     def test_host_step_associates_async_submission_and_completion_separately(self):
         a = fake_engine()
         def step_with_batch_queue():
