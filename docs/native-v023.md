@@ -63,7 +63,7 @@ NPUWorker 在已核对的 `_model_forward` 当前流前后记录两个 `torch.np
 
 ## 4. 命令、过程和结果
 
-完整手敲顺序见根目录 README。第一条是 `bash run_dabs_r234.sh native-install-check --replica 0`，不是旧 prepare。
+日常入口见根目录 README：`bash run_native.sh test` 测试并验收，`bash run_native.sh experiment` 运行全部 96 条件。首次部署和单步手敲顺序见 [逐步操作](native-operations.md)，先执行 `bash run_dabs_r234.sh native-install-check --replica 0`，无需旧 prepare。
 
 保留现有 96 条件、四方法、输入/DAG/种子/执行顺序；每条件 64 工作流、216 请求、774144 输入 token、13184 输出 token。原生结果写入新 `r234_native_*`；仅正常暂停且源码、配置、引擎身份及冻结标定均相同才续跑。新公共执行器的结果不能和旧 HTTP 基线拼接。
 

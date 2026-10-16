@@ -24,6 +24,7 @@ jobs:
           bash -n run_ascend.sh
           bash -n run_dabs_existing.sh
           bash -n run_dabs_r234.sh
+          bash -n run_native.sh
       - name: Run CPU tests and frozen-source integrity checks
         run: bash run_ascend.sh test
       - name: Verify pinned native patch sources and anchors (no NPU)

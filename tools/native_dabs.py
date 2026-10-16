@@ -16,12 +16,23 @@ sys.path.insert(0, str(ROOT / 'experiments/ascend'))
 from dabs_ascend.common import read_json, write_json, source_paths
 
 MODES = ('native-install-check', 'native-install', 'native-verify', 'native-rollback',
-         'native-check', 'native-probe-one', 'native-probe-four', 'native-calibrate',
+         'native-check', 'native-check-four', 'native-probe-one', 'native-probe-four', 'native-calibrate',
          'native-invalidate', 'native-restart-arm', 'native-restart-check', 'native-accept')
 
 
 def docker(*args, **kwargs):
     return subprocess.run(['sudo', 'docker', *args], text=True, check=True, **kwargs)
+
+
+def output_path(value):
+    path = (ROOT / value).resolve()
+    if not path.is_relative_to((ROOT / 'outputs').resolve()):
+        raise ValueError('--out/--evidence must be inside this project outputs directory')
+    return path
+
+
+def mounted_path(value):
+    return '/project/' + output_path(value).relative_to(ROOT).as_posix()
 
 
 def host(args):
@@ -31,7 +42,7 @@ def host(args):
         selected = [args.replica] if args.replica is not None else list(range(4))
         if args.mode in ('native-install', 'native-rollback') and args.replica is None:
             raise ValueError('select exactly ONE replica with --replica 0..3; no automatic bulk mutation')
-        out = ROOT / 'outputs' / (args.mode + '-' + uuid.uuid4().hex[:10])
+        out = output_path(args.out) if args.out else ROOT / 'outputs' / (args.mode + '-' + uuid.uuid4().hex[:10])
         out.mkdir(parents=True)
         python = os.environ.get('CONTROLLER_PYTHON', '/usr/local/python3.12.13/bin/python')
         credentials = ROOT / 'outputs/native-control.json'
@@ -67,11 +78,15 @@ def host(args):
     image = docker('inspect', '--format', '{{.Image}}', 'wushibo-qwen-small-npu0', capture_output=True).stdout.strip()
     command = ['sudo', 'docker', 'run', '--rm', '--pull', 'never', '--network', 'host',
         '--user', str(os.getuid()) + ':' + str(os.getgid()), '--mount', 'type=bind,src=' + str(ROOT) + ',dst=/project',
-        '-e', 'PYTHONDONTWRITEBYTECODE=1', '-e', 'PYTHONUTF8=1', '--workdir', '/project', '--entrypoint',
+        '-e', 'PYTHONDONTWRITEBYTECODE=1', '-e', 'PYTHONUTF8=1', '-e', 'PYTHONUNBUFFERED=1', '--workdir', '/project', '--entrypoint',
         os.environ.get('CONTROLLER_PYTHON', '/usr/local/python3.12.13/bin/python'), image,
         'tools/native_dabs.py', args.mode, '--worker']
     if args.replica is not None:
         command += ['--replica', str(args.replica)]
+    if args.out:
+        command += ['--out', mounted_path(args.out)]
+    if args.evidence:
+        command += ['--evidence', mounted_path(args.evidence)]
     return subprocess.call(command)
 
 
@@ -97,7 +112,7 @@ async def worker(args, out):
         tokenizer = Tokenizer(client, endpoints[0])
         latest_file = ROOT / 'outputs/native-latest.json'
         latest = read_json(latest_file) if latest_file.exists() else {}
-        if args.mode == 'native-check':
+        if args.mode in ('native-check', 'native-check-four'):
             result = {'pass': True, 'native_execution': True, 'capabilities': caps, 'inference_executed': False}
         elif args.mode in ('native-probe-one', 'native-probe-four'):
             count = 1 if args.mode.endswith('one') else 4
@@ -121,7 +136,8 @@ async def worker(args, out):
                 and receipt['status'] == 'rejected' and receipt.get('reason') == 'engine_restarted')
             write_json(out / 'restart.json', result)
         else:
-            paths = {k: latest[k] for k in ('native-probe-one', 'native-probe-four', 'native-calibrate', 'native-invalidate', 'native-restart-check') if k in latest}
+            paths = read_json(output_path(args.evidence))['paths'] if args.evidence else {
+                k: latest[k] for k in ('native-probe-one', 'native-probe-four', 'native-calibrate', 'native-invalidate', 'native-restart-check') if k in latest}
             result = await verify_live(native, paths)
             write_json(out / 'acceptance.json', result)
         latest[args.mode] = str(out)
@@ -141,20 +157,26 @@ def main():
     parser.add_argument('mode', choices=MODES)
     parser.add_argument('--replica', type=int, choices=range(4))
     parser.add_argument('--backup')
+    parser.add_argument('--out', type=Path, help='new output directory inside project outputs; never overwrite')
+    parser.add_argument('--evidence', type=Path, help='native-accept only: explicit JSON with raw evidence paths')
     parser.add_argument('--worker', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
+    if args.evidence and args.mode != 'native-accept':
+        parser.error('--evidence is only for native-accept')
     if args.mode not in MODES[:4] and args.replica not in (None, 0):
         parser.error('--replica 1..3 is for install/check/verify/rollback; active one-replica probes use replica 0, four-replica probes use all four')
     if not args.worker:
         return host(args)
     source_paths()
-    out = ROOT / 'outputs' / (args.mode + '-' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S-') + uuid.uuid4().hex[:8])
+    out = output_path(args.out) if args.out else ROOT / 'outputs' / (args.mode + '-' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S-') + uuid.uuid4().hex[:8])
     out.mkdir(parents=True)
     try:
         return asyncio.run(worker(args, out))
     except Exception as exc:
         import traceback
         (out / 'error.txt').write_text(traceback.format_exc(), encoding='utf-8')
+        write_json(out / 'result.json', {'pass': False, 'failures': [str(exc)]})
+        (out / 'SUMMARY.txt').write_text('mode: ' + args.mode + '\npass: false\nerror: ' + str(exc) + '\n', encoding='utf-8')
         print('NATIVE_FAILED=' + repr(exc), 'NATIVE_OUTPUT=' + str(out))
         return 2
 

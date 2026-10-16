@@ -3,3 +3,4 @@
 /run_ascend.sh text eol=lf
 /run_dabs_existing.sh text eol=lf
 /run_dabs_r234.sh text eol=lf
+/run_native.sh text eol=lf
