@@ -1,4 +1,4 @@
-# Preserve archived source/data bytes: their SHA-256 hashes are verified at startup.
+# Preserve archived source/data bytes: retain original fingerprints for provenance; do not normalize frozen bytes.
 * -text
 /run_ascend.sh text eol=lf
 /run_dabs_existing.sh text eol=lf

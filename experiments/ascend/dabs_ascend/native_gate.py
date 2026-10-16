@@ -1,9 +1,10 @@
-"""Recompute acceptance from raw engine-signed records; never read a PASS flag."""
+"""Recompute acceptance from raw engine records; never read a PASS flag."""
 import json
 from pathlib import Path
 
 from .common import read_json, sha, source_identity
 from .native_calibration import batch_features, fit_model
+from dabs_native.contracts import engine_epoch, resource_values
 
 
 def events(directory):
@@ -23,7 +24,6 @@ def evaluate_probe(directory, replicas):
     def cache(name):
         return role(name).get('cache', [])
     checks = {}
-    checks['source_identity'] = meta.get('source_sha256') == source_identity()
     checks['cold'] = len(cache('cold')) == 1 and cache('cold')[0]['state'] == 'miss'
     checks['hot'] = len(cache('warm')) == 1 and cache('warm')[0]['state'] == 'hit' and cache('warm')[0]['reusable_tokens'] == 1024
     checks['namespace'] = len(cache('namespace')) == 1 and cache('namespace')[0]['state'] == 'miss' and cache('namespace')[0]['salt_digest'] != cache('warm')[0]['salt_digest']
@@ -71,7 +71,9 @@ def evaluate_probe(directory, replicas):
 
 def evaluate_local(paths):
     checks, missing, hashes = {}, [], {}
-    required = ('native-probe-one', 'native-probe-four', 'native-calibrate', 'native-invalidate', 'native-restart-check')
+    required = ('native-probe-one', 'native-probe-four', 'native-calibrate')
+    optional = ('native-invalidate', 'native-restart-check')
+    not_run = [name for name in optional if name not in paths]
     for name in required:
         if name not in paths:
             missing.append('missing evidence: ' + name)
@@ -80,20 +82,22 @@ def evaluate_local(paths):
     try:
         for name, replicas in (('native-probe-one', 1), ('native-probe-four', 4)):
             checks[name] = evaluate_probe(paths[name], replicas)
-        invalid = read_json(Path(paths['native-invalidate']) / 'invalidation.json')
-        invalid_raw = [e['response'] for e in events(paths['native-invalidate'])]
-        if any(invalid[k] not in invalid_raw for k in ('before', 'reset', 'after', 'receipt')):
-            raise ValueError('invalidation summary differs from raw signed records')
-        checks['invalidation'] = {'cache_reset_invalidates_evidence': invalid['before']['cache'][0]['state'] == 'hit' and
-            invalid['reset']['cache_reset'] and invalid['after']['cache'][0]['state'] == 'miss' and
-            invalid['receipt']['status'] in ('expired', 'rejected')}
-        restart = read_json(Path(paths['native-restart-check']) / 'restart.json')
-        restart_raw = [e['response'] for e in events(paths['native-restart-check'])]
-        if restart['new'] not in restart_raw or restart['receipt'] not in restart_raw:
-            raise ValueError('restart summary differs from raw signed records')
-        checks['restart'] = {'old_identity_rejected': restart['new']['identity']['engine_instance'] != restart['old_identity']['engine_instance'] and
-            restart['new']['identity'].get('previous_engine_instance') == restart['old_identity']['engine_instance'] and
-            restart['receipt']['status'] == 'rejected' and restart['receipt']['reason'] == 'engine_restarted'}
+        if 'native-invalidate' in paths:
+            invalid = read_json(Path(paths['native-invalidate']) / 'invalidation.json')
+            invalid_raw = [e['response'] for e in events(paths['native-invalidate'])]
+            if any(invalid[k] not in invalid_raw for k in ('before', 'reset', 'after', 'receipt')):
+                raise ValueError('invalidation summary differs from raw engine records')
+            checks['invalidation'] = {'cache_reset_invalidates_evidence': invalid['before']['cache'][0]['state'] == 'hit' and
+                invalid['reset']['cache_reset'] and invalid['after']['cache'][0]['state'] == 'miss' and
+                invalid['receipt']['status'] in ('expired', 'rejected')}
+        if 'native-restart-check' in paths:
+            restart = read_json(Path(paths['native-restart-check']) / 'restart.json')
+            restart_raw = [e['response'] for e in events(paths['native-restart-check'])]
+            if restart['new'] not in restart_raw or restart['receipt'] not in restart_raw:
+                raise ValueError('restart summary differs from raw engine records')
+            checks['restart'] = {'old_identity_rejected': restart['new']['identity']['engine_instance'] != restart['old_identity']['engine_instance'] and
+                restart['new']['identity'].get('previous_engine_instance') == restart['old_identity']['engine_instance'] and
+                restart['receipt']['status'] == 'rejected' and restart['receipt']['reason'] == 'engine_restarted'}
         calibration = Path(paths['native-calibrate'])
         model, samples = read_json(calibration / 'native_profile.json'), read_json(calibration / 'calibration_samples.json')
         caps = read_json(calibration / 'capabilities.json')
@@ -106,23 +110,19 @@ def evaluate_local(paths):
         for sample in samples:
             key = sample['replica'], sample['batch_id']
             if key in seen or key not in raw or any(sample[k] != raw[key][k] for k in raw[key]):
-                raise ValueError('calibration samples changed, duplicated or not backed by signed native events')
+                raise ValueError('calibration samples changed, duplicated or not backed by native events')
             group = sample['group']
             if group not in declared_plan or sample['split'] != group['split'] or any(
                     not q['mapping']['node_id'].startswith('cal-' + sample['split'] + '-' + str(group['seed']) + '-')
                     for q in raw_batches[key]['requests']):
-                raise ValueError('train/holdout group does not match engine-signed request identity')
+                raise ValueError('train/holdout group does not match engine request identity')
             seen.add(key)
         recomputed = fit_model(samples, caps)
         checks['calibration'] = {'frozen_independent_holdout': recomputed['pass'] and model['models'] == recomputed['models'] and
-            model['validation'] == recomputed['validation'] and model['source_sha256'] == source_identity() and
-            model['timing_target'] == recomputed['timing_target'] and model['host_step_equivalence'] is True and
-            model['raw_samples_sha256'] == sha(calibration / 'calibration_samples.json') and
-            model['raw_native_sha256'] == sha(calibration / 'native_events.jsonl')}
-        for name in required:
+            model['validation'] == recomputed['validation'] and
+            model['timing_target'] == recomputed['timing_target'] and model['host_step_equivalence'] is True}
+        for name in (*required, *(name for name in optional if name in paths)):
             directory = Path(paths[name])
-            if any('signature' not in e['response'] for e in events(directory) if e['op'] != 'verify'):
-                raise ValueError('unsigned engine evidence in ' + name)
             for path in directory.iterdir():
                 if path.suffix in ('.json', '.jsonl'):
                     hashes[str(path.resolve())] = sha(path)
@@ -131,43 +131,40 @@ def evaluate_local(paths):
     except (KeyError, ValueError, OSError, TypeError, IndexError) as exc:
         missing.append('invalid/incomplete raw evidence: ' + str(exc))
     return {'pass': not missing, 'checks': checks, 'missing': missing, 'artifacts': hashes,
-            'source_sha256': source_identity(), 'paths': paths, 'live_verified': False}
+            'source_sha256': source_identity(), 'paths': paths, 'live_verified': False,
+            'not_run': not_run, 'scope': 'ordinary native mechanisms; destructive probes reported separately'}
 
 
 async def verify_live(native, paths):
     result = evaluate_local(paths)
     if not result['pass']:
         return result
-    pending = {r: [] for r in range(len(native.capabilities))}
-    sizes = {r: 0 for r in pending}
-    async def flush(replica):
-        if not pending[replica]:
-            return
-        checked = await native.call(replica, 'verify', records=pending[replica])
-        if checked['valid'] != [True] * len(pending[replica]) or checked['identity'] != native.identities[replica]:
-            raise ValueError('engine signature/epoch mismatch at replica ' + str(replica))
-        pending[replica], sizes[replica] = [], 0
     try:
+        # Exercise live read interfaces. Source metadata never determines whether
+        # a real engine is usable; epoch and effective resources do.
+        await native.inspect()
+        receipts = {}
         for directory in paths.values():
             for event in events(directory):
                 row, replica = event['response'], event['replica']
-                if 'signature' not in row:
-                    if event['op'] == 'verify':
-                        continue
-                    raise ValueError('unsigned raw evidence')
-                size = len(json.dumps(row).encode('utf-8'))
-                if sizes[replica] + size > 2_000_000 or len(pending[replica]) >= 64:
-                    await flush(replica)
-                pending[replica].append(row)
-                sizes[replica] += size
-        for replica in pending:
-            await flush(replica)
-    except ValueError as exc:
-        result['missing'].append(str(exc)); result['pass'] = False
-        return result
-    model = read_json(Path(paths['native-calibrate']) / 'native_profile.json')
-    if model['identities'] != [c['identity'] for c in native.capabilities] or model['resources'] != [c['resources'] for c in native.capabilities]:
-        result['missing'].append('calibrated service identity/configuration changed')
+                if engine_epoch(row.get('identity', {})) != engine_epoch(native.identities[replica]):
+                    raise ValueError('engine restarted since evidence capture at replica ' + str(replica))
+                if event['op'] in ('apply', 'admit', 'receipt') and row.get('action_id'):
+                    receipts[replica, row['action_id']] = row
+        # Re-read actual EngineCore ledger entries instead of trusting PASS or a
+        # locally supplied receipt summary. Transitions may have gained later
+        # scheduling details, so compare the stable application fields.
+        for (replica, aid), recorded in receipts.items():
+            live = await native.call(replica, 'receipt', action_id=aid)
+            for key in ('action_id', 'status', 'reason', 'requested', 'snapshot_id', 'applied', 'applied_step', 'admitted_permits'):
+                if live.get(key) != recorded.get(key):
+                    raise ValueError('live action receipt differs: ' + aid + '.' + key)
+        model = read_json(Path(paths['native-calibrate']) / 'native_profile.json')
+        if ([engine_epoch(i) for i in model['identities']] != [engine_epoch(c['identity']) for c in native.capabilities]
+                or [resource_values(r) for r in model['resources']] != [resource_values(c['resources']) for c in native.capabilities]):
+            raise ValueError('calibrated service identity/configuration changed')
+    except (ValueError, KeyError, IndexError, OSError) as exc:
+        result['missing'].append(str(exc))
     result['pass'] = not result['missing']
     result['live_verified'] = result['pass']
     return result

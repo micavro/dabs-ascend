@@ -105,7 +105,7 @@ def mechanism_gate(paths=None):
     from .native_gate import evaluate_local
     result = evaluate_local(paths or {})
     result.update(adapter='dabs-native-v023-1', inference_executed=False,
-                  next_command='bash run_dabs_r234.sh native-install-check')
-    # Local evidence is necessary; a second LIVE signature/config/epoch check
+                  next_command='bash run_native.sh test')
+    # Local evidence is necessary; a second LIVE record/config/epoch check
     # is mandatory inside r234_run before any native experiment requests.
     return result

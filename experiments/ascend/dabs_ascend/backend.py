@@ -104,7 +104,6 @@ class Backend:
             if schema is not None or not node.get('native_action_id'):
                 raise ValueError('native fixed replay requires an engine admission permit')
             endpoint = self.endpoints[replica] + '/dabs/v1/generate'
-            headers.update(self.native.headers(replica))
             payload = {'client_request_id': request_id, 'node_id': node['id'], 'seed': seed,
                        'tokens': tokens, 'max_tokens': node['max_output_tokens'], 'cache_salt': node['cache_salt']}
         server_id = None

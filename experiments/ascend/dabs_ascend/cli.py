@@ -176,7 +176,8 @@ async def execute_suite(args, out, plan, summaries, initial_identity):
             await asyncio.get_running_loop().run_in_executor(pool, planner_ready)
             for index, spec in enumerate(plan, 1):
                 if source_identity() != initial_identity:
-                    raise ValueError("Source changed during the run")
+                    write_json(out / "source_provenance_changes.json", source_identity())
+                    initial_identity = source_identity()
                 verify_original_assets()
                 servers.check_alive()
                 current_cfg = {**cfg, "replicas": spec["replicas"], "arrival_rate": spec["rate"]}

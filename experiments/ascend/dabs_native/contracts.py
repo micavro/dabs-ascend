@@ -132,3 +132,66 @@ class DeviceMeasurements:
                               'includes_sampling': False, 'completion_observed_ns': time.monotonic_ns()})
             del self.pending[key]
         return list(self.rows)
+
+
+def require_members(obj, label, *, methods=(), fields=()):
+    """Name the actual missing interface, independent of package/class versions."""
+    missing = [label + '.' + name + '()' for name in methods if not callable(getattr(obj, name, None))]
+    missing += [label + '.' + name for name in fields if not hasattr(obj, name)]
+    if missing:
+        raise ValueError('missing native capability: ' + ', '.join(missing))
+
+
+def engine_epoch(identity):
+    return identity.get('engine_instance'), identity.get('boot_id'), identity.get('clock_namespace_inode')
+
+
+def resource_values(resources):
+    # Class names, versions and source hashes are diagnostic metadata only.
+    return {k: v for k, v in resources.items() if k not in ('scheduler', 'kv_manager')}
+
+
+def validate_capabilities(row):
+    missing = []
+    for key in ('engine_instance', 'boot_id', 'clock_namespace_inode'):
+        if row.get('identity', {}).get(key) is None:
+            missing.append('identity.' + key)
+    for key in ('step_tokens', 'block_size', 'server_max_seqs', 'context_tokens', 'physical_blocks'):
+        value = row.get('resources', {}).get(key)
+        if type(value) is not int or value <= 0:
+            missing.append('resources.' + key + ' (positive integer)')
+    if row.get('native_execution') is not True:
+        missing.append('native_execution (actual NPU worker)')
+    if not row.get('workers'):
+        missing.append('workers (execution-process response)')
+    for action in ('admission_permits', 'unsubmitted_route', 'safe_prefill_queue_order'):
+        if action not in row.get('supported_actions', []):
+            missing.append('supported_actions.' + action)
+    # Older functional deployments do not advertise an operations list. The
+    # client also exercises the read RPCs; do not reject merely a schema label.
+    if 'operations' in row:
+        for op in ('snapshot', 'apply', 'admit', 'receipt', 'mapping', 'batches', 'ack-trace'):
+            if op not in row['operations']:
+                missing.append('operation.' + op)
+    if not row.get('host_step_boundary'):
+        missing.append('host_step_boundary')
+    if missing:
+        raise ValueError('missing native capability: ' + ', '.join(missing))
+    return row
+
+
+def validate_observation(row):
+    missing = [k for k in ('snapshot_id', 'step', 'captured_ns', 'expires_ns', 'resources', 'physical',
+                          'running', 'waiting', 'skipped_waiting', 'cache', 'inflight_batches',
+                          'running_count', 'waiting_count') if k not in row]
+    for key in ('total_usable_blocks', 'active_blocks', 'reclaimable_cached_blocks',
+                'allocator_free_blocks', 'available_for_new_reservations'):
+        if type(row.get('physical', {}).get(key)) is not int:
+            missing.append('physical.' + key)
+    if not row.get('identity', {}).get('engine_instance'):
+        missing.append('identity.engine_instance')
+    if missing:
+        raise ValueError('missing native capability: snapshot.' + ', snapshot.'.join(missing))
+    if row['expires_ns'] <= row['captured_ns']:
+        raise ValueError('invalid snapshot freshness interval')
+    return row

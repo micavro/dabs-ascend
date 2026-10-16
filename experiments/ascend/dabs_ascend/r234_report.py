@@ -152,7 +152,10 @@ def make_report(out, plan, summaries, status, error=None, *, source_out=None):
     report = {'suite': 'dabs-r234-balanced-64', 'status': status, 'completed_conditions': len(summaries),
               'declared_conditions': 96, 'functional_test_pass': bool(passed),
               'fixed_work_pass': work_ok, 'http_inference_verified': canary_ok,
-              'real_npu_verified': native, 'strict_native_reproduction_pass': bool(native and passed),
+              'real_npu_verified': native, 'native_mechanism_test_pass': bool(native and passed),
+              'strict_native_reproduction_pass': bool(native and passed and not native_gate.get('not_run', [])),
+              'native_optional_tests_not_run': native_gate.get('not_run', []),
+              'native_acceptance_scope': native_gate.get('scope'),
               'native_cache_observed': native, 'native_kv_hit_rate': None,
               'ours_conditions_without_scoring': [s['spec']['label'] for s in ours if not s['selector_scored_decisions']],
               'ours_conditions_without_rankable_candidate': [s['spec']['label'] for s in ours if not s['v5_candidate_scored']],
@@ -165,7 +168,8 @@ def make_report(out, plan, summaries, status, error=None, *, source_out=None):
                   'Timing target: actual engine host-step elapsed, using unambiguous batch/call associations. NPU forward events are auxiliary; predictions remain approximations.',
                   'Only unsubmitted routing, admission permits and safe waiting/partial-prefill queue slots are supported. Decode/inflight requests cannot be moved.',
                   'Input/DAG/seeds/96-condition order remain frozen. Negative gains, zero deviations and failures are retained.',
-                  'Mechanism validation is distinct from reproducing NVIDIA performance numbers.'] if native else LIMITS) + env.get('limits', []), 'error': error}
+                  'Mechanism validation is distinct from reproducing NVIDIA performance numbers.',
+                  'Optional destructive probes NOT_RUN: ' + ', '.join(native_gate.get('not_run', []))] if native else LIMITS) + env.get('limits', []), 'error': error}
     write_json(out / 'acceptance.json', report)
     for filename, values in [('metrics.csv', rows), ('paired_comparisons.csv', pairs),
                              ('workflow_metrics.csv', workflows), ('latency_decomposition.csv', stages),

@@ -2,19 +2,19 @@
 import os
 import time
 import uuid
-from .contracts import DeviceMeasurements
+from .contracts import DeviceMeasurements, require_members
 
 
 def install_worker_class(cls):
+    require_members(cls, 'NPUWorker', methods=('execute_model',))
     original = cls.execute_model
     def execute(self, scheduler_output):
         if not hasattr(self, '_dabs_measurements'):
-            from .install import check
-            result = check(allow_patched=True)
-            if not result['compatible']:
-                raise RuntimeError('worker source mismatch')
-            if type(self.model_runner).__module__ != 'vllm_ascend.worker.model_runner_v1':
-                raise RuntimeError('unreviewed Ascend model runner')
+            require_members(self, 'NPUWorker', fields=('model_runner',))
+            require_members(self.model_runner, 'model_runner', methods=('_model_forward',))
+            import torch
+            require_members(torch, 'torch', fields=('npu',))
+            require_members(torch.npu, 'torch.npu', methods=('Event', 'current_stream', 'is_available'))
             self._dabs_measurements = DeviceMeasurements()
             forward = self.model_runner._model_forward
             def measured(*args, **kwargs):
@@ -40,6 +40,10 @@ def install_worker_class(cls):
         return original(self, scheduler_output)
     def info(self):
         import torch
+        require_members(self, 'NPUWorker', fields=('model_runner',))
+        require_members(self.model_runner, 'model_runner', methods=('_model_forward',))
+        require_members(torch, 'torch', fields=('npu',))
+        require_members(torch.npu, 'torch.npu', methods=('Event', 'current_stream', 'is_available'))
         if not hasattr(self, '_dabs_worker_id'):
             self._dabs_worker_id = uuid.uuid4().hex
         return {'pid': os.getpid(), 'worker_instance': self._dabs_worker_id,

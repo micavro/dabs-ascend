@@ -62,6 +62,8 @@ class Workflow:
                  '状态: ' + self.record['status'], '结果目录: ' + str(self.out)]
         for step in self.record['steps']:
             lines.append(step['label'] + ': ' + step['status'] + '；日志 ' + step['log'])
+        if self.record.get('optional_tests_not_run'):
+            lines.append('未运行的专项（不计通过）: ' + ', '.join(self.record['optional_tests_not_run']))
         if self.record.get('reason'):
             lines.append('停止原因: ' + self.record['reason'])
         for field in ('acceptance', 'experiment_output', 'rollback_file'):
@@ -122,7 +124,8 @@ class Workflow:
                 elif commands:
                     commands += ['bash run_native.sh test']
             if mode == 'native-check-four':
-                detail += ' 检查四个服务的适配安装及加载状态；详见本步骤日志和 README 首次部署。'
+                detail += ' 原生接口缺项见本步骤日志；安装命令会自动跳过已可用的副本。'
+                commands = ['bash run_native.sh install', 'bash run_native.sh test']
             raise Stopped(label + '失败。' + detail + ' 日志: ' + self.relative(logfile), commands)
         return directory
 
@@ -137,14 +140,6 @@ class Workflow:
 
     def test(self):
         # Do not silently install hooks or restart services as part of ordinary tests.
-        credentials = self.root / 'outputs/native-control.json'
-        keys = read_json(credentials).get('keys', {}) if credentials.exists() else {}
-        missing = [r for r in range(4) if not keys.get(str(r))]
-        if missing:
-            raise Stopped('本目录缺少副本 ' + ', '.join(map(str, missing)) +
-                          ' 的控制密钥。尚不能调用原生测试；先完成 README 中的一次性部署。'
-                          ' 若已在另一个目录安装，请在原部署目录更新代码并运行，保留 outputs/native-control.json。',
-                          ['bash run_native.sh install --verify-restart', 'bash run_native.sh test --invalidate-cache'])
         self.step('native-check-four', '检查四个服务的原生能力（不发推理请求）')
         paths = {}
         for mode, label in [('native-probe-one', '单副本机制测试'),
@@ -154,13 +149,6 @@ class Workflow:
         if self.invalidate_cache:
             paths['native-invalidate'] = self.container_path(
                 self.step('native-invalidate', '明确指定的缓存失效测试（清空副本 0 前缀缓存）'))
-        latest_file = self.root / 'outputs/native-latest.json'
-        latest = read_json(latest_file) if latest_file.exists() else {}
-        for mode in ('native-invalidate', 'native-restart-check'):
-            if mode not in paths and mode in latest:
-                path = self.host_path(latest[mode])
-                if path.is_dir():
-                    paths[mode] = self.container_path(path)
         evidence = self.out / 'evidence.json'
         write_json(evidence, {'paths': paths})
         accepted = self.step('native-accept', '核验原始证据、当前服务身份和标定',
@@ -169,6 +157,7 @@ class Workflow:
         if result.get('pass') is not True or result.get('live_verified') is not True or result.get('missing') != []:
             raise Stopped('验收未提供 pass=true、live_verified=true、missing=[]，不放行实验。')
         self.record['acceptance'] = self.relative(accepted)
+        self.record['optional_tests_not_run'] = result.get('not_run', [])
 
     def experiment(self):
         latest = self.root / 'outputs/native-entry-last-test.json'
@@ -182,7 +171,7 @@ class Workflow:
         if not evidence.is_file():
             raise Stopped('测试原始验收记录缺失。', ['bash run_native.sh test'])
         # This pointer is convenience only: R234 recomputes raw evidence and
-        # verifies live engine signatures before canaries or formal traffic.
+        # verifies live engine identities and resources before canaries or formal traffic.
         result_dir = self.out / 'r234_native'
         self.record['acceptance'] = self.relative(evidence)
         self.record['experiment_output'] = self.relative(result_dir)

@@ -1,5 +1,4 @@
 """Explicit installation/restart of the four existing containers, never new services."""
-import hashlib
 import json
 from pathlib import Path
 import shlex
@@ -10,30 +9,22 @@ from urllib.request import Request, ProxyHandler, build_opener
 import uuid
 import os
 
+from dabs_native.contracts import validate_capabilities, validate_observation
 from dabs_ascend.common import read_json, write_json
 from dabs_ascend.telemetry import metric_pressure, parse_metrics
 
 
-# Executed in a staging directory inside the existing service. Never logs a key.
+# Executed only if the live service lacks usable native capabilities.
 INSPECT = '''
-import hmac, json, sys, sysconfig
+import json, sysconfig
 from pathlib import Path
 import dabs_native.install as installer
-source = installer.PACKAGE
 target = Path(sysconfig.get_paths()['purelib']) / 'dabs_native'
-key = json.load(sys.stdin).get('key', '')
-if not target.exists():
-    check = installer.check()
-    result = dict(state='fresh' if check['compatible'] else 'incompatible', check=check)
-else:
-    desired = {p.name: installer.sha(p.read_bytes()) for p in source.iterdir() if p.suffix in ('.py', '.json')}
-    installer.PACKAGE = target
-    check = installer.check(allow_patched=True)
-    receipt = check.get('installation', {})
-    same = desired == receipt.get('adapter_sha256')
-    key_matches = bool(key) and hmac.compare_digest(key, (target / 'auth.key').read_text().strip())
-    result = dict(state='installed' if check['compatible'] and same and key_matches else 'incompatible',
-                  check=check, same_adapter=same, key_matches=key_matches, backup=receipt.get('backup'))
+check = installer.check()
+receipt = target / 'installation.json'
+previous = json.loads(receipt.read_text()) if receipt.exists() else {}
+result = dict(state=('update' if target.exists() else 'fresh') if check['compatible'] else 'incompatible',
+              check=check, backup=previous.get('backup'))
 print(json.dumps(result))
 '''
 
@@ -44,9 +35,6 @@ class Installer:
         self.timeout, self.verify_restart = ready_timeout, verify_restart
         self.python = os.environ.get('CONTROLLER_PYTHON', '/usr/local/python3.12.13/bin/python')
         self.opener = build_opener(ProxyHandler({}))
-        package = workflow.root / 'experiments/ascend/dabs_native'
-        self.expected = {p.name: hashlib.sha256(p.read_bytes()).hexdigest()
-                         for p in package.iterdir() if p.suffix in ('.py', '.json')}
         self.backups = {}
         self.last_ready_error = None
 
@@ -58,7 +46,6 @@ class Installer:
         result = subprocess.run(['sudo', 'docker', *args], input=input,
                                 capture_output=True, text=True, encoding='utf-8', timeout=120)
         if result.returncode:
-            # The inspection command receives the key via stdin, never argv.
             raise RuntimeError('docker ' + args[0] + ' failed: ' + result.stderr[-2000:])
         return result.stdout
 
@@ -74,10 +61,8 @@ class Installer:
         stage = '/tmp/dabs-setup-' + uuid.uuid4().hex
         self.capture(['exec', container, 'mkdir', '-p', stage])
         self.capture(['cp', str(self.w.root / 'experiments/ascend/dabs_native'), container + ':' + stage + '/dabs_native'])
-        credentials = self.w.root / 'outputs/native-control.json'
-        keys = read_json(credentials).get('keys', {}) if credentials.exists() else {}
-        result = json.loads(self.capture(['exec', '-i', '-e', 'PYTHONPATH=' + stage, container,
-                            self.python, '-c', INSPECT], json.dumps({'key': keys.get(str(replica), '')})))
+        result = json.loads(self.capture(['exec', '-e', 'PYTHONPATH=' + stage, container,
+                            self.python, '-c', INSPECT]))
         result['container'] = identity
         write_json(self.w.out / ('install-state-' + str(replica) + '.json'), result)
         return result
@@ -85,8 +70,7 @@ class Installer:
     def http(self, replica, route, payload=None):
         headers = {}
         if payload is not None:
-            key = read_json(self.w.root / 'outputs/native-control.json')['keys'][str(replica)]
-            headers = {'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json'}
+            headers = {'Content-Type': 'application/json'}
         request = Request('http://127.0.0.1:' + str(8001 + replica) + route,
                           data=json.dumps(payload).encode() if payload is not None else None, headers=headers)
         with self.opener.open(request, timeout=10) as response:
@@ -105,11 +89,11 @@ class Installer:
         try:
             self.http(replica, '/health')
             row = json.loads(self.http(replica, '/dabs/v1/control', {'op': 'capabilities'}))
-            matched = (row.get('native_execution') is True and row.get('signature') and
-                           row.get('identity', {}).get('engine_instance') and
-                           row.get('adapter_sha256') == self.expected)
-            self.last_ready_error = None if matched else '原生能力响应缺少真实引擎信息，或适配源码与本目录不同'
-            return row if matched else None
+            validate_capabilities(row)
+            snapshot = json.loads(self.http(replica, '/dabs/v1/control', {'op': 'snapshot'}))
+            validate_observation(snapshot)
+            self.last_ready_error = None
+            return row
         except (URLError, OSError, ValueError, KeyError) as exc:
             self.last_ready_error = str(exc)
             return None
@@ -123,7 +107,7 @@ class Installer:
                 print('副本 ' + str(replica) + ' 原生引擎已就绪。', flush=True)
                 return
             if time.monotonic() >= deadline:
-                raise ValueError('副本 ' + str(replica) + ' 在 ' + str(self.timeout) + ' 秒内未加载匹配的原生适配: ' + str(self.last_ready_error))
+                raise ValueError('副本 ' + str(replica) + ' 在 ' + str(self.timeout) + ' 秒内未提供所需原生接口: ' + str(self.last_ready_error))
             print('等待副本 ' + str(replica) + ' 加载模型和原生引擎……', flush=True)
             time.sleep(5)
 
@@ -160,47 +144,44 @@ class Installer:
         self.w.save()
 
     def run(self):
-        print('安装模式会逐个重启现有 0–3 号容器；请暂停向这些服务提交其它任务。', flush=True)
+        print('先连接现有服务；仅对缺少可用原生接口的副本安装补丁并逐个重启。', flush=True)
         self.save_backups()
-        states = []
+        pending = []
         for replica in range(4):
-            print('核对副本 ' + str(replica) + ' 的版本、源码和已有安装……', flush=True)
+            if self.ready(replica):
+                print('副本 ' + str(replica) + ' 原生接口已可用，跳过安装和重启。', flush=True)
+                continue
+            print('副本 ' + str(replica) + ' 需要加载适配: ' + str(self.last_ready_error), flush=True)
             state = self.inspect(replica)
-            states.append(state)
+            pending.append((replica, state))
             if state.get('backup'):
                 self.backups[replica] = state['backup']
         self.save_backups()
-        if any(s['state'] not in ('fresh', 'installed') for s in states):
-            raise ValueError('安装检查未通过，尚未修改或重启服务。请复制本目录 install-state-N.json 的 errors、same_adapter、key_matches；不同补丁须先按 ROLLBACK.txt 撤销，不能覆盖安装。')
-        for replica in range(4):
+        errors = {r: s.get('check', {}).get('errors', []) for r, s in pending if s['state'] == 'incompatible'}
+        if errors:
+            raise ValueError('缺少安装所需接口，尚未修改或重启服务: ' + json.dumps(errors, ensure_ascii=False))
+        for replica, _ in pending:
             self.idle(replica)
-        for replica, state in enumerate(states):
-            if state['state'] == 'installed' and self.ready(replica):
-                print('副本 ' + str(replica) + ' 已安装并加载同一适配，跳过重复安装/重启。', flush=True)
-                continue
-            if state['state'] == 'fresh':
-                self.idle(replica)
+        for replica, state in pending:
+            self.idle(replica)
+            try:
+                directory = self.w.step('native-install', '安装/更新副本 ' + str(replica), ['--replica', str(replica)])
+            except Exception:
                 try:
-                    directory = self.w.step('native-install', '安装副本 ' + str(replica), ['--replica', str(replica)])
+                    after = self.inspect(replica)
+                    if after.get('backup'):
+                        self.backups[replica] = after['backup']
+                        self.save_backups()
                 except Exception:
-                    # A partial install may already have created its rollback receipt.
-                    try:
-                        after = self.inspect(replica)
-                        if after.get('backup'):
-                            self.backups[replica] = after['backup']
-                            self.save_backups()
-                    except Exception:
-                        pass
-                    raise
-                result = read_json(directory / 'result.json')['replicas'][0]['result']
-                self.backups[replica] = result['backup']
-                self.save_backups()
+                    pass
+                raise
+            result = read_json(directory / 'result.json')['replicas'][0]['result']
+            self.backups[replica] = result['backup']
+            self.save_backups()
             self.restart(replica)
-            # Sequential: never touch the next replica before this one is ready.
         self.w.step('native-check-four', '核验四服务的真实原生能力')
         if self.verify_restart:
             self.w.step('native-restart-arm', '保存副本 0 重启前身份')
             self.restart(0)
             self.w.step('native-restart-check', '验证副本 0 拒绝旧引擎身份动作')
-        self.w.record['next_commands'] = ['bash run_native.sh test --invalidate-cache'] if self.verify_restart else [
-            'bash run_native.sh install --verify-restart']
+        self.w.record['next_commands'] = ['bash run_native.sh test']

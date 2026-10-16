@@ -61,7 +61,7 @@ def select_batch(ns, active, running, rank, native_rank, ledger, replica, at, cf
 def check_model_range(model, replica, p, d, dc, pc):
     """No silent extrapolation outside this frozen native calibration."""
     if 'validation' not in model:
-        return  # CPU fixtures; real runs require the signed native model gate.
+        return  # CPU fixtures; real runs require the raw native model gate.
     from core18v2.service import phase
     observed = model['validation'][str(replica)][phase(p, d)]['range']
     for key, value in dict(p=p, d=d, dc=dc, pc=pc).items():

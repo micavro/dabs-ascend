@@ -355,7 +355,7 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                 applied += route_effect or queue_effect
                 routed += route_effect; queued += queue_effect
             summary.update(execution_scope='native', native_cache_observed=True,
-                native_prefill_decode_ms='see signed native_events.jsonl; engine host-step and auxiliary NPU forward events are separate',
+                native_prefill_decode_ms='see raw native_events.jsonl; engine host-step and auxiliary NPU forward events are separate',
                 engine_applied_nonreference_actions=applied, engine_nonreference_routing_actions=routed,
                 engine_nonreference_queue_actions=queued,
                 engine_admitted_requests=sum(bool(n['stream'].get('native_mapping')) for n in nodes.values()))

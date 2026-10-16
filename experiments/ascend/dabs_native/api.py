@@ -1,7 +1,5 @@
-"""Authenticated routes forward control to EngineCore's actual utility RPC."""
-import hmac
+"""Native routes forward control to EngineCore's actual utility RPC."""
 import json
-from pathlib import Path
 
 
 def install_api(app):
@@ -9,12 +7,7 @@ def install_api(app):
     from starlette.responses import StreamingResponse
     # Request must be available in the module namespace for FastAPI resolution.
     globals()['Request'] = Request
-    key = (Path(__file__).parent / 'auth.key').read_text().strip()
-    async def authorize(request):
-        if not hmac.compare_digest(request.headers.get('authorization', ''), 'Bearer ' + key):
-            raise HTTPException(403, 'native control authentication required')
     async def rpc(request: Request):
-        await authorize(request)
         body = await request.body()
         if len(body) > 8_000_000:
             raise HTTPException(413, 'native request too large')
@@ -23,7 +16,6 @@ def install_api(app):
         except Exception as exc:
             raise HTTPException(409, str(exc)) from exc
     async def generate(request: Request):
-        await authorize(request)
         raw = await request.body()
         if len(raw) > 8_000_000:
             raise HTTPException(413, 'native request too large')

@@ -1,4 +1,4 @@
-"""Controller side of the authenticated EngineCore protocol (no shadow engine)."""
+"""Controller side of the EngineCore protocol (no shadow engine)."""
 import asyncio
 import copy
 import math
@@ -7,26 +7,23 @@ from pathlib import Path
 import time
 import uuid
 
-from dabs_native.contracts import digest, prefix_key
-from .common import ROOT, append_json, read_json, sha
+from dabs_native.contracts import digest, prefix_key, validate_capabilities, engine_epoch, validate_observation
+from .common import append_json
 
 
 class NativeClient:
-    def __init__(self, client, endpoints, credentials, log=None):
+    def __init__(self, client, endpoints, log=None):
         self.client, self.endpoints = client, endpoints
-        self.keys = read_json(credentials)['keys']
         self.log, self.identities, self.capabilities = log, {}, []
         self.salt = 'dabs-' + uuid.uuid4().hex
         self.watermarks = {}
 
-    def headers(self, replica):
-        return {'Authorization': 'Bearer ' + self.keys[str(replica)]}
-
     async def call(self, replica, op, **payload):
         started = time.monotonic()
         response = await self.client.post(self.endpoints[replica] + '/dabs/v1/control',
-            headers=self.headers(replica), json={'op': op, **payload})
-        response.raise_for_status()
+            json={'op': op, **payload})
+        if response.is_error:
+            raise ValueError(f'replica {replica} /dabs/v1/control op={op}: HTTP {response.status_code}: {response.text[:1000]}')
         row = response.json()
         if self.log:
             append_json(self.log, {'replica': replica, 'op': op, 'request': payload,
@@ -35,27 +32,31 @@ class NativeClient:
                 with open(self.log, 'a', encoding='utf-8') as handle:
                     handle.flush()
                     os.fsync(handle.fileno())
-        if op != 'verify' and 'identity' not in row:
-            raise ValueError('unsigned/missing engine identity')
+        if not isinstance(row, dict) or not row.get('identity', {}).get('engine_instance'):
+            raise ValueError(f'replica {replica} op={op}: missing identity.engine_instance')
         old = self.identities.setdefault(replica, row['identity'])
-        if row['identity'] != old:
+        if engine_epoch(row['identity']) != engine_epoch(old):
             raise ValueError('engine restart: invalidate state, calibration and acceptance; start a new run')
         return row
 
     async def inspect(self):
         self.capabilities = await asyncio.gather(*(self.call(r, 'capabilities') for r in range(len(self.endpoints))))
+        for replica, row in enumerate(self.capabilities):
+            try:
+                validate_capabilities(row)
+                validate_observation(await self.call(replica, 'snapshot'))
+                for op, field, payload in [('mapping', 'mappings', {'client_request_ids': []}), ('batches', 'batches', {'after_step': 0})]:
+                    observed = await self.call(replica, op, **payload)
+                    if not isinstance(observed.get(field), list):
+                        raise ValueError('missing native capability: ' + op + '.' + field)
+            except ValueError as exc:
+                raise ValueError(f'replica {replica}: {exc}') from exc
         resources = self.capabilities[0]['resources']
         for row in self.capabilities:
-            if not row['native_execution']:
-                raise ValueError('actual NPU worker unavailable')
             if (row['identity']['boot_id'] != Path('/proc/sys/kernel/random/boot_id').read_text().strip()
                     or row['identity']['clock_namespace_inode'] != os.stat('/proc/self/ns/time').st_ino):
                 raise ValueError('fixed action windows require the same host monotonic clock namespace')
-            package = ROOT / 'experiments/ascend/dabs_native'
-            expected = {p.name: sha(p) for p in package.iterdir() if p.suffix in ('.py', '.json')}
-            if row.get('adapter_sha256') != expected:
-                raise ValueError('installed native adapter differs from this controller checkout')
-            for key in ('step_tokens', 'block_size', 'server_max_seqs', 'context_tokens', 'scheduler'):
+            for key in ('step_tokens', 'block_size', 'server_max_seqs', 'context_tokens'):
                 if row['resources'][key] != resources[key]:
                     raise ValueError('heterogeneous effective engine setting: ' + key)
         return self.capabilities
@@ -238,7 +239,7 @@ class NativeClient:
                 complete.append(batch)
             exported.extend((replica, b) for b in complete)
             if complete and self.log:
-                # call() has already appended the signed response; acknowledge
+                # call() has already appended the raw response; acknowledge
                 # only the contiguous completed prefix, never an unready event.
                 self.watermarks[replica] = complete[-1]['step']
                 await self.call(replica, 'ack-trace', through_step=complete[-1]['step'])

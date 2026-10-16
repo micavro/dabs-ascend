@@ -34,13 +34,12 @@ class NativeWorkflowTests(unittest.TestCase):
         self.commands = []
         self.failure = None
         self.completed = 96
-        write_json(self.root / 'outputs/native-control.json', {'keys': {str(r): 'fixture' for r in range(4)}})
 
     def destructive_evidence(self):
         paths = {}
         for mode in ('native-invalidate', 'native-restart-check'):
             directory = self.root / 'outputs' / mode
-            directory.mkdir(exist_ok=True)
+            directory.mkdir(parents=True, exist_ok=True)
             paths[mode] = '/project/outputs/' + mode
         write_json(self.root / 'outputs/native-latest.json', paths)
 
@@ -61,8 +60,7 @@ class NativeWorkflowTests(unittest.TestCase):
         if mode == 'native-accept':
             evidence = self.current.host_path(command[command.index('--evidence') + 1])
             paths = read_json(evidence)['paths']
-            required = ('native-probe-one', 'native-probe-four', 'native-calibrate',
-                        'native-invalidate', 'native-restart-check')
+            required = ('native-probe-one', 'native-probe-four', 'native-calibrate')
             missing = ['missing evidence: ' + name for name in required if name not in paths]
             result.update(missing=missing, live_verified=not missing, paths=paths)
             result['pass'] = not missing
@@ -114,14 +112,14 @@ class NativeWorkflowTests(unittest.TestCase):
         self.assertEqual(blocked.record['next_commands'], ['bash run_native.sh test'])
         self.assertTrue((previous.out / 'run.json').exists())
 
-    def test_missing_destructive_tests_are_not_executed_or_skipped(self):
+    def test_normal_test_does_not_require_or_reuse_destructive_evidence(self):
+        self.destructive_evidence()
         run, code = self.run_workflow()
-        self.assertEqual(code, 2)
+        self.assertEqual(code, 0)
         self.assertNotIn('native-invalidate', [c[2] for c in self.commands])
         self.assertNotIn('native-restart-arm', [c[2] for c in self.commands])
-        self.assertIn('sudo docker restart wushibo-qwen-small-npu0', run.record['next_commands'])
-        self.assertIn('bash run_native.sh test --invalidate-cache', run.record['next_commands'])
-        self.assertIn('native-restart-check', run.record['reason'])
+        paths = read_json(run.out / 'evidence.json')['paths']
+        self.assertEqual(set(paths), {'native-probe-one', 'native-probe-four', 'native-calibrate'})
 
     def test_cache_reset_only_with_explicit_option(self):
         self.destructive_evidence()
@@ -130,13 +128,19 @@ class NativeWorkflowTests(unittest.TestCase):
         self.assertEqual([c[2] for c in self.commands][-2:], ['native-invalidate', 'native-accept'])
         self.assertTrue(run.record['explicit_cache_invalidation'])
 
-    def test_missing_key_records_next_command_without_installing_or_restarting(self):
-        write_json(self.root / 'outputs/native-control.json', {'keys': {}})
+    def test_new_directory_connects_without_any_credentials(self):
+        run, code = self.run_workflow()
+        self.assertEqual(code, 0)
+        self.assertEqual(self.commands[0][2], 'native-check-four')
+        self.assertEqual(run.record['next_commands'], ['bash run_native.sh experiment'])
+        self.assertTrue((run.out / 'SUMMARY.txt').is_file())
+
+    def test_missing_interface_reports_install_command_without_restart(self):
+        self.failure = 'native-check-four'
         run, code = self.run_workflow()
         self.assertEqual(code, 2)
-        self.assertEqual(self.commands, [])
-        self.assertEqual(run.record['next_commands'][0], 'bash run_native.sh install --verify-restart')
-        self.assertTrue((run.out / 'SUMMARY.txt').is_file())
+        self.assertEqual([c[2] for c in self.commands], ['native-check-four'])
+        self.assertIn('bash run_native.sh install', run.record['next_commands'])
 
     def test_zero_exit_without_live_acceptance_cannot_pass(self):
         self.destructive_evidence()

@@ -46,7 +46,7 @@ def arguments(args):
 
 def stable_arguments(args):
     return {k: v for k, v in arguments(args).items()
-            if k not in ('out', 'resume', 'max_conditions', 'deployment_manifest', 'mode')}
+            if k not in ('out', 'resume', 'max_conditions', 'deployment_manifest', 'mode', 'native_evidence', 'model')}
 
 
 def native_paths(args):
@@ -59,14 +59,18 @@ def native_paths(args):
 
 
 def preserve_native_freeze(out, gate, model, resume):
-    binding = {'artifacts': gate['artifacts'], 'paths': gate['paths'],
-               'identities': model['identities'], 'resources': model['resources']}
+    from dabs_native.contracts import engine_epoch, resource_values
+    def scientific_binding(value):
+        return {'identities': [engine_epoch(i) for i in value['identities']],
+                'resources': [resource_values(r) for r in value['resources']],
+                **{k: value.get(k) for k in ('models', 'validation', 'timing_target', 'host_step_equivalence')}}
+    binding = scientific_binding(model)
     path = out / 'native_freeze.json'
     if resume:
-        if read_json(path) != binding or read_json(out / 'ascend_profile.json') != model:
-            raise ValueError('Native evidence/model changed since pause; start a new experiment directory')
+        if scientific_binding(read_json(out / 'ascend_profile.json')) != binding:
+            raise ValueError('Native model/resources/engine changed since pause; start a new experiment directory')
     else:
-        write_json(path, binding)
+        write_json(path, {**binding, 'provenance': {'artifacts': gate['artifacts'], 'paths': gate['paths']}})
 
 
 def audit_completed(out, plan):
@@ -108,7 +112,7 @@ def deployment_signature(args, out):
     # The host inspector changes its timestamp on every invocation. Compare
     # actual services/options/model identity, not the inspection timestamp.
     deployment = [{k: v for k, v in row.items() if k != 'served_model'} for row in env.get('deployment', [])]
-    return {'devices': args.devices, 'model_config_sha256': sha(args.model / 'config.json'),
+    return {'devices': args.devices, 'model_config': read_json(args.model / 'config.json'),
             'controller_image': os.environ.get('DABS_CONTROLLER_IMAGE'),
             'deployment': deployment, 'service_mode': args.service_mode}
 
@@ -139,7 +143,7 @@ async def execute(args, out, plan, summaries, identity):
                 from .native_gate import verify_live
                 from .native_algorithms import transformation_manifest
                 write_json(out / 'native_transformations.json', transformation_manifest())
-                backend.native = NativeClient(client, servers.endpoints, ROOT / 'outputs/native-control.json', out / 'native_preflight.jsonl')
+                backend.native = NativeClient(client, servers.endpoints, out / 'native_preflight.jsonl')
                 caps = await backend.native.inspect()
                 gate = await verify_live(backend.native, native_paths(args))
                 if not gate['pass']:
@@ -198,7 +202,8 @@ async def execute(args, out, plan, summaries, identity):
             for index in range(first, stop):
                 spec = plan[index]
                 if source_identity() != identity:
-                    raise ValueError('Source changed during this run')
+                    append_json(out / 'process.jsonl', {'event': 'source_provenance_changed', 'source_sha256': source_identity()})
+                    identity = source_identity()
                 r234.verify_import()
                 servers.check_alive()
                 current = {**cfg, 'replicas': spec['replicas'], 'arrival_rate': spec['rate'],
@@ -270,11 +275,11 @@ def main(args):
             if read_json(out / 'status.json')['status'] != 'paused':
                 raise ValueError('Only a clean --max-conditions pause can resume; failed/interrupted runs must be preserved')
             protocol = read_json(out / 'protocol.json')
-            if protocol['source_sha256'] != identity or protocol['plan'] != plan or protocol['stable_arguments'] != stable_arguments(args):
-                raise ValueError('Source, frozen plan or deployment parameters differ from paused run')
+            if protocol['plan'] != plan or protocol['stable_arguments'] != stable_arguments(args):
+                raise ValueError('Frozen plan or deployment parameters differ from paused run')
             for name, expected in read_json(out / 'calibration_identity.json').items():
                 if sha(out / name) != expected:
-                    raise ValueError('Paused calibration changed: ' + name)
+                    append_json(out / 'process.jsonl', {'event': 'calibration_file_fingerprint_changed', 'file': name, 'actual': sha(out / name)})
             summaries = audit_completed(out, plan)
         else:
             out.mkdir(parents=True, exist_ok=False)

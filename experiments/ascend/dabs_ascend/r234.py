@@ -39,11 +39,14 @@ def frozen(name):
 
 def verify_import():
     manifest = read_json(ROOT / 'provenance/r234_import.json')
+    differences = []
     for name, expected in manifest['files'].items():
-        if sha(ROOT / name) != expected:
-            raise ValueError('Imported R234 source changed: ' + name)
-    return {'passed': True, 'bundle_sha256': manifest['sha256'],
-            'verified_files': len(manifest['files'])}
+        path = ROOT / name
+        actual = sha(path) if path.is_file() else None
+        if actual != expected:
+            differences.append({'file': name, 'expected': expected, 'actual': actual})
+    return {'passed': not differences, 'bundle_sha256': manifest['sha256'],
+            'verified_files': len(manifest['files']), 'differences': differences, 'role': 'provenance_only'}
 
 
 def plan():

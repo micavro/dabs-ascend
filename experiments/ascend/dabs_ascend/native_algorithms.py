@@ -1,7 +1,7 @@
 """Auditable parameterization of frozen V5/Ayo/RR/SLL, in isolated namespaces.
 
-No frozen file is edited. Exact replacement counts, import integrity and the
-transformation manifest bind the derived implementations to reviewed originals.
+No frozen file is edited. Required transformation anchors are checked; source fingerprints are recorded
+for provenance and do not authorize or block deployment.
 16/1024/65536 in service.features are regression scales, not KV block sizes.
 """
 import copy

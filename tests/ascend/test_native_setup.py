@@ -65,7 +65,7 @@ class SetupTests(unittest.TestCase):
         self.assertEqual(self.events[-1], ('native-check-four', None))
         self.assertIn('--replica 3', (self.w.out / 'ROLLBACK.txt').read_text(encoding='utf-8'))
 
-    def test_hash_mismatch_in_later_replica_changes_nothing(self):
+    def test_missing_hook_in_later_replica_changes_nothing(self):
         self.states[3] = {'state': 'incompatible'}
         with self.assertRaisesRegex(ValueError, '尚未修改'):
             self.run_setup()
@@ -80,7 +80,8 @@ class SetupTests(unittest.TestCase):
         self.states = [{'state': 'installed', 'backup': '/vendor/b' + str(r)} for r in range(4)]
         self.loaded.update((0, 1, 3))
         self.run_setup()
-        self.assertNotIn('native-install', [mode for mode, _ in self.events])
+        self.assertEqual([r for mode, r in self.events if mode == 'inspect'], [2])
+        self.assertEqual([r for mode, r in self.events if mode == 'native-install'], [2])
         self.assertEqual([r for mode, r in self.events if mode == 'restart'], [2])
 
     def test_loading_failure_stops_before_next_replica(self):
@@ -122,7 +123,7 @@ class SetupTests(unittest.TestCase):
         self.installer.verify_restart = True
         self.run_setup()
         self.assertEqual(self.events[-3:], [('native-restart-arm', None), ('restart', 0), ('native-restart-check', None)])
-        self.assertEqual(self.w.record['next_commands'], ['bash run_native.sh test --invalidate-cache'])
+        self.assertEqual(self.w.record['next_commands'], ['bash run_native.sh test'])
 
     def test_idle_refuses_unknown_and_nonzero_metrics(self):
         for metrics in ('', 'vllm:num_requests_running 1\nvllm:num_requests_waiting 0',
@@ -140,34 +141,30 @@ class SetupTests(unittest.TestCase):
         idle.assert_called_once_with(2)
         wait.assert_called_once_with(2)
 
-    def test_readiness_needs_native_engine_and_exact_adapter(self):
-        good = {'native_execution': True, 'signature': 'cpu-fixture',
-                'identity': {'engine_instance': 'cpu-fixture'}, 'adapter_sha256': self.installer.expected}
-        for row, expected in (({}, False), (dict(good, adapter_sha256={}), False), (good, True)):
-            with patch.object(self.installer, 'http', side_effect=['', json.dumps(row)]):
+    def test_readiness_uses_actual_interfaces_not_adapter_hash(self):
+        from test_native_simplification import capability, observation
+        good = capability()
+        for row, expected in (({}, False), (dict(good, adapter_sha256={'old': 'different'}), True), (good, True)):
+            with patch.object(self.installer, 'http', side_effect=['', json.dumps(row), json.dumps(observation())]):
                 self.assertEqual(bool(self.installer.ready(0)), expected)
+
+    def test_all_live_services_skip_inspection_install_and_restart(self):
+        self.loaded.update(range(4))
+        self.run_setup(idle=AssertionError('ordinary capability reuse must not idle-gate'))
+        self.assertEqual(self.events, [('native-check-four', None)])
 
     def test_timeout_does_not_move_on(self):
         with patch.object(self.installer, 'ready', return_value=None), \
              patch.object(setup.time, 'monotonic', side_effect=[0, 901]), self.assertRaises(ValueError):
             self.installer.wait_ready(0)
 
-    def test_staged_inspection_checks_key_and_adapter_without_printing_key(self):
+    def test_staged_inspection_accepts_existing_adapter_without_credentials(self):
         import dabs_native
         target = self.root / 'vendor/dabs_native'
         target.mkdir(parents=True)
-        key = 'secret-not-for-logs'
-        (target / 'auth.key').write_text(key)
-        source = self.root / 'experiments/ascend/dabs_native'
-        desired = {'__init__.py': hashlib.sha256((source / '__init__.py').read_bytes()).hexdigest()}
-        for provided, same in ((key, True), ('wrong', False)):
-            module = SimpleNamespace(PACKAGE=source, sha=lambda value: hashlib.sha256(value).hexdigest(),
-                check=lambda **kwargs: {'compatible': True, 'installation': {'adapter_sha256': desired, 'backup': '/vendor/backup'}})
-            with patch.dict(sys.modules, {'dabs_native.install': module}), \
-                 patch.object(dabs_native, 'install', module, create=True), \
-                 patch.object(sysconfig, 'get_paths', return_value={'purelib': str(target.parent)}), \
-                 patch.object(sys, 'stdin', io.StringIO(json.dumps({'key': provided}))), redirect_stdout(io.StringIO()) as output:
-                exec(setup.INSPECT, {})
-            result = json.loads(output.getvalue())
-            self.assertEqual(result['state'], 'installed' if same else 'incompatible')
-            self.assertNotIn(key, output.getvalue())
+        module = SimpleNamespace(check=lambda: {'compatible': True, 'notes': ['different version/hash']})
+        with patch.dict(sys.modules, {'dabs_native.install': module}), \
+             patch.object(dabs_native, 'install', module, create=True), \
+             patch.object(sysconfig, 'get_paths', return_value={'purelib': str(target.parent)}), redirect_stdout(io.StringIO()) as output:
+            exec(setup.INSPECT, {})
+        self.assertEqual(json.loads(output.getvalue())['state'], 'update')

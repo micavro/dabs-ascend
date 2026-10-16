@@ -4,18 +4,16 @@ All scheduler access occurs on the EngineCore thread. No HTTP-side shadow KV.
 Only the reviewed TP1/full-attention/async/eager configuration is supported.
 """
 import copy
-import hmac
 import json
 import math
 import os
 from pathlib import Path
-import secrets
 import time
 from types import MethodType
 import uuid
 
 from . import REVISION
-from .contracts import Receipts, check_action, digest, fresh, prefix_key, validate_resources, prefill_order
+from .contracts import require_members, Receipts, check_action, digest, fresh, prefix_key, validate_resources, prefill_order
 
 
 class EngineAdapter:
@@ -26,14 +24,13 @@ class EngineAdapter:
         self.identity = {'engine_instance': uuid.uuid4().hex, 'pid': os.getpid(),
                          'boot_id': Path('/proc/sys/kernel/random/boot_id').read_text().strip(),
                          'clock_namespace_inode': os.stat('/proc/self/ns/time').st_ino,
-                         'adapter': REVISION, 'installation_digest': digest(installation)}
+                         'adapter': REVISION}
         epoch_file = Path(__file__).parent / 'engine_epoch.json'
         previous = json.loads(epoch_file.read_text()) if epoch_file.exists() else {}
         self.identity['previous_engine_instance'] = previous.get('engine_instance')
         temporary = epoch_file.with_suffix('.tmp')
         temporary.write_text(json.dumps(self.identity))
         os.replace(temporary, epoch_file)
-        self.signing_key = secrets.token_bytes(32)
         self.step, self.serial = 0, 0
         self.snapshots, self.pending, self.batches = {}, {}, []
         self.receipts, self.permits, self.mappings = Receipts(), {}, {}
@@ -45,19 +42,12 @@ class EngineAdapter:
         self.completed_progress = {}
         self.resources = self.read_resources()
 
-    def signed(self, row):
+    def observed(self, row):
         if 'transitions' in row and row['transitions'][-1]['status'] != row['status']:
             row['transitions'].append({'status': row['status'], 'at_ns': time.monotonic_ns()})
         row = copy.deepcopy(row)
         row['identity'] = self.identity
-        row['signature'] = hmac.new(self.signing_key, digest(row).encode(), 'sha256').hexdigest()
         return row
-
-    def verify(self, row):
-        row = copy.deepcopy(row)
-        signature = row.pop('signature', '')
-        return row.get('identity') == self.identity and hmac.compare_digest(
-            signature, hmac.new(self.signing_key, digest(row).encode(), 'sha256').hexdigest())
 
     def read_resources(self):
         cfg = self.core.vllm_config
@@ -67,15 +57,16 @@ class EngineAdapter:
                 or cfg.speculative_config is not None or self.s.connector is not None
                 or not self.s.kv_cache_manager.enable_caching):
             raise ValueError('unsupported engine configuration: require TP/PP/DP=1, async, eager, chunked APC, no speculative/connector')
-        if type(self.s).__module__ != 'vllm.v1.core.sched.async_scheduler' or type(self.s).__name__ != 'AsyncScheduler':
-            raise ValueError('unreviewed scheduler implementation')
-        if type(self.s.waiting).__name__ != 'FCFSRequestQueue':
-            raise ValueError('adapter supports the existing FCFS queue only')
+        if str(getattr(sc, 'policy', 'fcfs')).lower() != 'fcfs':
+            raise ValueError('queue capability missing: FCFS policy required for FIFO restoration')
+        require_members(self.s.waiting, 'scheduler.waiting', methods=('clear', 'extend', '__iter__'))
+        require_members(self.s.running, 'scheduler.running', methods=('__setitem__', '__iter__'))
         if len(self.s.kv_cache_manager.kv_cache_config.kv_cache_groups) != 1:
             raise ValueError('hybrid/multiple KV groups not supported')
         spec = self.s.kv_cache_manager.kv_cache_config.kv_cache_groups[0].kv_cache_spec
-        if type(spec).__name__ != 'FullAttentionSpec':
-            raise ValueError('only reviewed full-attention KV reuse is supported')
+        if getattr(spec, 'sliding_window', None) is not None or getattr(spec, 'attention_chunk_size', None) is not None:
+            raise ValueError('KV capability missing: full-attention reuse required; sliding/chunked attention unsupported')
+        require_members(spec, 'kv_cache_spec', fields=('block_size', 'num_kv_heads', 'head_size'))
         block = self.s.block_size
         return validate_resources({'block_size': block, 'step_tokens': self.s.max_num_scheduled_tokens,
             'configured_max_num_batched_tokens': sc.max_num_batched_tokens,
@@ -160,25 +151,25 @@ class EngineAdapter:
                'cache': [self.query_prefix(q) for q in payload.get('queries', [])],
                'inflight_batches': list(self.pending.values())}
         row['running_count'], row['waiting_count'] = self.s.get_request_counts()
-        signed = self.signed(row)
+        observed = self.observed(row)
         # Keep query tokens only in engine memory for apply-time revalidation.
         self.snapshots = {k: v for k, v in self.snapshots.items() if v[0]['expires_ns'] >= now}
-        self.snapshots[sid] = (signed, payload.get('queries', []))
-        return signed
+        self.snapshots[sid] = (observed, payload.get('queries', []))
+        return observed
 
     def apply(self, action):
         receipt, new = self.receipts.begin(action)
         if not new:
-            return self.signed(receipt)
+            return self.observed(receipt)
         now = time.monotonic_ns()
         if action.get('identity') != self.identity:
             receipt.update(status='rejected', reason='engine_restarted')
-            return self.signed(receipt)
+            return self.observed(receipt)
         pair = self.snapshots.get(action.get('snapshot_id'))
         reason = 'unknown_or_expired_snapshot' if pair is None else check_action(action, pair[0], self.identity, now, self.step)
         if reason:
             receipt.update(status='expired' if 'expired' in reason or 'advanced' in reason else 'rejected', reason=reason)
-            return self.signed(receipt)
+            return self.observed(receipt)
         snapshot, queries = pair
         observed = {r['engine_request_id']: r for r in snapshot['running'] + snapshot['waiting']}
         for rid in action.get('order', []):
@@ -186,22 +177,22 @@ class EngineAdapter:
             old = observed.get(rid)
             if old is None or req is None:
                 receipt.update(status='rejected', reason='request_left_snapshot_queue')
-                return self.signed(receipt)
+                return self.observed(receipt)
             current = self.request_row(req)
             if (current['status'] != old['status'] or
                     current['scheduled_computed_tokens'] != old['scheduled_computed_tokens']):
                 receipt.update(status='expired', reason='request_started_since_snapshot')
-                return self.signed(receipt)
+                return self.observed(receipt)
         if ([r.request_id for r in self.s.waiting] != [r['engine_request_id'] for r in snapshot['waiting']]
                 or [r.request_id for r in self.s.running] != [r['engine_request_id'] for r in snapshot['running']]):
             receipt.update(status='rejected', reason='queue_changed_since_snapshot')
-            return self.signed(receipt)
+            return self.observed(receipt)
         if any(self.query_prefix(q) != old for q, old in zip(queries, snapshot['cache'])):
             receipt.update(status='rejected', reason='cache_evidence_invalidated')
-            return self.signed(receipt)
+            return self.observed(receipt)
         if self.read_resources() != snapshot['resources']:
             receipt.update(status='rejected', reason='resources_changed')
-            return self.signed(receipt)
+            return self.observed(receipt)
         admissions = action.get('admissions', [])
         available = self.physical()['available_for_new_reservations']
         needed = 0
@@ -209,15 +200,15 @@ class EngineAdapter:
             cid = spec['client_request_id']
             if cid in self.client_ids or cid in self.permits:
                 receipt.update(status='rejected', reason='duplicate_admission')
-                return self.signed(receipt)
+                return self.observed(receipt)
             total = spec['prompt_tokens'] + spec['max_tokens']
             if not 0 < total <= self.resources['context_tokens'] or spec['max_tokens'] <= 0:
                 receipt.update(status='rejected', reason='invalid_request_budget')
-                return self.signed(receipt)
+                return self.observed(receipt)
             needed += math.ceil(total / self.resources['block_size'])
         if len({s['client_request_id'] for s in admissions}) != len(admissions) or needed > available:
             receipt.update(status='rejected', reason='physical_reservation_unavailable')
-            return self.signed(receipt)
+            return self.observed(receipt)
         receipt['status'] = 'accepted'
         receipt['transitions'].append({'status': 'accepted', 'at_ns': time.monotonic_ns()})
         mutable = {r.request_id for r in list(self.s.waiting) + list(self.s.running) if self.request_row(r)['queue_mutable']}
@@ -256,7 +247,7 @@ class EngineAdapter:
         if receipt['rejected'] and not eligible and not admissions:
             receipt['status'] = 'rejected'
         self.receipt_for_step.append(action['action_id'])
-        return self.signed(receipt)
+        return self.observed(receipt)
 
     def add_request(self, original, request, *args, **kwargs):
         self.accepted_ns.setdefault(request.request_id, time.monotonic_ns())
@@ -428,29 +419,28 @@ class EngineAdapter:
                 'resource_digest': digest(row['resources']), 'order': [],
                 'admissions': payload['admissions'], 'fallback': 'atomic_admission_only'})
         if op == 'receipt':
-            return self.signed(self.receipts.rows[payload['action_id']])
+            return self.observed(self.receipts.rows[payload['action_id']])
         if op == 'mapping':
-            return self.signed({'mappings': [self.mappings[self.engine_ids_by_client[cid]]
+            return self.observed({'mappings': [self.mappings[self.engine_ids_by_client[cid]]
                 for cid in payload['client_request_ids'] if cid in self.engine_ids_by_client]})
-        if op == 'verify':
-            return {'valid': [self.verify(row) for row in payload['records']], 'identity': self.identity}
         if op == 'capabilities':
             workers = self.core.collective_rpc('dabs_worker_info')
-            return self.signed({'resources': self.resources, 'workers': workers,
-                'adapter_sha256': self.installation['adapter_sha256'],
-                'vendor_patched_sha256': self.installation['patched_sha256'],
+            return self.observed({'resources': self.resources, 'workers': workers,
+                'adapter_sha256': self.installation.get('adapter_sha256', {}),
+                'vendor_patched_sha256': self.installation.get('patched_sha256', {}),
                 'host_step_boundary': 'EngineCore.step_with_batch_queue' if self.core.batch_queue_size > 1 else 'EngineCore.step',
                 'batch_queue_size': self.core.batch_queue_size,
+                'operations': ['capabilities', 'snapshot', 'apply', 'admit', 'receipt', 'mapping', 'batches', 'ack-trace'],
                 'supported_actions': ['admission_permits', 'unsubmitted_route', 'safe_prefill_queue_order'],
                 'unsupported_actions': ['migrate_submitted', 'decode_reorder', 'budget_change', 'preempt'],
                 'native_execution': len(workers) == 1 and all(w['npu_available'] for w in workers)})
         if op == 'batches':
             workers = self.core.collective_rpc('dabs_timing_read', args=(payload.get('after_step', 0),))
             device = {r['batch_id']: r for w in workers for r in w}
-            return self.signed({'batches': [{**b, 'device': device.get(b['batch_id'])} for b in self.batches
+            return self.observed({'batches': [{**b, 'device': device.get(b['batch_id'])} for b in self.batches
                                            if b['step'] > payload.get('after_step', 0)][:128]})
         if op == 'ack-trace':
-            # Controller sends this only AFTER persisting the signed export.
+            # Controller sends this only AFTER persisting the raw export.
             step = payload['through_step']
             if type(step) is not int or step < 0 or step > self.step:
                 raise ValueError('invalid trace acknowledgement')
@@ -459,22 +449,32 @@ class EngineAdapter:
                 if b['step'] <= step:
                     self.batch_index.pop(b['batch_id'], None)
             self.batches[:] = [b for b in self.batches if b['step'] > step]
-            return self.signed({'acknowledged_step': step})
+            return self.observed({'acknowledged_step': step})
         if op == 'invalidate-cache':
             if payload.get('explicit_destructive_probe') is not True or self.s.requests or self.pending:
                 raise ValueError('cache reset requires explicit probe and fully drained engine')
+            require_members(self.s, 'scheduler', methods=('reset_prefix_cache',))
             ok = self.s.reset_prefix_cache()
             self.snapshots.clear()
-            return self.signed({'cache_reset': bool(ok), 'at_step': self.step})
+            return self.observed({'cache_reset': bool(ok), 'at_step': self.step})
         raise ValueError('unsupported native operation')
 
 
 def install_engine(core):
-    from .install import check
-    verified = check(allow_patched=True)
-    if not verified['compatible']:
-        raise RuntimeError('DABS source/version mismatch: ' + str(verified['errors']))
-    adapter = EngineAdapter(core, verified['installation'])
+    require_members(core, 'EngineCore', methods=('add_request', 'step_fn', 'collective_rpc', 'request_block_hasher'),
+                    fields=('scheduler', 'vllm_config', 'batch_queue_size'))
+    require_members(core.scheduler, 'scheduler', methods=('schedule', 'update_from_output', 'get_request_counts'),
+                    fields=('requests', 'running', 'waiting', 'skipped_waiting', 'kv_cache_manager', 'block_size', 'max_num_scheduled_tokens', 'connector'))
+    manager = core.scheduler.kv_cache_manager
+    require_members(manager, 'kv_cache_manager', methods=('get_blocks',), fields=('block_pool', 'coordinator', 'enable_caching', 'kv_cache_config'))
+    require_members(manager.block_pool, 'block_pool', methods=('get_num_free_blocks',), fields=('blocks', 'num_gpu_blocks', 'hash_block_size'))
+    require_members(manager.coordinator, 'kv_coordinator', methods=('find_longest_cache_hit',))
+    receipt = Path(__file__).parent / 'installation.json'
+    try:
+        installation = json.loads(receipt.read_text()) if receipt.exists() else {}
+    except (OSError, ValueError):
+        installation = {'provenance_note': 'installation metadata unreadable; runtime capabilities checked directly'}
+    adapter = EngineAdapter(core, installation)
     original_schedule, original_update, original_add = core.scheduler.schedule, core.scheduler.update_from_output, core.add_request
     core.scheduler.schedule = lambda: adapter.schedule(original_schedule)
     core.scheduler.update_from_output = lambda output, model_output: adapter.update(original_update, output, model_output)

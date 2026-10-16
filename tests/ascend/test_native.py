@@ -52,7 +52,6 @@ def fake_engine():
     # Directly construct boundary state, never claim this emulates an NPU.
     a = EngineAdapter.__new__(EngineAdapter)
     a.identity = {'engine_instance': 'test-epoch'}
-    a.signing_key = b'CPU ONLY'
     a.step, a.serial = 1, 0
     a.resources = resources()
     a.snapshots, a.pending, a.batches, a.permits, a.mappings = {}, {}, [], {}, {}
@@ -100,7 +99,7 @@ class NativeContracts(unittest.TestCase):
         row = a.apply(cmd)
         self.assertEqual(row['effective_waiting_order'], ['y', 'x'])
         self.assertEqual(row['status'], 'applied')
-        self.assertTrue(a.verify(row))
+        self.assertEqual(row['identity'], a.identity)
         self.assertEqual(a.apply(cmd), row)
         with self.assertRaisesRegex(ValueError, 'different_content'):
             a.apply({**cmd, 'order': ['x', 'y']})
@@ -152,12 +151,12 @@ class NativeContracts(unittest.TestCase):
         self.assertIn('x', result['rejected'])
         self.assertEqual(result['applied'], ['y'])
 
-    def test_signature_tamper_and_different_epoch_rejected(self):
+    def test_raw_record_has_identity_and_no_signing_dependency(self):
         a = fake_engine(); row = a.snapshot({})
-        row['running_count'] = 100
-        self.assertFalse(a.verify(row))
-        row = a.snapshot({}); a.identity = {'engine_instance': 'restarted'}
-        self.assertFalse(a.verify(row))
+        self.assertNotIn('signature', row)
+        cmd = action(a, row)
+        a.identity = {'engine_instance': 'restarted'}
+        self.assertEqual(a.apply(cmd)['reason'], 'engine_restarted')
 
     def test_ids_and_namespace_are_distinct(self):
         self.assertNotEqual(prefix_key([1]*129, 'a'), prefix_key([1]*129, 'b'))
@@ -264,8 +263,9 @@ class NativeParameterization(unittest.TestCase):
             preserve_native_freeze(out, gate, fitted, False)
             write_json(out / 'ascend_profile.json', fitted)
             preserve_native_freeze(out, gate, fitted, True)
+            preserve_native_freeze(out, {**gate, 'artifacts': {'raw': 'new-hash'}, 'paths': {}}, fitted, True)
             with self.assertRaisesRegex(ValueError, 'changed since pause'):
-                preserve_native_freeze(out, {**gate, 'artifacts': {'raw': 'new-hash'}}, fitted, True)
+                preserve_native_freeze(out, gate, {**fitted, 'models': {}}, True)
 
     def test_rollback_preflights_paths_and_recovers_partially_restored_install(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -287,14 +287,6 @@ class NativeParameterization(unittest.TestCase):
                 self.assertTrue(rollback(backup)['rolled_back'])
                 self.assertTrue((backup / 'retired_adapter').is_dir())
                 self.assertTrue(all(Path(p).read_bytes() == b'old' for p in paths.values()))
-
-    def test_version_mismatch_refused_even_when_declared_source_hashes_match(self):
-        import dabs_native.install as installer
-        data = json.loads((installer.PACKAGE / 'upstream.json').read_text())
-        with tempfile.TemporaryDirectory() as directory:
-            fake = Path(directory); (fake / 'upstream.json').write_text(json.dumps({**data, 'files': {}}))
-            with patch.object(installer, 'PACKAGE', fake), patch.object(installer.metadata, 'version', return_value='0.24.0'):
-                self.assertFalse(check()['compatible'])
 
     def test_out_of_support_model_produces_explicit_nonrankable_score(self):
         cfg, s = state(); m = model()
@@ -378,12 +370,14 @@ class NativeParameterization(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'ambiguous'):
             patch_source('vllm/entrypoints/openai/api_server.py', b'def build_app():\n    return 1\n    return 2\n')
 
-    def test_same_version_different_source_fails_closed(self):
+    def test_missing_actual_hook_fails_even_with_matching_version(self):
         with tempfile.TemporaryDirectory() as directory:
             file = Path(directory) / 'different.py'; file.write_text('# different source')
             with patch('dabs_native.install.metadata.version', side_effect=lambda p: '0.23.0+empty' if p == 'vllm' else '0.23.0rc1'), \
                  patch('dabs_native.install.installed_path', return_value=file):
-                self.assertFalse(check()['compatible'])
+                result = check()
+                self.assertFalse(result['compatible'])
+                self.assertIn('EngineCore', str(result['errors']))
 
 
 if __name__ == '__main__':

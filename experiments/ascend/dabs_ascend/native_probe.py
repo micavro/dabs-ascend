@@ -6,6 +6,17 @@ import uuid
 from .common import write_json, source_identity
 
 
+def near_release(snapshot):
+    """Site probe: wait for a short decode to free a slot within this window.
+
+    Output progress comes from EngineCore, never from client submission order.
+    This changes probe timing only; the engine still enforces its 200 ms window.
+    """
+    return any(r.get('max_output_tokens') == 16 and r.get('phase') == 'decode'
+               and isinstance(r.get('output_tokens'), int) and r['output_tokens'] >= 14
+               for r in snapshot['running'])
+
+
 async def probe(backend, tokenizer, out, replicas):
     native = backend.native
     await native.drain(len(backend.endpoints))
@@ -14,7 +25,9 @@ async def probe(backend, tokenizer, out, replicas):
     tokens = tokens[:1025]
     native.salt = 'dabs-probe-' + uuid.uuid4().hex
     manifest = {'kind': 'probe', 'replicas': replicas, 'roles': {}, 'identities': native.identities,
-                'source_sha256': source_identity()}
+                'source_sha256': source_identity(),
+                'queue_trigger': {'short_request_max_output_tokens': 16, 'minimum_observed_output_tokens': 14,
+                                  'minimum_mutable_waiting': 2, 'phase': 'decode'}}
     roles = manifest['roles']
     async def snap(name, replica, queries=None):
         row = await native.call(replica, 'snapshot', queries=queries or [])
@@ -67,7 +80,7 @@ async def probe(backend, tokenizer, out, replicas):
                     break
             before = await native.call(0, 'snapshot')
             waiting = [r for r in before['waiting'] if r['queue_mutable']]
-            if len(waiting) >= 2 and (queue_action is None or time.monotonic_ns() >= queue_action['action_expires_ns']):
+            if len(waiting) >= 2 and near_release(before) and (queue_action is None or time.monotonic_ns() >= queue_action['action_expires_ns']):
                 order = [r['engine_request_id'] for r in reversed(waiting)]
                 queue_action = native.action(before, order=order)
                 queue_receipt = await native.call(0, 'apply', action=queue_action)

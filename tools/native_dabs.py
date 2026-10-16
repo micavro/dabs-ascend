@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
-import secrets
 import subprocess
 import sys
 import uuid
@@ -45,8 +44,6 @@ def host(args):
         out = output_path(args.out) if args.out else ROOT / 'outputs' / (args.mode + '-' + uuid.uuid4().hex[:10])
         out.mkdir(parents=True)
         python = os.environ.get('CONTROLLER_PYTHON', '/usr/local/python3.12.13/bin/python')
-        credentials = ROOT / 'outputs/native-control.json'
-        keys = read_json(credentials) if credentials.exists() else {'keys': {}}
         ok = True
         records = []
         for replica in selected:
@@ -63,13 +60,7 @@ def host(args):
                 if not args.backup:
                     raise ValueError('--backup must be the exact path printed by install')
                 command += ['--backup', args.backup]
-            secret = None
-            if mode == 'install':
-                keys['keys'].setdefault(str(replica), secrets.token_hex(32))
-                write_json(credentials, keys)
-                os.chmod(credentials, 0o600)
-                secret = keys['keys'][str(replica)]
-            result = subprocess.run(command, input=secret, capture_output=True, text=True)
+            result = subprocess.run(command, capture_output=True, text=True)
             (out / ('replica-' + str(replica) + '.txt')).write_text(result.stdout + '\n' + result.stderr, encoding='utf-8')
             print(result.stdout, result.stderr)
             try:
@@ -109,7 +100,7 @@ async def worker(args, out):
         # A single-replica check/probe is possible before patching the other three.
         if args.mode in ('native-check', 'native-probe-one', 'native-restart-arm', 'native-restart-check') and args.replica in (None, 0):
             endpoints = endpoints[:1]
-        native = NativeClient(client, endpoints, ROOT / 'outputs/native-control.json', out / 'native_events.jsonl')
+        native = NativeClient(client, endpoints, out / 'native_events.jsonl')
         caps = await native.inspect()
         write_json(out / 'capabilities.json', caps)
         from dabs_ascend.native_algorithms import transformation_manifest
@@ -152,7 +143,7 @@ async def worker(args, out):
         write_json(out / 'result.json', result)
         summary = {'mode': args.mode, 'output': str(out), 'pass': result.get('pass'),
                    'live_verified': result.get('live_verified', False),
-                   'checks': result.get('checks'), 'missing': result.get('missing') or result.get('failures'),
+                   'checks': result.get('checks'), 'not_run': result.get('not_run', []), 'missing': result.get('missing') or result.get('failures'),
                    'inference_executed': args.mode in ('native-probe-one', 'native-probe-four', 'native-calibrate', 'native-invalidate')}
         (out / 'SUMMARY.txt').write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding='utf-8')
         print(json.dumps(summary, ensure_ascii=False, indent=2))
