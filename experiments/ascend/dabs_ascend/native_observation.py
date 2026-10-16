@@ -1,6 +1,23 @@
 """Bounded decision-time prefix queries; unqueried evidence stays unknown."""
 
 
+def prefix_identities(nodes, salt):
+    """Hash concrete fixed inputs before RPC; identical prefixes only once.
+
+    This is an input identity, not cache residency evidence. Recompute from
+    actual tokens on each observation so a changed namespace/input cannot
+    inherit an old identity. Nodes becoming ready during RPC are included.
+    """
+    from dabs_native.contracts import prefix_key
+    unique, identities = {}, {}
+    for key, node in nodes.items():
+        tokens = tuple(node['tokens'][:node['share']])
+        if tokens not in unique:
+            unique[tokens] = prefix_key(tokens, salt)
+        identities[key] = unique[tokens]
+    return identities
+
+
 def prefix_queries(nodes, cfg, salt, *, enabled=True):
     max_queries = cfg.get('native_cache_query_limit', 8)
     max_tokens = cfg.get('native_cache_query_token_limit', 8192)

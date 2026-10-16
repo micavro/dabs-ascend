@@ -1,10 +1,37 @@
 # DABS 昇腾复现
 
-## 当前版本：审查补修后，先更新四个服务
+## 当前修复：刷新后的 stale_snapshot 不再终止实验
+
+现场 `r234_native_pause8_20261016_192029` 的首个 RR 报 `Fresh native fallback admission failed: stale_snapshot`。附件中的 runner/repair/native_client 三个文件哈希与 `87deda2` 一致，这是该版控制器遗漏的分支：快照 HTTP 返回快，不代表经过本地状态整理和基线计算后仍未过期。详见 [故障与修复记录](docs/native-refresh-repair.md)。
+
+本次将具体前缀身份的计算、去重移到快照请求前，基线模块初始化移到计时前。两条回退路径若刷新后仍超出原 120 ms 新鲜度，记录 `native_deferred_reason=stale_snapshot`，该轮不申请许可、不提交推理，下个固定周期重新决策。200 ms 优先级窗口、DAG、资源、去重和引擎回执检查不变；持续无进展仍由原 60 秒空转/条件超时检查失败退出。结果新增 `native_prepare_ms/native_rpc_ms/native_projection_ms` 和延后次数；旧 `observe_ms` 只覆盖 RPC，新值包含完整 observe 调用，不能直接当成性能提升对比。
+
+**已经在 1608 目录完成安装、test 通过且四服务没有重启：本次仅更新控制端，不需要再安装、重启或重新标定。** 在新下载目录复用该次原始测试证据，重新验证当前服务后跑全套：
+
+```bash
+bash run_native.sh experiment --input /data/wushibo/dabs-ascend-main-2026101608/outputs/native_test_20261016T110057Z_89891d17
+```
+
+若按修复包先跑 8 条再续跑，在新目录先复制普通证据文件（本机复制，不打包、不上传）：
+
+```bash
+mkdir -p outputs && cp -a /data/wushibo/dabs-ascend-main-2026101608/outputs/native_test_20261016T110057Z_89891d17 outputs/
+bash run_dabs_r234.sh benchmark --native-evidence outputs/native_test_20261016T110057Z_89891d17/evidence.json --max-conditions 8 --out outputs/native_retry8
+```
+
+`outputs/native_retry8` 必须是新目录。正常完成显示 `paused`、`completed_conditions=8`，然后继续剩余 88 条：
+
+```bash
+bash run_dabs_r234.sh benchmark --native-evidence outputs/native_test_20261016T110057Z_89891d17/evidence.json --resume outputs/native_retry8
+```
+
+可将首次的 `8` 改成 `12`；续跑不带 `--max-conditions` 会运行剩余条件。保持服务、参数、代码和冻结模型不变；只续跑正常暂停结果。先前 failed 目录保留，不能改成 paused 或拼入本次结果。测试证据会重新核验原始事件和当前引擎身份；不靠旧 PASS 放行。现场先确认 RR 持续完成到 216/216，再检查配对条件的工作量及结果。
+
+## 上一版 87deda2：边界补修涉及服务端
 
 上一版 `4131f17` 已修复慢观察导致 RR 不提交请求的问题；再次审查确认并补修了服务端边界缺陷：只准入回退可能覆盖当前优先级；缓存/资源校验耗时后未重查动作截止时间；尚未到 `not_before_ns` 的动作也可能提前报告已应用。另补齐了响应到节点、客户端/服务端请求、引擎请求及准入动作的对应核对。详见 [审查记录](docs/native-boundary-review.md)。
 
-**这次含服务端修改，需要加载新版适配器，不能只下载控制器后复用旧服务。** 在新目录、Linux 宿主机执行这一行即可依次更新、测试并跑全部 96 条件：
+**尚未加载 87deda2 的边界修复时，需要更新服务端适配器。** 已完成这一步的 1608 现场按上节复用服务；首次部署在新目录、Linux 宿主机执行这一行：
 
 ```bash
 bash run_native.sh install && bash run_native.sh test && bash run_native.sh experiment

@@ -89,6 +89,8 @@ def aggregate_diagnostics(decisions):
         counters.update(values)
         if decision.get('commit_reject_reason'):
             commits[decision['commit_reject_reason']] += 1
+        if decision.get('native_deferred_reason'):
+            counters['native_deferred_admissions'] += 1
         fallback = decision.get('native_fallback_reason')
         if fallback:
             fallbacks.update(fallback if isinstance(fallback, list) else [fallback])

@@ -174,6 +174,11 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                 locations.append(replica)
             release(successors[key])
 
+        if native and fixed and spec['method'] in ('RR', 'SLL', 'Ayo'):
+            # Loading/transformation/provenance I/O is preparation, not part of
+            # the first 120 ms observation or the measured arrival schedule.
+            from .native_algorithms import adapted
+            adapted('ayo_topology' if spec['method'] == 'Ayo' else 'routing')
         start = time.monotonic()
         for keys in groups.values():
             spawn(arrive(keys))
@@ -189,6 +194,37 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
             decisions.append(record)
             append_json(out / 'decisions.jsonl', record)
             pending, pending_origin = None, None
+
+        async def fresh_native_admission(decision, index, fallback_reason):
+            # A refresh is another observation, not a guarantee of freshness
+            # after local projection/planning. Never extend its timestamp.
+            decision['native_fallback_reason'] = fallback_reason
+            observed_at = time.monotonic()
+            fresh_state = await backend.native.observe(nodes, cfg, index, model, cache_queries=False)
+            planned_at = time.monotonic()
+            action = r234.baseline(fresh_state, cfg, spec['method'])
+            validate_action(action, fresh_state, cfg)
+            checked_at = time.monotonic()
+            reason = admission_check(action, nodes, cfg, fresh_state['now'], checked_at)
+            decision.update(fallback_snapshot=fresh_state, fallback_action=copy.deepcopy(action),
+                fallback_validation={'reason': reason, 'snapshot_age_ms': (checked_at - fresh_state['now']) * 1000,
+                    'max_age_ms': cfg['snapshot_max_age_s'] * 1000,
+                    'observe_ms': (planned_at - observed_at) * 1000,
+                    'baseline_and_validation_ms': (checked_at - planned_at) * 1000})
+            if reason:
+                decision['commit_reject_reason'] = 'fresh_native_fallback:' + reason
+                if reason == 'stale_snapshot':
+                    # No permit/HTTP request was issued. Leave nodes ready and
+                    # regenerate at the next fixed tick, bounded by the existing
+                    # no-progress/condition timeout. No retry of submitted work.
+                    decision['native_deferred_reason'] = reason
+                    return action, [], []
+                decision['error'] = 'Fresh native fallback admission failed: ' + reason
+                decisions.append(decision)
+                append_json(out / 'decisions.jsonl', decision)
+                raise ValueError(decision['error'])
+            order, receipts = await backend.native.commit(action, fresh_state, nodes, fallback=True)
+            return action, order, receipts
 
         async def loop():
             nonlocal pending, pending_origin
@@ -229,14 +265,16 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                             'client_inflight': active, 'ready_requests': len(state['ready']),
                             'observe_ms': state.get('native_observe_ms'),
                             'expired_decisions': sum(bool(d.get('discarded_expired')) for d in decisions),
-                            'atomic_fallbacks': sum(bool(d.get('native_fallback_reason')) for d in decisions)}
+                            'atomic_fallbacks': sum(bool(d.get('native_fallback_reason')) for d in decisions),
+                            'deferred_admissions': sum(bool(d.get('native_deferred_reason')) for d in decisions)}
                         write_json(out / 'status.json', progress)
                         print('R234_PROGRESS ' + spec['label'] + ' submitted=' + str(submitted) +
                               ' completed=' + str(completed) + '/' + str(len(nodes)) +
                               ' inflight=' + str(active) + ' ready=' + str(len(state['ready'])) +
                               ' observe_ms=' + str(state.get('native_observe_ms')) +
                               ' expired=' + str(progress['expired_decisions']) +
-                              ' fallbacks=' + str(progress['atomic_fallbacks']), flush=True)
+                              ' fallbacks=' + str(progress['atomic_fallbacks']) +
+                              ' deferred=' + str(progress['deferred_admissions']), flush=True)
                         progress_at = measured_at + 5
                     if state['ready'] and not active and measured_at - activity_at >= cfg.get('native_idle_stall_s', 60):
                         raise ValueError('native admission stalled: ready requests but no inflight/completion/admission for ' +
@@ -288,15 +326,9 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                     fallback = bool(reason or state.get('native_observation_errors'))
                     fallback_reason = reason or state.get('native_observation_errors')
                     if fallback:
-                        state = await backend.native.observe(nodes, cfg, index, model, cache_queries=False)
-                        action = r234.baseline(state, cfg, spec['method'])
-                        validate_action(action, state, cfg)
-                        fresh_reason = admission_check(action, nodes, cfg, state['now'], time.monotonic())
-                        if fresh_reason:
-                            raise ValueError('Fresh native fallback admission failed: ' + fresh_reason)
-                        decision['fallback_snapshot'] = state
-                        decision['fallback_action'] = copy.deepcopy(action)
-                    order, receipts = await backend.native.commit(action, state, nodes, fallback=fallback)
+                        action, order, receipts = await fresh_native_admission(decision, index, fallback_reason)
+                    else:
+                        order, receipts = await backend.native.commit(action, state, nodes)
                     decision.update(native_receipts=receipts, engine_applied=any(
                         x['receipt']['status'] in ('applied', 'partially_applied') for x in receipts),
                         engine_accepted=any(x['receipt']['accepted'] for x in receipts),
@@ -305,18 +337,9 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                     # If an engine advanced during scoring, retain the rejection;
                     # make a separately labelled atomic baseline admission next.
                     if not order and action['admit'] and not fallback:
-                        fresh_state = await backend.native.observe(nodes, cfg, index, model, cache_queries=False)
-                        base_now = r234.baseline(fresh_state, cfg, spec['method'])
-                        validate_action(base_now, fresh_state, cfg)
-                        fresh_reason = admission_check(base_now, nodes, cfg, fresh_state['now'], time.monotonic())
-                        if fresh_reason:
-                            raise ValueError('Fresh native fallback admission failed: ' + fresh_reason)
-                        order, extra = await backend.native.commit(base_now, fresh_state, nodes, fallback=True)
-                        action = base_now
+                        action, order, extra = await fresh_native_admission(decision, index,
+                            'engine_rejected_selection; fresh atomic baseline admission')
                         decision['native_receipts'] += extra
-                        decision['native_fallback_reason'] = 'engine_rejected_selection; fresh atomic baseline admission'
-                        decision['fallback_snapshot'] = fresh_state
-                        decision['fallback_action'] = copy.deepcopy(base_now)
                         decision['applied_submission_order'] = order
                         decision.update(engine_applied=any(x['receipt']['status'] in ('applied', 'partially_applied')
                                                           for x in decision['native_receipts']),

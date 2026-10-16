@@ -40,10 +40,13 @@ class RepairContracts(unittest.TestCase):
         totals = aggregate_diagnostics([
             {'native_fallback_reason': 'expired_decision_window'},
             {'native_fallback_reason': ['snapshot_expired_in_transit', 'unmapped_inflight_batch']},
-            {'native_fallback_reason': []}])
+            {'native_fallback_reason': [], 'native_deferred_reason': 'stale_snapshot',
+             'commit_reject_reason': 'fresh_native_fallback:stale_snapshot'}])
         self.assertEqual(totals['native_atomic_fallback_decisions'], 2)
         self.assertEqual(totals['native_fallback_reasons'], {'expired_decision_window': 1,
             'snapshot_expired_in_transit': 1, 'unmapped_inflight_batch': 1})
+        self.assertEqual(totals['native_deferred_admissions'], 1)
+        self.assertEqual(totals['commit_reject_reasons'], {'fresh_native_fallback:stale_snapshot': 1})
 
     def setUp(self):
         self.cfg = {**configuration(2), 'max_num_seqs': 2}

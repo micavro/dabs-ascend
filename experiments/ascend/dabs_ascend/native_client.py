@@ -87,17 +87,18 @@ class NativeClient:
     async def observe(self, nodes, cfg, index, model, *, cache_queries=True):
         from .scheduler import snapshot
         from .native_prediction import predict, pending_startup
-        from .native_observation import prefix_queries
+        from .native_observation import prefix_queries, prefix_identities
         count = cfg['replicas']
-        queries, bindings, query_stats = prefix_queries(nodes, cfg, self.salt, enabled=cache_queries)
         started = time.monotonic()
+        input_keys = prefix_identities(nodes, self.salt)
+        queries, bindings, query_stats = prefix_queries(nodes, cfg, self.salt, enabled=cache_queries)
+        rpc_started = time.monotonic()
         raw = await asyncio.gather(*(self.call(r, 'snapshot', queries=queries) for r in range(count)))
         now = time.monotonic()
         state = snapshot(nodes, {}, count, cfg, index, now)
         state['native_query_budget'] = query_stats
-        state['native_observe_ms'] = (now - started) * 1000
         for key, n in state['nodes'].items():
-            n['prefix_hash'] = prefix_key(nodes[key]['tokens'][:n['share']], self.salt)
+            n['prefix_hash'] = input_keys[key]
         state.update(native_snapshots=raw, native_mutable=[], native_queue_groups={}, native_running={}, cache_evidence=[],
                      inflight_batches=[], prefix_history={}, prefix_certificates={}, native_observation_errors=[],
                      capacity_blocks=[], physical_reserved_blocks=[], physical_active_blocks=[],
@@ -198,6 +199,21 @@ class NativeClient:
                     'timing_target': model.get('timing_target'),
                     'prefill_startup_observed': pending_startup(batch),
                     'timing_source': 'loaded completion-charge prediction; serial rollout approximation' if end is not None else 'unknown; outside frozen model support'})
+        returned_at = time.monotonic()
+        state.update(native_observe_ms=(returned_at - started) * 1000,
+                     native_prepare_ms=(rpc_started - started) * 1000,
+                     native_rpc_ms=(now - rpc_started) * 1000,
+                     native_projection_ms=(returned_at - now) * 1000)
+        # Projection cost is real elapsed time too. It must not leave expired
+        # cache evidence marked usable simply because the HTTP reply was fast.
+        expired = {r for r, row in enumerate(raw) if returned_at * 1e9 >= row['expires_ns']}
+        if expired:
+            state['native_observation_errors'].append('snapshot_expired_before_observation_return')
+            for evidence in state['cache_evidence']:
+                if evidence['replica'] in expired:
+                    evidence.update(known=False, tokens=None, state='unknown', valid_until_ms=0,
+                                    reason='snapshot_expired_before_observation_return')
+        state['state_ages_s'] = [max(0., returned_at - row['captured_ns'] / 1e9) for row in raw]
         state['native_pressure'] = list(state['pressure'])
         state['native_state_ages_s'] = list(state['state_ages_s'])
         state['pressure_source'] = 'engine running + 2*waiting'

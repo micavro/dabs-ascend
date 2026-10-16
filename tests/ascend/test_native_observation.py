@@ -3,10 +3,11 @@ import asyncio
 import copy
 import time
 import unittest
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 from dabs_ascend.native_client import NativeClient
-from dabs_ascend.native_observation import prefix_queries
+from dabs_ascend.native_observation import prefix_queries, prefix_identities
+from dabs_native.contracts import prefix_key
 from test_native import state, model
 from test_native_simplification import observation
 
@@ -23,6 +24,62 @@ def backlog():
 
 
 class ObservationTests(unittest.IsolatedAsyncioTestCase):
+    def test_input_identity_deduplicates_exact_prefixes_and_invalidates_on_change(self):
+        _, nodes = backlog()
+        with patch('dabs_native.contracts.prefix_key', wraps=prefix_key) as hashed:
+            keys = prefix_identities(nodes, 'salt')
+            self.assertEqual(hashed.call_count, 32)
+        for k, n in nodes.items():
+            self.assertEqual(keys[k], prefix_key(n['tokens'][:n['share']], 'salt'))
+        self.assertNotEqual(keys, prefix_identities(nodes, 'new-salt'))
+        nodes['n000']['tokens'][0] = 99
+        changed = prefix_identities(nodes, 'salt')
+        self.assertNotEqual(keys['n000'], changed['n000'])
+        self.assertEqual(keys['n001'], changed['n001'])
+
+    async def test_projection_elapsed_expires_evidence_without_faking_a_fresh_timestamp(self):
+        from dabs_ascend.scheduler import snapshot
+        cfg, nodes = backlog()
+        native = NativeClient(None, ['r0', 'r1'])
+        native.capabilities = [{'resources': observation()['resources']}] * 2
+        async def call(r, op, **payload):
+            row = observation(); now = time.monotonic_ns()
+            row.update(captured_ns=now, expires_ns=now + 120_000_000)
+            row['cache'] = [{'query_id': q['query_id'], 'state': 'hit', 'reusable_tokens': 256}
+                            for q in payload.get('queries', [])]
+            return row
+        def slow_projection(*args):
+            time.sleep(.13)
+            return snapshot(*args)
+        native.call = call
+        with patch('dabs_ascend.scheduler.snapshot', side_effect=slow_projection):
+            s = await native.observe(nodes, cfg, 1, model())
+        self.assertGreater(time.monotonic() - s['now'], .12)
+        self.assertGreater(s['native_projection_ms'], 120)
+        self.assertIn('snapshot_expired_before_observation_return', s['native_observation_errors'])
+        self.assertTrue(all(not e['known'] and e['tokens'] is None for e in s['cache_evidence']))
+
+    async def test_prefix_preparation_happens_before_rpc_capture(self):
+        cfg, nodes = backlog()
+        native = NativeClient(None, ['r0', 'r1'])
+        native.capabilities = [{'resources': observation()['resources']}] * 2
+        prepared = False
+        def prepare(*args):
+            nonlocal prepared
+            result = prefix_identities(*args)
+            prepared = True
+            return result
+        async def call(r, op, **payload):
+            self.assertTrue(prepared)
+            row = observation(); now = time.monotonic_ns()
+            row.update(captured_ns=now, expires_ns=now + 120_000_000)
+            return row
+        native.call = call
+        with patch('dabs_ascend.native_observation.prefix_identities', side_effect=prepare):
+            s = await native.observe(nodes, cfg, 1, model())
+        self.assertAlmostEqual(s['native_observe_ms'],
+            s['native_prepare_ms'] + s['native_rpc_ms'] + s['native_projection_ms'], places=5)
+
     async def test_expired_queue_is_never_sent_by_atomic_fallback(self):
         cfg, nodes = backlog()
         node = nodes['n000']; node['client_request_id'] = 'client-a'

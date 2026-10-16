@@ -1,5 +1,7 @@
 # 原生适配部署与专项操作
 
+当前 stale_snapshot 修复只改控制端。1608 现场若已安装 `87deda2` 并通过 test，且服务未重启，直接复用原始测试证据启动新实验；无需重新安装或标定。8/12 条暂停与续跑命令见 [README 首节](../README.md)。以下安装说明针对首次部署或尚未加载边界修复的旧服务。
+
 首次部署入口：`bash run_native.sh install` → `bash run_native.sh test` → `bash run_native.sh experiment`。在 Linux 宿主机的新项目目录运行。环境与结果位置见 [README](../README.md)。普通 test 连接现有服务，不重新安装、不重启、不主动清空缓存。
 
 **本次边界审查补修含服务端修改**：执行 `bash run_native.sh install && bash run_native.sh test && bash run_native.sh experiment`。安装器在运行的原容器内备份安装，然后逐个重启四个服务；不要先手动停容器。它会检查 `admission_only_preserves_queue` 与 `mutation_time_window_check`，缺少则更新，已有则复用；不是版本/源码哈希门禁。重启使旧服务身份失效，需要新测试和标定记录。具体修复及现场成功判据见 [审查记录](native-boundary-review.md) 和 README 首节。

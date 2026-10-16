@@ -137,7 +137,7 @@ def make_report(out, plan, summaries, status, error=None, *, source_out=None):
         diagnostics = s.get('score_diagnostics', {})
         rows[-1].update({k: diagnostics.get(k) for k in ('reference_score_started', 'reference_score_rankable',
                                                         'candidate_score_started', 'candidate_score_rankable', 'guard_rejected',
-                                                        'native_atomic_fallback_decisions')})
+                                                        'native_atomic_fallback_decisions', 'native_deferred_admissions')})
         rows[-1].update(client_applied_nonreference_actions=s.get('nonreference_actions') if s.get('action_accounting_version') == 2 else None,
                         engine_applied_nonreference_actions=s.get('engine_applied_nonreference_actions'),
                         action_accounting_version=s.get('action_accounting_version', 1))
