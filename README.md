@@ -1,22 +1,24 @@
 # DABS 昇腾：先采集现场，再修复机制
 
-**2026-10-16 更新：先执行下面这一行，不要直接重跑 96 条件。** 最新修复包是分析方案，没有现场 vLLM / vLLM-Ascend 版本。原生缓存观测、队列控制还需按现场版本接入。
+**2026-10-16 现场反馈更新：四个服务采集时已退出，重启后只看到 HTTP 000，尚无就绪结果。** 已补上状态、启动日志、就绪等待和配置差异记录；仍需采到 vLLM / vLLM-Ascend 版本后接原生接口。
 
 在 **Linux 宿主机**、新版项目目录运行：
-
-```bash
-bash run_dabs_r234.sh inspect
-```
-
-这条命令只读取信息，不发送推理请求、不重启服务、不安装依赖。结果写成普通文本文件，**不打包、不上传**。终端会打印摘要；把 **`SUMMARY.txt` 的文字复制回来**即可。
-
-**明天需要连同小探针一次跑完时，用这一行：**
 
 ```bash
 bash run_dabs_r234.sh prepare
 ```
 
-`prepare` 先采集现场，采集成功后执行 **36 组、72 个真实请求**的小探针，检查同前缀重复请求、跨副本、新命名空间，以及串行/并发 4 请求的 16/128 token 输出和混合长度。它不启动完整 96 条件，也不修改模型服务。会额外打印 `/metrics` 的运行/等待队列、缓存相关计数及请求时延，保存为普通文本。**复制 `SUMMARY.txt` 和 `PROBE_SUMMARY.txt` 两份摘要**；先只收集环境时仍用 `inspect`。
+这一行先检查选中的四个容器，等待运行中的服务加载，再采集版本/接口，成功后运行 **72 请求小探针**。不会运行完整 96 条件，也不会启动、重启或修改模型服务。结果写成普通文本，**不打包、不上传**。
+
+只采集现场、不发送推理请求时：
+
+```bash
+bash run_dabs_r234.sh inspect
+```
+
+`prepare` 每轮打印四个容器的状态，健康检查默认等待 300 秒，版本/源码采集耗时另计。已退出、暂停、重启中或映射不符时直接保存诊断并退出；不会错误地对停止的容器反复执行 Python。运行中但未就绪时，等待后仍失败就保留最近启动日志，停止在推理之前。等待更久可用 `READY_TIMEOUT=600 bash run_dabs_r234.sh prepare`。
+
+采集成功后执行 **36 组、72 个真实请求**的小探针，检查同前缀重复请求、跨副本、新命名空间，以及串行/并发 4 请求的 16/128 token 输出和混合长度；打印 `/metrics` 的运行/等待队列、缓存相关计数及请求时延。**失败时先复制 `SUMMARY.txt`；成功时再复制 `PROBE_SUMMARY.txt`。** 终端会打印两份文件的完整路径和内容。
 
 现场有旧代码时：`DABS_PREVIOUS_PROJECT=/实际旧项目路径 bash run_dabs_r234.sh prepare`。具体运行时间取决于服务速度，不承诺固定分钟数；终端逐组显示进度。原生缓存/队列机制尚未接通，探针只为下一步诊断提供证据。
 
@@ -46,15 +48,28 @@ bash run_dabs_r234.sh inspect
 outputs/repair_probe_时间_编号/
   SUMMARY.txt             先复制这一份文字
   inspection.json         完整结构化信息，不含原始 Docker Env
+  readiness.jsonl         每轮容器状态和健康检查结果
+  service_logs/           未就绪服务最近启动的筛选日志，普通 .txt
   npu-smi.txt              NPU 资源情况；命令不可用时在 JSON 记录
   installed_sources/      相关已安装引擎源码，保存为 .txt
   project_source/         当前或指定旧项目的源码快照
   README.txt              文件用途
 ```
 
-`SUMMARY.txt` 包含四个服务的镜像 ID、vLLM/vLLM-Ascend/torch 等版本、白名单启动参数、端口、模型元数据哈希、采集错误和现场 keepalive 设置。详细源码需要时再复制指定 `.txt` 内容。所有结果留在现场，不要求传文件。
+`SUMMARY.txt` 包含四个服务的运行状态、退出码、OOM 标记、启动/退出时间、重启次数、镜像 ID、vLLM/vLLM-Ascend/torch 等版本、白名单启动参数、端口、模型元数据哈希、采集错误和现场 keepalive 设置。失败摘要附每服务最多 12 行筛选日志；更多内容在 `service_logs/`，会省略含凭据或请求内容的行，并非完整日志。日志以 Docker 最近启动时间为起点，取不到时间时限最近 30 分钟。
+
+另有 `resource_comparison`：现场已知服务 `max_num_batched_tokens=1024`、`max_num_seqs=10`、`max_model_len=4096`；控制器的批次假设为 4096，客户端并发默认 2。批次预算差异会明确提示；客户端并发与服务最大序列数分别记录。CLI 参数不等于引擎实时状态，工具不会自动修改这些设置。详细源码需要时再复制指定 `.txt` 内容。所有结果留在现场，不要求传文件。
 
 摘要显示 `采集完整: False` 时也保留并复制摘要，里面有失败步骤；这不表示要重装环境。
+
+若明确显示原有四个容器都是 `exited`，需要恢复这些服务时可手动执行：
+
+```bash
+sudo docker start wushibo-qwen-small-npu{0,1,2,3}
+bash run_dabs_r234.sh prepare
+```
+
+上述名称是默认配置；使用其他 `DEVICE_IDS` / `CONTAINER_PREFIX` 时请按实际名称启动。`prepare` 自带就绪等待，刚启动后的 HTTP 000 不再需要手工循环检查。若再次退出，先复制摘要；退出码 137 不能单独判定为显存不足，`OOM=false` 也不能排除系统层问题。
 
 ## 3. 需要什么环境
 
@@ -82,8 +97,9 @@ CONTROLLER_PYTHON=python3 bash run_dabs_r234.sh inspect
 
 | 用途 | 一行命令 |
 |---|---|
-| 只采集现场，当前推荐 | `bash run_dabs_r234.sh inspect` |
-| 环境采集 + 72 请求小探针 | `bash run_dabs_r234.sh prepare` |
+| 只采集现场，立即检查 | `bash run_dabs_r234.sh inspect` |
+| 就绪等待 + 环境采集 + 72 请求小探针，当前推荐 | `bash run_dabs_r234.sh prepare` |
+| 只等待并采集，不发送推理请求 | `bash run_dabs_r234.sh inspect --wait-ready 300` |
 | 已采集过，只运行小探针 | `bash run_dabs_r234.sh probe` |
 | 从旧实验提取有限决策片段，不推理 | `bash run_dabs_r234.sh explain /旧项目/outputs/原实验目录` |
 | 旧结果重生成报告，不执行推理 | `bash run_dabs_r234.sh report /旧项目/outputs/原实验目录` |
@@ -129,7 +145,7 @@ CONTROLLER_PYTHON=python3 bash run_dabs_r234.sh inspect
 
 ## 6. 已修与待修
 
-已补充现场采集、启动参数识别、资源单位区分、整批提交前校验、超时评分诊断、动作阶段记录、请求 ID、TTFT P95 和旧报告重生成。原包 373 个文件保持字节不变。
+已补充容器状态与启动诊断、就绪等待、批次预算差异记录，以及现场采集、启动参数识别、资源单位区分、整批提交前校验、超时评分诊断、动作阶段记录、请求 ID、TTFT P95 和旧报告重生成。原包 373 个文件保持字节不变。本次依据与下一步见 [现场反馈处理记录](docs/field-feedback-20261016.md)。
 
 **尚未完成：原生前缀 KV 观测、真实 running/waiting 压力、引擎队列应用确认、原生 batch-step 标定及昇腾现场验证。** 得到 `SUMMARY.txt` 后继续按版本处理，详见 [修复记录](docs/repair-20261016.md)。
 

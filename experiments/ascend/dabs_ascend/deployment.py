@@ -40,3 +40,25 @@ def server_options(argv):
             else:
                 options[flag] = True
     return options
+
+
+def resource_comparison(options, controller_step_tokens, client_max_inflight):
+    """Compare declared units, without treating CLI options as live engine state."""
+    def positive(flag):
+        try:
+            value = int(options.get(flag))
+            return value if value > 0 else None
+        except (TypeError, ValueError):
+            return None
+    step = positive('--max-num-batched-tokens')
+    return {
+        'evidence': 'declared server CLI options; not effective engine configuration',
+        'server_max_model_len': positive('--max-model-len'),
+        'server_max_num_seqs': positive('--max-num-seqs'),
+        'server_step_tokens': step,
+        'controller_step_tokens': controller_step_tokens,
+        'client_max_inflight': client_max_inflight,
+        'step_budget_matches': None if step is None else step == controller_step_tokens,
+        'physical_kv_capacity_blocks': None,
+        'native_mechanisms_verified': False,
+    }

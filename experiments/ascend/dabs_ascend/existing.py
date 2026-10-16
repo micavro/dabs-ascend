@@ -8,9 +8,9 @@ import re
 import sys
 from pathlib import Path
 
-from .common import read_json, sha, write_json
+from .common import configuration, read_json, sha, write_json
 from .runtime import MODEL_NAME, validate_model
-from .deployment import server_options
+from .deployment import resource_comparison, server_options
 
 
 def container_name(prefix, device):
@@ -28,9 +28,13 @@ def deployment_records(rows):
     result = []
     for row in rows:
         config = row.get('Config') or {}
+        state = row.get('State') or {}
         options = server_options((config.get('Entrypoint') or []) + (config.get('Cmd') or []))
         result.append({"name": row["Name"].lstrip("/"), "container_id": row["Id"],
-                       "image_id": row["Image"], "running": row["State"]["Running"],
+                       "image_id": row["Image"], "running": state.get("Running"),
+                       "state": {k: state.get(k) for k in ('Status', 'ExitCode', 'OOMKilled',
+                                  'StartedAt', 'FinishedAt', 'Restarting', 'Paused', 'Dead')},
+                       "restart_count": row.get('RestartCount'),
                        "devices": row["HostConfig"].get("Devices") or [],
                        "ports": row["NetworkSettings"].get("Ports") or {},
                        "server_options": options})
@@ -79,6 +83,10 @@ def preflight(args, out):
         facts["model"] = validate_model(args.model)
         facts["deployment_manifest_sha256"] = sha(args.deployment_manifest)
         facts["deployment"] = validate_manifest(read_json(args.deployment_manifest), args)
+        facts['resource_comparison'] = [
+            {'name': row['name'], **resource_comparison(row.get('server_options', {}),
+                 configuration(len(args.devices))['base_cap'], args.max_inflight)}
+            for row in facts['deployment']]
         import httpx
         with httpx.Client(timeout=15, trust_env=False) as client:
             for row in facts["deployment"]:

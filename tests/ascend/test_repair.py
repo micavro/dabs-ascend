@@ -151,8 +151,10 @@ class InspectionTests(unittest.TestCase):
         def command(argv, **kwargs):
             calls.append(argv)
             if argv[:3] == ['sudo', 'docker', 'inspect']:
+                device = int(argv[-1][-1])
                 return json.dumps([{'Name': '/' + argv[-1], 'Id': 'id', 'Image': 'image',
-                    'State': {'Running': True}, 'HostConfig': {}, 'NetworkSettings': {},
+                    'State': {'Running': True}, 'HostConfig': {'Devices': [{'PathOnHost': '/dev/davinci%d' % device}]},
+                    'NetworkSettings': {'Ports': {'8000/tcp': [{'HostPort': str(8001 + device)}]}},
                     'Config': {'Env': ['SECRET=hidden'], 'Cmd': ['--api-key', 'hidden']}}])
             if argv[:4] == ['sudo', 'docker', 'exec', '-i']:
                 self.assertNotIn('import torch', kwargs['stdin'])
@@ -173,7 +175,8 @@ class InspectionTests(unittest.TestCase):
             project.mkdir()
             (project / 'run_dabs_r234.sh').write_text('test')
             args = SimpleNamespace(devices='0,1,2,3', container_prefix='test-npu', out=root / 'probe',
-                                   project=project, model=root / 'model', python='python3', base_port=8001)
+                                   project=project, model=root / 'model', python='python3', base_port=8001,
+                                   wait_ready=0, poll_interval=5., log_tail=80, max_inflight=2)
             with patch.object(tool, 'command', command), patch.object(tool, 'build_opener', return_value=Opener()):
                 self.assertEqual(tool.collect(args), 0)
             saved = (root / 'probe/inspection.json').read_text()
@@ -187,6 +190,27 @@ class InspectionTests(unittest.TestCase):
 
 @unittest.skipUnless(platform.system() == 'Linux', 'Linux host entry tests')
 class HostTextTools(unittest.TestCase):
+    def test_prepare_waits_and_stops_before_probe_if_inspection_fails(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            python = root / 'python3'
+            log = root / 'arguments.json'
+            python.write_text('#!' + sys.executable + '\nimport json, os, sys\n'
+                              'open(os.environ["TEST_ARGUMENTS"], "w").write(json.dumps(sys.argv[1:]))\n'
+                              'sys.exit(1)\n')
+            python.chmod(0o755)
+            sudo = root / 'sudo'
+            sudo.write_text('#!/bin/sh\necho UNEXPECTED_DOCKER >&2\nexit 99\n')
+            sudo.chmod(0o755)
+            env = {**os.environ, 'PATH': str(root) + os.pathsep + os.environ['PATH'],
+                   'TEST_ARGUMENTS': str(log), 'READY_TIMEOUT': '120'}
+            result = subprocess.run(['bash', str(ROOT / 'run_dabs_r234.sh'), 'prepare'],
+                                    capture_output=True, text=True, timeout=10, env=env)
+            self.assertEqual(result.returncode, 1, result.stderr)
+            self.assertNotIn('UNEXPECTED_DOCKER', result.stderr)
+            self.assertEqual(json.loads(log.read_text()),
+                             [str(ROOT / 'tools/inspect_dabs_repair.py'), '--wait-ready', '120'])
+
     def test_inspect_and_report_bypass_controller_and_preserve_space_in_path(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
