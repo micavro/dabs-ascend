@@ -127,7 +127,7 @@ def evaluate_local(paths, *, historical_predictor=False):
         declared_plan = plan_record['plan']
         if accounting:
             from .native_calibration import calibration_plan
-            expected_plan = calibration_plan(predictor=predictor) if historical_predictor else calibration_plan()
+            expected_plan = calibration_plan(predictor=predictor, coverage=bool(model.get('coverage_contract'))) if historical_predictor else calibration_plan()
             if plan_record.get('diagnostic_only') is not False or declared_plan != expected_plan:
                 raise ValueError('diagnostic or incomplete/nondeclared calibration plan cannot open gate')
             raw_events = events(calibration)
@@ -163,7 +163,7 @@ def evaluate_local(paths, *, historical_predictor=False):
             model.get('frozen') is True and not model.get('diagnostic_only', False) and
             model['identities'] == recomputed['identities'] and model['resources'] == recomputed['resources'] and
             all(model.get(k) == recomputed.get(k) for k in ('original_gpu_timing_equivalent',
-                'accounting_model', 'prediction_semantics', 'pending_batch_model', 'thresholds_predeclared', 'predictor'))}
+                'accounting_model', 'prediction_semantics', 'pending_batch_model', 'thresholds_predeclared', 'predictor', 'coverage_contract'))}
         for name in (*required, *(name for name in optional if name in paths)):
             directory = Path(paths[name])
             for path in directory.iterdir():

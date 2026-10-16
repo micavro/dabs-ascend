@@ -114,6 +114,8 @@ def transformation_manifest():
     result = {name: {'frozen_sha256': sha(original_path(name)), 'replacements': replacements}
             for name, replacements in TRANSFORMS.items()}
     result['engine']['batch_selection'] = 'native_scoring.select_batch: V1 running/waiting, APC before budget, token-granular chunks'
+    result['engine']['eviction_optimization'] = 'skip sorting only when original inactive block sum fits allowance'
+    result['engine']['coalesced_decode_support'] = 'check first and last context in each monotone coalesced interval'
     result['engine']['continuation_memoization'] = CONTINUATION_TRANSFORMS
     return result
 
@@ -152,10 +154,15 @@ def adapted(name, *, optimize=True):
         if text.count(anchor) != 1:
             raise ValueError('native model support anchor changed')
         text = text.replace(anchor, "        from dabs_ascend.native_scoring import check_model_range\n        check_model_range(model, r, p, d, dc, context)\n" + anchor)
+        text = text.replace("                dt=duration(lo)",
+            "                check_model_range(model, r, 0, d, dc + d * (lo - 1), 0)\n                dt=duration(lo)")
     module = types.ModuleType('dabs_native_derived_' + name + ('' if optimize else '_unoptimized'))
     module.__package__ = 'core18v2' if name == 'engine' else ''
     sys.modules[module.__name__] = module
     exec(compile(text, str(path) + ':native-derived', 'exec'), module.__dict__)
+    if name == 'engine' and optimize:
+        from .native_scoring import cache_model_class
+        module.CacheModel = cache_model_class()
     return module
 
 
@@ -222,6 +229,10 @@ def choose(state, model, cfg, deadline):
         return {'action': reference(state, cfg), 'evaluations': [], 'model_selection': False,
                 'selected_cell': '00', 'native_fallback': state['native_observation_errors'],
                 'v5_stop_reason': 'native_observation_unusable'}
+    if state.get('native_prediction_errors'):
+        return {'action': reference(state, cfg), 'evaluations': [], 'model_selection': False,
+                'selected_cell': '00', 'native_prediction_errors': state['native_prediction_errors'],
+                'v5_stop_reason': 'native_prediction_unusable'}
     cfg = {**cfg, 'action_horizon_ms': state.get('action_horizon_ms', cfg['epoch_s'] * 1000)}
     selector = adapted('v5_selector')
     selector.dag = adapted('semantic_selector')
@@ -235,6 +246,14 @@ def choose(state, model, cfg, deadline):
                 raise
             return {'rankable': False, 'complete': False, 'sum_remaining_jct_ms': None, 'reason': str(exc)}
     selector.evaluate = supported_evaluate
+    original_cache_tokens = selector.cache_tokens
+    cache_index = {}
+    for e in state.get('cache_evidence', []):
+        if e.get('known'):
+            key = e['prefix_hash'], int(e['replica'])
+            value = int(e.get('tokens', 0)) if e['state'] in ('active_computed', 'reclaimable_computed') else 0
+            cache_index[key] = max(value, cache_index.get(key, 0))
+    selector.cache_tokens = lambda s, k, r: cache_index.get((s['nodes'][k].get('prefix_hash'), r))
     original_proposals = selector.proposals
     original_project, original_guard = selector.project, selector.dag.guard
     causes = Counter()
@@ -282,6 +301,7 @@ def choose(state, model, cfg, deadline):
                       'selected_cell': '00', 'native_fallback': [str(exc)],
                       'v5_stop_reason': 'proposal_model_out_of_range'}
     finally:
+        selector.cache_tokens = original_cache_tokens
         selector.proposals = original_proposals
         selector.project, selector.dag.guard = original_project, original_guard
     result['candidate_diagnostics'] = dict(causes)

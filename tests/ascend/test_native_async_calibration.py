@@ -44,6 +44,14 @@ def pipeline(plan, replicas=1):
                        'cache_input_skipped_tokens': 0, 'mapping': mapping}
                 dec = {'prefill_tokens': 0, 'decode_tokens': 2, 'context_tokens': 7168,
                        'logical_prefill_tokens': 0, 'cache_input_skipped_tokens': 0, 'mapping': mapping}
+                if group.get('coverage_contract'):
+                    # Explicit synthetic coverage endpoints. Timings remain 10ms;
+                    # no fixture claims these are onsite measurements.
+                    tiny = index % 2 == 0
+                    pre['prefill_tokens'] = pre['logical_prefill_tokens'] = 1 if tiny else (1024 if i == 0 else 1022)
+                    pre['context_tokens'] = 3584 if tiny else 0
+                    dec['decode_tokens'] = 1 if tiny else 2
+                    dec['context_tokens'] = 3584 if tiny else 7936
                 complete = calls[i + 1]
                 batch = {'batch_id': bid, 'step': index * 3 + i + 1,
                     'requests': [pre] if i == 0 else [dec] if i == 1 else [pre, dec],

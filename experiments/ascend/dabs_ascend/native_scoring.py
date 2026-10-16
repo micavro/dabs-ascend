@@ -71,7 +71,7 @@ def check_model_range(model, replica, p, d, dc, pc):
     for key, value in dict(p=p, d=d, dc=dc, pc=pc).items():
         low, high = observed[key]
         if not low <= value <= high:
-            raise ValueError('native_calibration_out_of_range:' + key + ':' + str(value))
+            raise ValueError('native_calibration_out_of_range:' + key + ':' + str(value) + ':replica=' + str(replica) + ':phase=' + phase(p, d) + ':observed=' + str([low, high]))
 
 
 def next_batch(state, action, model, replica, cfg):
@@ -101,3 +101,25 @@ def next_batch(state, action, model, replica, cfg):
             'max_prefill_context': pc, 'step_ms': predict(model, replica, p, d, dc, pc, startup=startup) if p or d else 0.,
             'decode_only_ms': predict(model, replica, 0, d, dc, 0, startup=False) if d else 0.,
             'new_decode_next_step': sum(ns[k]['computed'] + n == ns[k]['prompt'] for k, n in pre)}
+
+
+def cache_model_class():
+    from core18v2.engine import CacheModel
+    import math
+
+    class NativeCacheModel(CacheModel):
+        def evict_for_reservations(self, r, active, at):
+            reserve = sum(math.ceil((n['prompt'] + n['output']) / self.block) for n in active)
+            allowance = max(0, int(self.capacity[r]) - reserve)
+            pinned = {n.get('prefix_hash') for n in active if n.get('computed', 0) > 0}
+            inactive = [(k, e) for k, e in self.entries.items() if k[0] == r and k[1] not in pinned]
+            used = sum(math.ceil(e.tokens / self.block) for _, e in inactive)
+            if used <= allowance:
+                return  # Identical no-eviction result; avoid sorting all past prefixes.
+            for key, entry in sorted(inactive, key=lambda kv: (kv[1].last_touch, kv[0][1])):
+                if used <= allowance:
+                    break
+                self.entries.pop(key, None); self.known[key] = 'modeled_evicted'
+                used -= math.ceil(entry.tokens / self.block)
+                self.counts['modeled_conservative_evictions'] += 1
+    return NativeCacheModel

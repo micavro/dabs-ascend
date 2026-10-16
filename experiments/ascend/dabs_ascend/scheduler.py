@@ -19,12 +19,24 @@ from wfsched.routing import reference as routing_reference
 METHODS = ("RR", "P2C", "Affinity", "DAG-Ascend")
 
 
+# No prompts/output bodies or immutable input-construction metadata in a scorer
+# snapshot. Original inputs remain in initial_nodes.json and requests.jsonl.
+NATIVE_NODE_FIELDS = frozenset((
+    'id', 'wid', 'parents', 'compiled_successors', 'compiled_groups', 'compiled_descendants',
+    'state', 'arrival', 'ready_at', 'start', 'replica', 'phase', 'computed', 'output_done',
+    'prompt', 'output', 'max_output_tokens', 'share', 'prefix_hash', 'accepted_at',
+    'output_is_estimate', 'finish', 'arrival_offset',
+))
+
+
 def snapshot(nodes, history, replicas, cfg, index, now=None):
     now = time.monotonic() if now is None else now
     arrived = {n["wid"] for n in nodes.values() if n.get("arrival") is not None}
-    completed = {w for w in arrived if all(n["state"] == "done" for n in nodes.values() if n["wid"] == w)}
+    unfinished = {n["wid"] for n in nodes.values() if n["state"] != "done"}
+    completed = arrived - unfinished
     active = {k: {field: copy.deepcopy(value) for field, value in n.items()
-                  if field not in ("tokens", "stream", "parent_response_bindings", "resolved_question")}
+                  if field not in ("tokens", "stream", "parent_response_bindings", "resolved_question")
+                  and (cfg.get('execution_scope') != 'native' or field in NATIVE_NODE_FIELDS)}
               for k, n in nodes.items() if n["wid"] in arrived - completed}
     loads = [sum(n["state"] == "submitted" and n["replica"] == r for n in active.values()) for r in range(replicas)]
     block_size = cfg['block_size']

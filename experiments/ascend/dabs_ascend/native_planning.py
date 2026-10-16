@@ -5,7 +5,7 @@ includes IPC; an old plan never gets a fresh duration in the worker.
 """
 import time
 
-CONTRACT = 'post_observation_bounded_planning_v2'
+CONTRACT = 'bounded_native_observation_prediction_v3'
 
 
 def planning_window(state, cfg, tick, now=None):
@@ -21,9 +21,11 @@ def planning_window(state, cfg, tick, now=None):
 
 
 def scorer_view(state):
-    # Raw transport receipts/queries stay in the parent decisions.jsonl. Keep
+    # Raw transport receipts/queries stay in the parent's native_events.jsonl. Keep
     # EVERY workflow node, observation error, resource, queue and progress value.
     view = {k: v for k, v in state.items() if k != 'native_snapshots'}
+    view['nodes'] = {k: {f: v for f, v in n.items() if f != 'native_request'}
+                     for k, n in state['nodes'].items()}
     view['cache_evidence'] = [{k: v for k, v in e.items() if k != 'native'}
                               for e in state.get('cache_evidence', [])]
     return view
@@ -37,3 +39,26 @@ def run_planner(planner, state, model, cfg, window):
     result['planning_deadline'] = window['deadline']
     result['worker_clock_contract'] = 'same-host monotonic absolute deadline; IPC consumes budget'
     return result
+
+
+def decision_record(decision):
+    """Raw snapshots already occur once in native_events; retain joinable IDs."""
+    row = dict(decision)
+    for field in ('snapshot', 'fallback_snapshot'):
+        if field not in row:
+            continue
+        original = row[field]
+        row[field] = scorer_view(original)
+        row[field]['native_snapshot_refs'] = [
+            {'replica': r, 'snapshot_id': s.get('snapshot_id'), 'identity': s.get('identity'),
+             'captured_ns': s.get('captured_ns'), 'expires_ns': s.get('expires_ns')}
+            for r, s in enumerate(original.get('native_snapshots', []))]
+    return row
+
+
+def aligned_start(origin, desired, now, epoch, tolerance):
+    """Skip missed fixed windows; never grant an old action a later deadline."""
+    import math
+    if now <= desired + tolerance:
+        return desired
+    return origin + math.ceil((now - origin) / epoch) * epoch

@@ -63,6 +63,14 @@ class NativeWorkflowTests(unittest.TestCase):
                                                'functional_test_pass': True})
             return 0
         result = {'pass': True}
+        from test_native_simplification import capability
+        caps = [capability() for _ in range(4)]
+        if mode == 'native-check-four':
+            write_json(target / 'capabilities.json', caps)
+        if mode == 'native-calibrate':
+            from dabs_ascend.native_coverage import CONTRACT
+            write_json(target / 'native_profile.json', {'coverage_contract': CONTRACT,
+                'identities': [c['identity'] for c in caps], 'resources': [c['resources'] for c in caps]})
         if mode == 'native-accept':
             evidence = self.current.host_path(command[command.index('--evidence') + 1])
             paths = read_json(evidence)['paths']
@@ -300,6 +308,46 @@ class NativeWorkflowTests(unittest.TestCase):
         count = len(self.commands)
         self.assertEqual(self.run_workflow('experiment')[1], 2)
         self.assertEqual(len(self.commands), count)
+
+    def test_verify_updates_old_coverage_without_reinstall_or_modifying_old_evidence(self):
+        from test_planning_audit import fixture
+        tested, _ = self.run_workflow()
+        calibration = next(tested.out.glob('*-native-calibrate')) / 'native_profile.json'
+        old = read_json(calibration); old.pop('coverage_contract')
+        write_json(calibration, old); preserved = calibration.read_bytes()
+        self.commands = []
+        original = self.fake_launch
+        def launch(command, logfile):
+            if command[2] != 'benchmark': return original(command, logfile)
+            self.commands.append(command)
+            fixture(self.current.host_path(command[command.index('--out') + 1]), 8)
+            return 0
+        self.current = entry.Workflow(self.root, 'verify', input_path=tested.out)
+        with patch.object(self.current, 'launch', side_effect=launch), redirect_stdout(io.StringIO()):
+            self.assertEqual(self.current.run(), 0, self.current.record)
+        self.assertEqual([c[2] for c in self.commands], ['native-check-four', 'native-calibrate', 'benchmark'])
+        self.assertEqual(calibration.read_bytes(), preserved)
+        new = read_json(self.current.out / 'coverage_evidence.json')['paths']
+        self.assertIn('imported_test', new['native-probe-four'])
+        self.assertNotIn('imported_test', new['native-calibrate'])
+
+    def test_verify_stops_before_experiment_on_new_calibration_failure_or_engine_restart(self):
+        tested, _ = self.run_workflow()
+        calibration = next(tested.out.glob('*-native-calibrate')) / 'native_profile.json'
+        profile = read_json(calibration); profile.pop('coverage_contract')
+        write_json(calibration, profile)
+        self.commands = []; self.failure = 'native-calibrate'
+        self.current = entry.Workflow(self.root, 'verify', input_path=tested.out)
+        with patch.object(self.current, 'launch', side_effect=self.fake_launch), redirect_stdout(io.StringIO()):
+            self.assertEqual(self.current.run(), 2)
+        self.assertEqual([c[2] for c in self.commands], ['native-check-four', 'native-calibrate'])
+        self.commands = []; self.failure = None
+        profile['identities'][0]['engine_instance'] = 'old-engine'
+        write_json(calibration, profile)
+        self.current = entry.Workflow(self.root, 'verify', input_path=tested.out)
+        with patch.object(self.current, 'launch', side_effect=self.fake_launch), redirect_stdout(io.StringIO()):
+            self.assertEqual(self.current.run(), 2)
+        self.assertEqual([c[2] for c in self.commands], ['native-check-four'])
 
     def test_logs_reads_latest_compact_text_without_docker(self):
         from dabs_ascend.copy_log import emit

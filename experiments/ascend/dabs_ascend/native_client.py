@@ -8,7 +8,6 @@ import time
 import uuid
 
 from dabs_native.contracts import digest, prefix_key, validate_capabilities, engine_epoch, validate_observation, require_control_semantics
-from .common import append_json
 
 
 class NativeClient:
@@ -17,6 +16,15 @@ class NativeClient:
         self.log, self.identities, self.capabilities = log, {}, []
         self.salt = 'dabs-' + uuid.uuid4().hex
         self.watermarks = {}
+        from .native_evidence_log import EvidenceBuffer
+        self.evidence_buffer = EvidenceBuffer()
+        self.defer_evidence = False
+        self.input_identity_cache = {}
+        self.query_hints = {}
+
+    def flush_evidence(self, *, durable=False):
+        self.evidence_buffer.flush(durable=durable)
+
 
     async def call(self, replica, op, **payload):
         started = time.monotonic()
@@ -26,12 +34,11 @@ class NativeClient:
             raise ValueError(f'replica {replica} /dabs/v1/control op={op}: HTTP {response.status_code}: {response.text[:1000]}')
         row = response.json()
         if self.log:
-            append_json(self.log, {'replica': replica, 'op': op, 'request': payload,
-                'response': row, 'client_start': started, 'client_finish': time.monotonic()})
-            if op == 'batches':
-                with open(self.log, 'a', encoding='utf-8') as handle:
-                    handle.flush()
-                    os.fsync(handle.fileno())
+            record = {'replica': replica, 'op': op, 'request': payload,
+                'response': row, 'client_start': started, 'client_finish': time.monotonic()}
+            self.evidence_buffer.append(self.log, record)
+            if not self.defer_evidence or op == 'batches':
+                self.flush_evidence(durable=op == 'batches')
         if not isinstance(row, dict) or not row.get('identity', {}).get('engine_instance'):
             raise ValueError(f'replica {replica} op={op}: missing identity.engine_instance')
         old = self.identities.setdefault(replica, row['identity'])
@@ -90,8 +97,9 @@ class NativeClient:
         from .native_observation import prefix_queries, prefix_identities
         count = cfg['replicas']
         started = time.monotonic()
-        input_keys = prefix_identities(nodes, self.salt)
-        queries, bindings, query_stats = prefix_queries(nodes, cfg, self.salt, enabled=cache_queries)
+        input_keys = prefix_identities(nodes, self.salt, self.input_identity_cache)
+        queries, bindings, query_stats = prefix_queries(nodes, cfg, self.salt, enabled=cache_queries,
+            model=model, hints=self.query_hints)
         rpc_started = time.monotonic()
         raw = await asyncio.gather(*(self.call(r, 'snapshot', queries=queries) for r in range(count)))
         now = time.monotonic()
@@ -100,7 +108,7 @@ class NativeClient:
         for key, n in state['nodes'].items():
             n['prefix_hash'] = input_keys[key]
         state.update(native_snapshots=raw, native_mutable=[], native_queue_groups={}, native_running={}, cache_evidence=[],
-                     inflight_batches=[], prefix_history={}, prefix_certificates={}, native_observation_errors=[],
+                     inflight_batches=[], prefix_history={}, prefix_certificates={}, native_observation_errors=[], native_prediction_errors=[],
                      capacity_blocks=[], physical_reserved_blocks=[], physical_active_blocks=[],
                      pressure=[], native_pressure=[], state_ages_s=[], native_state_ages_s=[],
                      state_source='EngineCore utility RPC', capacity_source='EngineCore block pool; null block excluded')
@@ -193,7 +201,7 @@ class NativeClient:
                     if not str(exc).startswith('native_calibration_out_of_range:'):
                         raise
                     end = None
-                    state['native_observation_errors'].append(str(exc))
+                    state['native_prediction_errors'].append(str(exc))
                 state['inflight_batches'].append({'replica': replica, 'batch_id': batch['batch_id'],
                     'prefill': pre, 'decode': dec, 'remaining_ms': end, 'cap': resource['step_tokens'],
                     'timing_target': model.get('timing_target'),
@@ -217,6 +225,8 @@ class NativeClient:
         state['native_pressure'] = list(state['pressure'])
         state['native_state_ages_s'] = list(state['state_ages_s'])
         state['pressure_source'] = 'engine running + 2*waiting'
+        self.query_hints = {'pressure': list(state['pressure'])}
+        state['native_prediction_usable'] = not state['native_prediction_errors']
         state['cache_unknown_count'] = sum(not e['known'] for e in state['cache_evidence'])
         return state
 
@@ -233,7 +243,7 @@ class NativeClient:
                 return [], []
             if fallback:
                 result = await self.call(replica, 'admit', admissions=admissions)
-                result['controller_fallback'] = 'atomic fresh admission; no submitted queue changes'
+                result = {**result, 'controller_fallback': 'atomic fresh admission; no submitted queue changes'}
             else:
                 result = await self.call(replica, 'apply', action=self.action(snapshot, admissions, order, state.get('action_deadline_ns')))
             admitted = []

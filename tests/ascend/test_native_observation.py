@@ -52,7 +52,7 @@ class ObservationTests(unittest.IsolatedAsyncioTestCase):
             time.sleep(.13)
             return snapshot(*args)
         native.call = call
-        with patch('dabs_ascend.scheduler.snapshot', side_effect=slow_projection):
+        with patch('dabs_ascend.scheduler.snapshot', side_effect=slow_projection), patch('dabs_ascend.native_observation.query_priority', return_value=list(nodes)):
             s = await native.observe(nodes, cfg, 1, model())
         self.assertGreater(time.monotonic() - s['now'], .12)
         self.assertGreater(s['native_projection_ms'], 120)
@@ -64,9 +64,9 @@ class ObservationTests(unittest.IsolatedAsyncioTestCase):
         native = NativeClient(None, ['r0', 'r1'])
         native.capabilities = [{'resources': observation()['resources']}] * 2
         prepared = False
-        def prepare(*args):
+        def prepare(*args, **kwargs):
             nonlocal prepared
-            result = prefix_identities(*args)
+            result = prefix_identities(*args, **kwargs)
             prepared = True
             return result
         async def call(r, op, **payload):

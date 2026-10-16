@@ -22,6 +22,8 @@ from typed19.workflow import compile_packets
 
 class NativeDouble:
     log = None
+    def flush_evidence(self, **kwargs):
+        pass  # This double has no native RPC evidence buffer.
     async def drain(self, replicas):
         append_json(self.log, {'cpu_double': True, 'drained': True})
     async def harvest(self, replicas, **kwargs):

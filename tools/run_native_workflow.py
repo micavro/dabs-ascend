@@ -296,9 +296,30 @@ class Workflow:
 
     def verify(self):
         evidence = self.test_evidence()
+        from dabs_ascend.native_coverage import CONTRACT as COVERAGE
+        manifest = read_json(evidence)
+        paths = dict(manifest['paths'])
+        calibration = self.host_path(paths['native-calibrate'])
+        profile = read_json(calibration / 'native_profile.json')
+        if profile.get('coverage_contract') != COVERAGE:
+            # Raw probes remain unchanged. A changed calibration plan needs a new
+            # independent holdout, not edited bounds or formal experiment data.
+            checked = self.step('native-check-four', '检查现有服务接口；不重装、不重启')
+            from dabs_native.contracts import engine_epoch, resource_values
+            caps = read_json(checked / 'capabilities.json')
+            if ([engine_epoch(c['identity']) for c in caps] != [engine_epoch(i) for i in profile['identities']]
+                    or [resource_values(c['resources']) for c in caps] != [resource_values(r) for r in profile['resources']]):
+                raise Stopped('原测试的服务已重启或资源已改变，旧机制证据不能复用；未开始长标定。',
+                              ['bash run_native.sh test'])
+            paths['native-calibrate'] = self.container_path(self.step(
+                'native-calibrate', '补齐分阶段尾块/部分缓存覆盖，独立重新标定；误差门槛不变'))
+            old_evidence = evidence
+            evidence = self.out / 'coverage_evidence.json'
+            write_json(evidence, {'paths': paths, 'source_evidence': self.relative(old_evidence),
+                                 'requires_raw_and_live_revalidation': True})
         result_dir = self.out / 'r234_native'
         self.record.update(acceptance=self.relative(evidence), experiment_output=self.relative(result_dir))
-        self.step('benchmark', '复用原始证据并运行前 ' + str(self.max_conditions) + ' 条件，核对 Ours 完整评分',
+        self.step('benchmark', '运行前 ' + str(self.max_conditions) + ' 条件（子进程完成不等于规划验收通过）',
                   ['--execution-scope', 'native', '--native-evidence', self.container_path(evidence),
                    '--max-conditions', str(self.max_conditions), '--out', self.container_path(result_dir)], native=False)
         from dabs_ascend.planning_audit import audit

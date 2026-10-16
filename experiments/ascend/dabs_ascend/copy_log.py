@@ -30,7 +30,7 @@ def emit(run, event, **fields):
         return ' '.join(str(v).split())
     with path.open('a', encoding='utf-8') as stream:
         if new:
-            stream.write('DABS复制摘要 v1；普通文本，不打包。P=30秒进度；D=原因/回执样本；C=条件最终统计。\n'
+            stream.write('DABS复制摘要 v2；普通文本，不打包。P=30秒进度；D=原因/回执样本；C=条件统计；TIMING=耗时分位。\n'
                          '仅摘要：相同原因累计计数，D每类最多3例；完整证据仍在conditions/*/*.jsonl。\n')
         clock = datetime.now(timezone.utc).strftime('%H:%M:%SZ')
         stream.write(clock + ' ' + event + ' ' + ' '.join(k + '=' + value(v) for k, v in fields.items() if v is not None) + '\n')
@@ -46,9 +46,15 @@ class ConditionLog:
         self.run, self.label = run, label
         self.counts, self.examples = Counter(), Counter()
         self.progress_at = 0.
+        self.timings = {}
 
     def decision(self, row):
         result = row.get('result', {})
+        state = row.get('snapshot', {})
+        measured = {k: state[k] for k in ('native_prepare_ms', 'native_rpc_ms', 'native_projection_ms') if k in state}
+        measured.update({k: result[k] for k in ('planning_dispatch_delay_ms', 'wall_ms') if k in result})
+        for key, value in measured.items():
+            self.timings.setdefault(key, []).append(value)
         reason = result.get('v5_stop_reason') or ('planner_busy' if row.get('planner_busy') else
                  'planning_window_expired' if row.get('discarded_expired') else 'baseline')
         fallback = row.get('native_fallback_reason')
@@ -79,6 +85,10 @@ class ConditionLog:
              generated=result.get('v5_candidate_generated'), selected=result.get('selected_cell'),
              scores=[(e.get('cell'), e.get('complete'), e.get('cost_ms'), e.get('reason')) for e in evals],
              cache=dict(cache), pressure=state.get('pressure'), observe_errors=state.get('native_observation_errors'),
+             prediction_errors=state.get('native_prediction_errors'),
+             ms={k: round(v, 2) for k, v in measured.items()},
+             query={k: v for k, v in state.get('native_query_budget', {}).items() if k in (
+                 'ready_requests', 'unique_queries', 'query_tokens_per_replica', 'covered_requests', 'unqueried_requests')},
              causes=result.get('candidate_diagnostics'), fallback=row.get('native_fallback_reason'),
              deferred=row.get('native_deferred_reason'), submitted=len(row.get('applied_submission_order', [])), receipts=receipts)
 
@@ -102,6 +112,10 @@ class ConditionLog:
              planner=dict(self.counts))
 
     def complete(self, summary):
+        from .common import percentile
+        timing = {k: {'n': len(v), 'p50': round(percentile(v, .5), 2), 'p95': round(percentile(v, .95), 2)}
+                  for k, v in self.timings.items()}
+        emit(self.run, 'TIMING', condition=self.label, ms=timing)
         emit(self.run, 'C', condition=self.label, work=summary.get('fixed_work_pass'), dag=summary['dependency_handoff_pass'],
              requests=summary['completed_requests'], output=summary['output_tokens'],
              jct_ms=round(summary['jct_mean_ms'], 2), p95_ms=round(summary['jct_p95_ms'], 2),

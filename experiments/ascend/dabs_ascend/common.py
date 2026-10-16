@@ -36,7 +36,7 @@ def write_json(path, value):
 
 def append_json(path, value):
     with Path(path).open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(value, ensure_ascii=False, allow_nan=False) + "\n")
+        handle.write(json.dumps(value, ensure_ascii=False, allow_nan=False, separators=(',', ':')) + "\n")
 
 
 def sha(path):

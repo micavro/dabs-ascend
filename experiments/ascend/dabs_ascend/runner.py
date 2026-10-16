@@ -9,7 +9,7 @@ import time
 from .common import DATASET, append_json, percentile, write_json
 from .scheduler import baseline, plan_dag, snapshot
 from .repair import admission_check, aggregate_diagnostics, effect_signature, with_budget
-from .native_planning import planning_window, run_planner, scorer_view
+from .native_planning import planning_window, run_planner, scorer_view, decision_record, aligned_start
 
 
 def summarize(nodes, start, finish, decisions, quality, *, fixed=False):
@@ -183,6 +183,12 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
             # the first 120 ms observation or the measured arrival schedule.
             from .native_algorithms import adapted
             adapted('ayo_topology' if spec['method'] == 'Ayo' else 'routing')
+        if native:
+            from .native_algorithms import adapted
+            adapted('semantic_selector')
+            backend.native.input_identity_cache = {}
+            backend.native.query_hints = {}
+            backend.native.defer_evidence = True
         start = time.monotonic()
         for keys in groups.values():
             spawn(arrive(keys))
@@ -226,10 +232,25 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                     return action, [], []
                 decision['error'] = 'Fresh native fallback admission failed: ' + reason
                 decisions.append(decision)
-                append_json(out / 'decisions.jsonl', decision)
+                append_json(out / 'decisions.jsonl', decision_record(decision) if native else decision)
                 raise ValueError(decision['error'])
             order, receipts = await backend.native.commit(action, fresh_state, nodes, fallback=True)
             return action, order, receipts
+
+        def publish_progress(row):
+            if row is None:
+                return
+            write_json(out / 'status.json', row)
+            print('R234_PROGRESS ' + spec['label'] +
+                  ' submitted=' + str(row['submitted_requests']) +
+                  ' completed=' + str(row['completed_requests']) + '/' + str(len(nodes)) +
+                  ' inflight=' + str(row['client_inflight']) +
+                  ' ready=' + str(row['ready_requests']) +
+                  ' observe_ms=' + str(row['observe_ms']) +
+                  ' expired=' + str(row['expired_decisions']) +
+                  ' fallbacks=' + str(row['atomic_fallbacks']) +
+                  ' deferred=' + str(row['deferred_admissions']), flush=True)
+            compact.progress(row)
 
         async def loop():
             nonlocal pending, pending_origin
@@ -245,6 +266,12 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                 if pending is not None and pending.done():
                     # Persist old diagnostics before observing the next window.
                     await consume_late_plan()
+                if native:
+                    backend.native.flush_evidence()
+                    if index and index % 5 == 0:
+                        await backend.native.harvest(cfg['replicas'])
+                    next_tick = aligned_start(start, next_tick, time.monotonic(),
+                                              cfg['epoch_s'], cfg['commit_reserve_s'])
                 await asyncio.sleep(max(0., next_tick - time.monotonic()))
                 await asyncio.sleep(cfg["ready_coalesce_s"])
                 if errors:
@@ -253,8 +280,6 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                 next_tick = start + (math.floor((now - start) / cfg["epoch_s"]) + 1) * cfg["epoch_s"]
                 index += 1
                 if native:
-                    if index % 5 == 0:
-                        await backend.native.harvest(cfg['replicas'])
                     state = await backend.native.observe(nodes, cfg, index, model)
                     state['action_deadline_ns'] = int(next_tick * 1e9)
                     state['action_horizon_ms'] = max(.001, (next_tick - state['now']) * 1000)
@@ -276,14 +301,6 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                             'expired_decisions': sum(bool(d.get('discarded_expired')) for d in decisions),
                             'atomic_fallbacks': sum(bool(d.get('native_fallback_reason')) for d in decisions),
                             'deferred_admissions': sum(bool(d.get('native_deferred_reason')) for d in decisions)}
-                        write_json(out / 'status.json', progress)
-                        print('R234_PROGRESS ' + spec['label'] + ' submitted=' + str(submitted) +
-                              ' completed=' + str(completed) + '/' + str(len(nodes)) +
-                              ' inflight=' + str(active) + ' ready=' + str(len(state['ready'])) +
-                              ' observe_ms=' + str(state.get('native_observe_ms')) +
-                              ' expired=' + str(progress['expired_decisions']) +
-                              ' fallbacks=' + str(progress['atomic_fallbacks']) +
-                              ' deferred=' + str(progress['deferred_admissions']), flush=True)
                         progress_at = measured_at + 5
                         progress_row = progress
                     if state['ready'] and not active and measured_at - activity_at >= cfg.get('native_idle_stall_s', 60):
@@ -292,8 +309,7 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                 if not state["ready"]:
                     if pending is not None and pending.done():
                         await consume_late_plan()
-                    if progress_row is not None:
-                        compact.progress(progress_row)
+                    publish_progress(progress_row)
                     continue
                 base = r234.baseline(state, cfg, spec['method']) if fixed else baseline(state, cfg, spec["method"])
                 result = {"action": base, "evaluations": [], "model_selection": False}
@@ -379,11 +395,11 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                         replica = action['placement'][key]
                         node.update(state='submitted', replica=replica, start=time.monotonic(), phase='prefill')
                         spawn(execute(key, replica))
+                    backend.native.flush_evidence()
                     decisions.append(decision)
-                    append_json(out / 'decisions.jsonl', decision)
+                    append_json(out / 'decisions.jsonl', decision_record(decision) if native else decision)
                     compact.decision(decision)
-                    if progress_row is not None:
-                        compact.progress(progress_row)
+                    publish_progress(progress_row)
                     if pending is not None and pending.done():
                         await consume_late_plan()
                     continue
@@ -454,6 +470,7 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                     old = [r['engine_request_id'] for r in decision['snapshot']['native_snapshots'][item['replica']]['waiting']]
                     if len(actual) >= 2 and actual != [r for r in old if r in actual]:
                         queue_effect = True
+                    backend.native.flush_evidence()
                     append_json(out / 'decisions.jsonl', {'event': 'final_engine_receipt', 'decision_index': decision['index'],
                         'replica': item['replica'], 'receipt': receipt})
                     compact.receipt(decision['index'], item['replica'], receipt)
@@ -498,6 +515,8 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
         write_json(out / "status.json", {"status": "failed", "error": repr(exc), "spec": spec})
         raise
     finally:
+        if native:
+            backend.native.defer_evidence = False
         for task in list(tasks):
             task.cancel()
         if tasks:
@@ -512,3 +531,5 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
             write_json(out / "nodes.json", nodes)
             if "proof" in locals():
                 write_json(out / "input_proof.json", proof)
+        if native:
+            backend.native.flush_evidence(durable=True)

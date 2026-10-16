@@ -8,6 +8,8 @@ from .common import write_json, source_identity, sha
 from .native_timing import TARGET, audit, read_events, reconstruct, require_timing, collection_floors
 from .native_prediction import PREDICTOR, regression_features, check_startup_inputs
 
+from .native_coverage import CONTRACT as COVERAGE, coverage_check
+
 PHASES = ('prefill_only', 'decode_only', 'mixed')
 
 
@@ -60,6 +62,7 @@ def fit_model(samples, capabilities, *, predictor=None):
         if key in group_splits and group_splits[key] != s['split']:
             raise ValueError('train/holdout group leakage')
         group_splits[key] = s['split']
+    coverage_required = any(s.get('group', {}).get('coverage_contract') == COVERAGE for s in eligible)
     for replica, capability in enumerate(capabilities):
         phases, checks = {}, {}
         for phase in PHASES:
@@ -68,6 +71,11 @@ def fit_model(samples, capabilities, *, predictor=None):
             checks[phase] = {'train_batches': len(train), 'holdout_batches': len(holdout), 'pass': False,
                 'train_groups': len({s['group']['seed'] for s in train}),
                 'holdout_groups': len({s['group']['seed'] for s in holdout})}
+            if coverage_required:
+                coverage = coverage_check(eligible, replica, phase, capability['resources']['step_tokens'])
+                checks[phase]['coverage'] = coverage
+                if not coverage['pass']:
+                    failures.append(f'r{replica}/{phase}: incomplete independent phase boundary coverage: {coverage["splits"]}')
             if len(train) < 20 or len(holdout) < 20:
                 failures.append(f'r{replica}/{phase}: require >=20 batches in EACH independent train/holdout split; actual train={len(train)}, holdout={len(holdout)}; target={TARGET if accounting else "same-batch host call"}')
                 continue
@@ -86,7 +94,8 @@ def fit_model(samples, capabilities, *, predictor=None):
             errors = [abs(p - s['y']) / max(.1, s['y']) for p, s in zip(pred, holdout)]
             rmse = math.sqrt(sum((p - s['y']) ** 2 for p, s in zip(pred, holdout)) / len(holdout))
             mean = sum(s['y'] for s in holdout) / len(holdout)
-            passed = percentile(errors, .95) <= .35 and rmse <= .25 * max(.1, mean)
+            error_passed = percentile(errors, .95) <= .35 and rmse <= .25 * max(.1, mean)
+            passed = error_passed and (not coverage_required or coverage['pass'])
             checks[phase].update({
                 'p95_relative_error': percentile(errors, .95), 'rmse_ms': rmse, 'holdout_mean_ms': mean,
                 'pass': passed, 'range': {k: [min(s[k] for s in train), max(s[k] for s in train)] for k in ('p', 'd', 'dc', 'pc')}})
@@ -105,7 +114,7 @@ def fit_model(samples, capabilities, *, predictor=None):
                     if selected and regime not in regimes:
                         passed = checks[phase]['pass'] = False
                         failures.append(f'r{replica}/{phase}: holdout has untrained regime {regime}')
-            if not passed:
+            if not error_passed:
                 failures.append(f'r{replica}/{phase}: frozen holdout error thresholds exceeded')
         combined = [s for s in eligible if s['replica'] == replica and s['split'] == 'train']
         if (not combined or max(s['p'] for s in combined) < capability['resources']['step_tokens'] * .875
@@ -113,7 +122,7 @@ def fit_model(samples, capabilities, *, predictor=None):
                 or max(s['d'] for s in combined) < 2):
             failures.append(f'r{replica}: actual batch coverage does not cover the fixed R234/client-inflight=2 workload')
         models[str(replica)], validation[str(replica)] = {'phases': phases}, checks
-    return {'models': models, 'validation': validation, 'failures': failures, 'pass': not failures, 'predictor': predictor,
+    return {'coverage_contract': COVERAGE if coverage_required else None, 'models': models, 'validation': validation, 'failures': failures, 'pass': not failures, 'predictor': predictor,
             'timing_target': TARGET if accounting else 'engine_host_ms: actual EngineCore step entry to return, only unambiguous same-batch calls',
             'excluded_ambiguous_host_batches': ambiguous, 'eligible_host_batches': len(eligible),
             'host_step_equivalence': False if accounting else not failures,
@@ -126,7 +135,9 @@ def fit_model(samples, capabilities, *, predictor=None):
             'source_sha256': source_identity(), 'frozen': not failures}
 
 
-def calibration_plan(diagnostic=False, *, predictor=PREDICTOR):
+def calibration_plan(diagnostic=False, *, predictor=PREDICTOR, coverage=None):
+    if coverage is None:
+        coverage = predictor != 'phase6_v1'
     # Fixed in advance; no adapting cases/thresholds to holdout outcomes.
     cases = [(128, 1, 16, False), (129, 1, 16, False), (1024, 1, 32, False),
              (2048, 1, 48, False), (3584, 1, 64, False), (3584, 1, 128, False),
@@ -136,11 +147,27 @@ def calibration_plan(diagnostic=False, *, predictor=PREDICTOR):
     if diagnostic:
         cases = [(3584, 1, 16, False), (3584, 2, 32, False)]
     repeats = 1  # Fixed budget; insufficient phase coverage is reported, never padded.
-    return [{'split': split, 'length': length, 'concurrency': concurrency, 'output': output,
-             'hot': hot, 'repeat': repeat, 'seed': (271800 if predictor == 'phase6_v1' else 2271800) + offset * 100000 + repeat * 10000 + i * 100 + concurrency}
+    plan = [{'split': split, 'length': length, 'concurrency': concurrency, 'output': output,
+            'hot': hot, 'repeat': repeat, 'seed': (9271800 if coverage and not diagnostic else 271800 if predictor == 'phase6_v1' else 2271800) + offset * 100000 + repeat * 10000 + i * 100 + concurrency}
             for offset, split in enumerate(('train', 'holdout'))
             for repeat in range(repeats)
             for i, (length, concurrency, output, hot) in enumerate(cases)]
+    if coverage and not diagnostic:
+        # Tiny tails, partial APC (not just full hot prompts), and high decode
+        # contexts. Separate seeds/salts/samples per split; never pad samples.
+        boundaries = [(1, 1, 0), (3, 1, 0), (1, 3, 0), (3, 3, 0),
+                      (3585, 1, 512), (3587, 1, 512),
+                      (3585, 3, 512), (3587, 3, 512),
+                      (3968, 3, 0), (3968, 1, 0), (3968, 3, 640)]
+        for offset, split in enumerate(('train', 'holdout')):
+            for i, (length, concurrency, warm_prefix) in enumerate(boundaries):
+                plan.append({'split': split, 'length': length, 'concurrency': concurrency,
+                    'output': 128, 'hot': False, 'warm_prefix': warm_prefix,
+                    'anchor_length': 3968 if concurrency > 1 else length,
+                    'repeat': 0, 'seed': (8271800 if predictor == 'phase6_v1' else 5271800) + offset * 100000 + i * 100 + concurrency})
+        for group in plan:
+            group['coverage_contract'] = COVERAGE
+    return plan
 
 
 def rebuild(directory):
@@ -201,12 +228,15 @@ async def run_calibration(backend, tokenizer, out, *, diagnostic=False):
             rng = random.Random(group['seed'])
             nodes = []
             for j in range(group['concurrency']):
-                tokens = (base + [rng.choice(pads) for _ in range(group['length'])])[:group['length']]
+                length = group.get('anchor_length', group['length']) if j == 0 else group['length']
+                tokens = (base + [rng.choice(pads) for _ in range(length)])[:length]
                 nodes.append({'id': 'cal-' + group['split'] + '-' + str(group['seed']) + '-' + uuid.uuid4().hex, 'tokens': tokens, 'max_output_tokens': group['output'],
                               'fixed_workload_replay': True})
-            if group['hot']:
+            if group['hot'] or group.get('warm_prefix'):
                 for n in nodes:
                     warm = {**n, 'id': 'warm-' + n['id'], 'max_output_tokens': 16}
+                    if group.get('warm_prefix'):
+                        warm['tokens'] = n['tokens'][:group['warm_prefix'] + 1]
                     await native.reserve(replica, warm)
                     await backend.generate(replica, warm, group['seed'], out / 'requests.jsonl', schema=None)
                 while await native.harvest(len(backend.endpoints), wait_complete=True):
@@ -219,7 +249,7 @@ async def run_calibration(backend, tokenizer, out, *, diagnostic=False):
                     deadline = asyncio.get_running_loop().time() + 30
                     while True:
                         state = await native.call(replica, 'snapshot')
-                        if any(r['phase'] == 'decode' for r in state['running']):
+                        if sum(r['phase'] == 'decode' for r in state['running']) >= (j if 'anchor_length' in group else 1):
                             break
                         if asyncio.get_running_loop().time() >= deadline:
                             raise ValueError('calibration mixed-load trigger: no observed decode within 30s')
@@ -234,13 +264,15 @@ async def run_calibration(backend, tokenizer, out, *, diagnostic=False):
                 if not rows:
                     break
             samples, excluded = rebuild(out)
-            partial = fit_model(samples, native.capabilities)
-            write_json(out / 'calibration_progress.json', {'validation': partial['validation'], 'excluded': excluded,
+            counts = {f'{r}/{phase}/{split}': sum(x['replica'] == r and x['phase'] == phase and x['split'] == split for x in samples)
+                      for r in range(len(backend.endpoints)) for phase in PHASES for split in ('train', 'holdout')}
+            write_json(out / 'calibration_progress.json', {'counts': counts, 'excluded': excluded,
                 'samples': len(samples), 'diagnostic_only': diagnostic})
             print('NATIVE_CALIBRATION', replica, group, 'eligible', len(samples), 'excluded', len(excluded), flush=True)
             from .copy_log import emit
             emit(out, 'CALIBRATION', replica=replica, group=group, eligible=len(samples), excluded=len(excluded))
             if excluded or not samples:
+                partial = fit_model(samples, native.capabilities)
                 partial['pass'] = partial['frozen'] = False
                 partial['failures'] += ['timing association failed early; inspect timing_audit.json/calibration_excluded.json']
                 write_json(out / 'native_profile.json', partial)
