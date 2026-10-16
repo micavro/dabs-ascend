@@ -70,6 +70,9 @@ def procedure(out, record):
              '96/96 且检查通过才是完整跑完。`--max-conditions 4` 只完成前四个集成条件，状态为 paused。',
              'Ours 收益 = (基线平均 JCT − Ours 平均 JCT) / 基线平均 JCT；正值为改善，负值为退化。',
              '这是固定 token DAG 负载，无问答准确率。原生 KV 和引擎阶段指标不可得，保持 null。', '']
+    if record['arguments'].get('execution_scope') == 'native':
+        lines[lines.index('4. `dabs_ascend.backend`：逐服务验证 3584 输入以及 16/32/48/64/128 输出，随后 `calibration.py` 采集本机 HTTP 时延。')] = '4. 原生门禁重新验证引擎签名、代码、配置和独立引擎 host-step 标定；加载冻结模型，正式数据不参与拟合。'
+        lines[-2] = '原生状态、KV 查询、引擎回执和带 batch ID 的引擎 host-step 与辅助 NPU forward 时间保存在 native_events.jsonl；HTTP TTFT/TPOT 仍只标作客户端代理。'
     (out / 'REPRODUCE.md').write_text('\n'.join(lines), encoding='utf-8')
 
 
@@ -114,6 +117,8 @@ def make_report(out, plan, summaries, status, error=None, *, source_out=None):
     source_out = source_out or out
     env = read_json(source_out / 'environment.json') if (source_out / 'environment.json').exists() else {}
     canaries = read_json(source_out / 'canary_summary.json') if (source_out / 'canary_summary.json').exists() else []
+    native_gate = read_json(source_out / 'native_gate.json') if (source_out / 'native_gate.json').exists() else {}
+    native = bool(native_gate.get('pass') and native_gate.get('live_verified'))
     canary_ok = (len(canaries) == 20 and all(r['passed'] for r in canaries)
                  and {(r['replica'], r['fixed_output_budget']) for r in canaries} == {(r, n) for r in range(4) for n in (16, 32, 48, 64, 128)})
     rows, workflows, stages, loads, reasons = [], [], [], [], []
@@ -130,7 +135,7 @@ def make_report(out, plan, summaries, status, error=None, *, source_out=None):
         rows[-1].update({k: diagnostics.get(k) for k in ('reference_score_started', 'reference_score_rankable',
                                                         'candidate_score_started', 'candidate_score_rankable', 'guard_rejected')})
         rows[-1].update(client_applied_nonreference_actions=s.get('nonreference_actions') if s.get('action_accounting_version') == 2 else None,
-                        engine_applied_nonreference_actions=None,
+                        engine_applied_nonreference_actions=s.get('engine_applied_nonreference_actions'),
                         action_accounting_version=s.get('action_accounting_version', 1))
         for kind in ('score_failure_reasons', 'commit_reject_reasons'):
             reasons.extend({**spec, 'stage': kind, 'reason': reason, 'count': count}
@@ -147,15 +152,20 @@ def make_report(out, plan, summaries, status, error=None, *, source_out=None):
     report = {'suite': 'dabs-r234-balanced-64', 'status': status, 'completed_conditions': len(summaries),
               'declared_conditions': 96, 'functional_test_pass': bool(passed),
               'fixed_work_pass': work_ok, 'http_inference_verified': canary_ok,
-              'real_npu_verified': False, 'strict_native_reproduction_pass': False,
-              'native_cache_observed': False, 'native_kv_hit_rate': None,
+              'real_npu_verified': native, 'strict_native_reproduction_pass': bool(native and passed),
+              'native_cache_observed': native, 'native_kv_hit_rate': None,
               'ours_conditions_without_scoring': [s['spec']['label'] for s in ours if not s['selector_scored_decisions']],
               'ours_conditions_without_rankable_candidate': [s['spec']['label'] for s in ours if not s['v5_candidate_scored']],
               'ours_selected_nonreference_actions': sum(s.get('selected_nonreference_actions', s['nonreference_actions']) for s in ours),
               'ours_client_applied_nonreference_actions': (sum(s['nonreference_actions'] for s in ours)
                                                           if ours and all(s.get('action_accounting_version') == 2 for s in ours) else None),
-              'ours_engine_applied_nonreference_actions': None,
-              'limits': LIMITS + env.get('limits', []), 'error': error}
+              'ours_engine_applied_nonreference_actions': sum(s.get('engine_applied_nonreference_actions', 0) for s in ours) if native else None,
+              'limits': ([
+                  'Native EngineCore snapshots/cache queries/receipts are in conditions/*/native_events.jsonl; HTTP timing remains explicitly separate.',
+                  'Timing target: actual engine host-step elapsed, using unambiguous batch/call associations. NPU forward events are auxiliary; predictions remain approximations.',
+                  'Only unsubmitted routing, admission permits and safe waiting/partial-prefill queue slots are supported. Decode/inflight requests cannot be moved.',
+                  'Input/DAG/seeds/96-condition order remain frozen. Negative gains, zero deviations and failures are retained.',
+                  'Mechanism validation is distinct from reproducing NVIDIA performance numbers.'] if native else LIMITS) + env.get('limits', []), 'error': error}
     write_json(out / 'acceptance.json', report)
     for filename, values in [('metrics.csv', rows), ('paired_comparisons.csv', pairs),
                              ('workflow_metrics.csv', workflows), ('latency_decomposition.csv', stages),
@@ -176,7 +186,7 @@ def make_report(out, plan, summaries, status, error=None, *, source_out=None):
         value = f'{statistics.mean(values):+.2f}%' if values else '尚无'
         lines.append(f'| {method} | {len(values)} / 24 | {value} |')
     lines += ['', f"Ours 已执行条件：{len(ours)}；无完整参考评分的条件：{len(report['ours_conditions_without_scoring'])}；无完整候选评分的条件：{len(report['ours_conditions_without_rankable_candidate'])}。",
-              f"选择非基线动作：{report['ours_selected_nonreference_actions']}；客户端实际产生不同提交序列/路由：{report['ours_client_applied_nonreference_actions']}；引擎应用次数：未知。",
+              f"选择非基线动作：{report['ours_selected_nonreference_actions']}；客户端实际产生不同提交序列/路由：{report['ours_client_applied_nonreference_actions']}；引擎应用次数：{report['ours_engine_applied_nonreference_actions']}。",
               '旧版 nonreference_actions 只计选择且未过期，不能当作引擎已应用；None 表示缺少证据。',
               'v5_candidate_scored 只计完整、可排名的候选；开始次数另见 metrics.csv，失败原因见 diagnostic_reasons.csv。',
               '无可执行候选、评分超时或收益不足时会保留基线；完整负载通过不等于 Ours 性能提升。', '',
@@ -190,7 +200,8 @@ def make_report(out, plan, summaries, status, error=None, *, source_out=None):
         table += '<tr>' + ''.join('<td>' + html.escape(f'{row[c]:.2f}' if isinstance(row[c], float) else str(row[c])) + '</td>' for c in columns) + '</tr>'
     table += '</tbody></table>'
     document = '<!doctype html><html lang="zh"><meta charset="utf-8"><title>R234 results</title><style>body{font:16px system-ui;max-width:1100px;margin:32px auto;padding:16px;color:#172033;background:#f5f7fb}table{border-collapse:collapse;background:white}td,th{padding:8px;border:1px solid #ddd}svg{max-width:530px;background:white;margin:8px}h1{color:#123452}</style>'
-    document += f'<h1>R234 昇腾实验：{len(summaries)}/96</h1><p>状态：{html.escape(status)}。固定 token DAG 回放；原生 KV / 引擎阶段时间未观测。</p><p>RR 蓝 · SLL 橙 · Ayo 绿 · Ours 紫。图表只展示已完成条件；完成前不能据此筛选条件。</p>'
+    boundary = '原生证据见 native_events.jsonl；引擎 host-step、辅助 NPU forward 和 HTTP 时延分开记录' if native else '原生 KV / 引擎阶段时间未观测'
+    document += f'<h1>R234 昇腾实验：{len(summaries)}/96</h1><p>状态：{html.escape(status)}。固定 token DAG 回放；{boundary}。</p><p>RR 蓝 · SLL 橙 · Ayo 绿 · Ours 紫。图表只展示已完成条件；完成前不能据此筛选条件。</p>'
     document += chart(summaries, 'jct_mean_ms', '平均 JCT (ms)') + chart(summaries, 'workflows_s', '完成吞吐 (工作流/s)')
     document += '<h2>逐条件结果</h2>' + table + '<p>过程：REPRODUCE.md · 结论：TEST_REPORT.md · 配对比较：paired_comparisons.csv</p></html>'
     (out / 'RESULTS.html').write_text(document, encoding='utf-8')

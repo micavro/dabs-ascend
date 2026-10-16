@@ -49,6 +49,26 @@ def stable_arguments(args):
             if k not in ('out', 'resume', 'max_conditions', 'deployment_manifest', 'mode')}
 
 
+def native_paths(args):
+    if getattr(args, 'native_evidence', None):
+        return read_json(args.native_evidence)['paths']
+    path = ROOT / 'outputs/native-latest.json'
+    latest = read_json(path) if path.exists() else {}
+    return {k: latest[k] for k in ('native-probe-one', 'native-probe-four', 'native-calibrate',
+                                  'native-invalidate', 'native-restart-check') if k in latest}
+
+
+def preserve_native_freeze(out, gate, model, resume):
+    binding = {'artifacts': gate['artifacts'], 'paths': gate['paths'],
+               'identities': model['identities'], 'resources': model['resources']}
+    path = out / 'native_freeze.json'
+    if resume:
+        if read_json(path) != binding or read_json(out / 'ascend_profile.json') != model:
+            raise ValueError('Native evidence/model changed since pause; start a new experiment directory')
+    else:
+        write_json(path, binding)
+
+
 def audit_completed(out, plan):
     summaries = read_json(out / 'index.json')
     if len(summaries) >= len(plan):
@@ -60,6 +80,8 @@ def audit_completed(out, plan):
         hashes = read_json(directory / 'artifacts.json')
         expected_names = {'config.json', 'spec.json', 'initial_nodes.json', 'input_proof.json', 'nodes.json',
                           'requests.jsonl', 'decisions.jsonl', 'summary.json', 'quality.json', 'status.json'}
+        if summary.get('execution_scope') == 'native':
+            expected_names.add('native_events.jsonl')
         if set(hashes) != expected_names:
             raise ValueError('Incomplete raw artifacts for ' + summary['spec']['label'])
         for name, expected in hashes.items():
@@ -111,17 +133,53 @@ async def execute(args, out, plan, summaries, identity):
             await servers.start(client)
             backend = Backend(client, servers.endpoints)
             write_json(out / 'api_contract.json', await backend.inspect(fixed=True))
+            native = args.execution_scope == 'native'
+            if native:
+                from .native_client import NativeClient
+                from .native_gate import verify_live
+                from .native_algorithms import transformation_manifest
+                write_json(out / 'native_transformations.json', transformation_manifest())
+                backend.native = NativeClient(client, servers.endpoints, ROOT / 'outputs/native-control.json', out / 'native_preflight.jsonl')
+                caps = await backend.native.inspect()
+                gate = await verify_live(backend.native, native_paths(args))
+                if not gate['pass']:
+                    raise ValueError('native evidence gate failed: ' + str(gate['missing']))
+                model = read_json(Path(native_paths(args)['native-calibrate']) / 'native_profile.json')
+                preserve_native_freeze(out, gate, model, args.resume)
+                write_json(out / 'native_gate.json', gate)
+                await backend.native.drain(4)
+                write_json(out / 'native_capabilities.json', caps)
             append_json(out / 'process.jsonl', {'event': 'canaries_start', 'utc': utc(), 'resumed': bool(args.resume)})
             write_json(out / 'canary_summary.json', await backend.fixed_canaries(out))
+            if native:
+                await backend.native.drain(4)
+                while await backend.native.harvest(4, wait_complete=True):
+                    pass
             tok = Tokenizer(client, servers.endpoints[0])
-            if args.resume:
+            if native:
+                write_json(out / 'ascend_profile.json', model)
+                write_json(out / 'calibration_identity.json', {'ascend_profile.json': sha(out / 'ascend_profile.json')})
+            elif args.resume:
                 model = read_json(out / 'ascend_profile.json')
             else:
                 model = await calibrate(backend, tok, out, fixed=True)
                 write_json(out / 'calibration_identity.json', {name: sha(out / name)
                            for name in ('ascend_profile.json', 'calibration_rows.json')})
-            cfg = configuration(4)
-            cfg.update(model=MODEL_NAME, max_num_seqs=args.max_inflight, condition_wall_s=args.condition_timeout,
+            cfg = configuration(4, caps[0]['resources'], args.max_inflight) if native else configuration(4)
+            if native:
+                protocol = read_json(out / 'protocol.json')
+                protocol.update(limits=['Native capability/evidence gate passed; performance equivalence is not implied.',
+                    '200 ms finite priority window; original FIFO continuation and 5 s age guard.',
+                    'Ayo uses conservative reserved KV blocks divided by physical capacity.',
+                    'Service model target is actual unambiguous engine host-step elapsed time; device events are auxiliary.'],
+                    effective_resources=[c['resources'] for c in caps], client_max_inflight=args.max_inflight)
+                write_json(out / 'protocol.json', protocol)
+                repair = read_json(out / 'repair_protocol.json')
+                repair['native_mechanism_test_pass'] = True
+                write_json(out / 'repair_protocol.json', repair)
+            if not native:
+                cfg['max_num_seqs'] = args.max_inflight
+            cfg.update(model=MODEL_NAME, condition_wall_s=args.condition_timeout,
                        wf_router_seed=190500, input_profile='fixed_3584_balanced_DAG',
                        output_contract='fixed_by_graph_shape', guided_decoding=None,
                        parent_binding='dependency_order_only', mode='nonsemantic_fixed_token_replay')
@@ -161,6 +219,8 @@ async def execute(args, out, plan, summaries, identity):
                     raise ValueError('Fixed work or dependency check failed; no automatic retry')
                 names = ('config.json', 'spec.json', 'initial_nodes.json', 'input_proof.json', 'nodes.json',
                          'requests.jsonl', 'decisions.jsonl', 'summary.json', 'quality.json', 'status.json')
+                if native:
+                    names += ('native_events.jsonl',)
                 write_json(directory / 'artifacts.json', {name: sha(directory / name) for name in names})
                 summaries.append(summary)
                 write_json(out / 'index.json', summaries)
@@ -169,7 +229,7 @@ async def execute(args, out, plan, summaries, identity):
                     audit = {'last_condition': spec['label'], 'methods': [s['spec']['method'] for s in group],
                              'workload_pass': all(s['functional_pass'] for s in group),
                              'workload_identity_equal': len({s['external_work_fingerprint'] for s in group}) == 1,
-                             'engine_mechanisms_pass': False, 'execution_scope': args.execution_scope}
+                             'engine_mechanisms_pass': native and gate['pass'], 'execution_scope': args.execution_scope}
                     append_json(out / 'group_audits.jsonl', audit)
                     if set(audit['methods']) != set(r234.METHODS) or not audit['workload_pass'] or not audit['workload_identity_equal']:
                         raise ValueError('Four-method group audit failed')
@@ -197,11 +257,12 @@ def main(args):
         return 0
     if args.mode == 'benchmark' and args.execution_scope != 'http-limited':
         from .repair import mechanism_gate
-        print('R234_NATIVE_GATE=' + json.dumps(mechanism_gate(), ensure_ascii=False), file=sys.stderr)
-        print('Native mechanism reproduction is not implemented for the unidentified site version. '
-              'Run inspect first; diagnose is explicitly HTTP-limited.', file=sys.stderr)
-        return 2
-    out = args.resume or args.out or ROOT / 'outputs' / ('r234_ascend_' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ_') + uuid.uuid4().hex[:8])
+        gate = mechanism_gate(native_paths(args))
+        if args.service_mode != 'existing' or not gate['pass']:
+            print('R234_NATIVE_GATE=' + json.dumps(gate, ensure_ascii=False), file=sys.stderr)
+            return 2
+    prefix = 'r234_native_' if args.execution_scope == 'native' else 'r234_ascend_'
+    out = args.resume or args.out or ROOT / 'outputs' / (prefix + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ_') + uuid.uuid4().hex[:8])
     out = out.expanduser().resolve()
     identity = source_identity()
     try:
@@ -224,10 +285,10 @@ def main(args):
                        'input_tokens_per_request': 3584, 'output_tokens_per_condition': 13184,
                        'strict_native_reproduction': False, 'automatic_retry': False})
             write_json(out / 'repair_protocol.json', {
-                'revision': '20261016-http-diagnostics-v2', 'execution_scope': args.execution_scope,
+                'revision': '20261016-native-v023-v1', 'execution_scope': args.execution_scope,
                 'plan_revision': 'R4-L8_then_R2-L16_rotating_methods_mirrored_round2',
                 'http_keepalive': args.http_keepalive, 'native_mechanism_test_pass': False,
-                'calibration_scope': 'HTTP TTFT/TPOT proxy; not native batch-step validation',
+                'calibration_scope': 'frozen engine host-step elapsed; independent holdout' if args.execution_scope == 'native' else 'HTTP TTFT/TPOT proxy; not native batch-step validation',
                 'group_audit_conditions': 4, 'first_checkpoint_conditions': 8,
                 'previous_results_combinable': False})
             write_json(out / 'index.json', [])
@@ -306,5 +367,5 @@ def run_recorded(args, out, plan, summaries, identity):
     if status == 'paused':
         relative = out.relative_to(ROOT).as_posix() if out.is_relative_to(ROOT) else str(out)
         print('CLEAN_PAUSE: remaining=' + str(96 - len(summaries)), flush=True)
-        print('RESUME: bash run_dabs_r234.sh --execution-scope http-limited --resume ' + relative, flush=True)
+        print('RESUME: bash run_dabs_r234.sh --execution-scope ' + args.execution_scope + ' --resume ' + relative, flush=True)
     return 0 if status in ('paused', 'environment_checked') or report['functional_test_pass'] else 1

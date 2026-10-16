@@ -26,6 +26,8 @@ jobs:
           bash -n run_dabs_r234.sh
       - name: Run CPU tests and frozen-source integrity checks
         run: bash run_ascend.sh test
+      - name: Verify pinned native patch sources and anchors (no NPU)
+        run: python tools/check_native_upstream.py
       - name: Validate existing-service plan without Docker or model files
         run: python tools/run_dabs_existing.py plan --devices 4,5 --suite smoke
       - name: Validate the new 96-condition plan

@@ -1,154 +1,141 @@
-# DABS 昇腾：先采集现场，再修复机制
+# DABS：Ascend V1 原生机制适配
 
-**2026-10-16 现场反馈更新：四个服务采集时已退出，重启后只看到 HTTP 000，尚无就绪结果。** 已补上状态、启动日志、就绪等待和配置差异记录；仍需采到 vLLM / vLLM-Ascend 版本后接原生接口。
+现场已有 **36/36 组、72/72 请求的 HTTP 探针成功记录**，不需要重跑 `prepare`。本版增加服务端原生适配、独立标定和验收；**CPU 测试不等于昇腾现场通过**。正式实验必须通过原始证据门禁，不能手填 PASS。
 
-在 **Linux 宿主机**、新版项目目录运行：
+现场基线：vLLM `0.23.0+empty`、vLLM-Ascend `0.23.0rc1`，V1、async scheduling、prefix caching、chunked prefill、eager；Qwen2.5-1.5B-Instruct，TP=1。四服务为 `wushibo-qwen-small-npu0`～`3`，端口 `8001`～`8004`。有效参数为 **每步 1024 token、KV 块 128 token、服务最大序列 10、上下文 4096、客户端每副本在途 2**。物理 KV 容量直接读取引擎。
 
-```bash
-bash run_dabs_r234.sh prepare
-```
+用户补充确认：8 张 910B3，每卡 HBM 65536 MB；0–3 卡各有一个 vLLM 引擎。旧采集目录的 52 个项目文件与 `317b8a1` 匹配；这是项目代码身份，不是 vLLM 源码身份。CANN 精确版本仍未知，npu-smi 的 `25.5.1` 未当作 CANN 版本。沿用现有显存和服务配置。
 
-这一行先检查选中的四个容器，等待运行中的服务加载，再采集版本/接口，成功后运行 **72 请求小探针**。不会运行完整 96 条件，也不会启动、重启或修改模型服务。结果写成普通文本，**不打包、不上传**。
+## 下载到新目录
 
-只采集现场、不发送推理请求时：
+开发分支：`codex/native-v023`。保留 `/data/wushibo/dabs-ascend-main-2026101602` 和所有旧结果。在 Linux 宿主机执行：
 
 ```bash
-bash run_dabs_r234.sh inspect
+git clone -b codex/native-v023 https://github.com/micavro/dabs-ascend.git dabs-native-v023
+cd dabs-native-v023
 ```
 
-`prepare` 每轮打印四个容器的状态，健康检查默认等待 300 秒，版本/源码采集耗时另计。已退出、暂停、重启中或映射不符时直接保存诊断并退出；不会错误地对停止的容器反复执行 Python。运行中但未就绪时，等待后仍失败就保留最近启动日志，停止在推理之前。等待更久可用 `READY_TIMEOUT=600 bash run_dabs_r234.sh prepare`。
+也可从 GitHub 此分支下载源码 ZIP，解压到新目录。**源码下载包与实验结果不同；实验结果不打包、不上传。**
 
-采集成功后执行 **36 组、72 个真实请求**的小探针，检查同前缀重复请求、跨副本、新命名空间，以及串行/并发 4 请求的 16/128 token 输出和混合长度；打印 `/metrics` 的运行/等待队列、缓存相关计数及请求时延。**失败时先复制 `SUMMARY.txt`；成功时再复制 `PROBE_SUMMARY.txt`。** 终端会打印两份文件的完整路径和内容。
-
-现场有旧代码时：`DABS_PREVIOUS_PROJECT=/实际旧项目路径 bash run_dabs_r234.sh prepare`。具体运行时间取决于服务速度，不承诺固定分钟数；终端逐组显示进度。原生缓存/队列机制尚未接通，探针只为下一步诊断提供证据。
-
-## 1. 下载与保留现场
-
-从 [GitHub 项目](https://github.com/micavro/dabs-ascend) 下载新版。之前手工改过代码的，请解压到新目录，保留旧项目和旧 `outputs/`，不要覆盖。
-
-若旧项目是 `/data/wushibo/dabs-ascend-main-20261015`，在新版目录用这一行同时记录旧代码：
+## 新目录第一条命令
 
 ```bash
-DABS_PREVIOUS_PROJECT=/data/wushibo/dabs-ascend-main-20261015 bash run_dabs_r234.sh inspect
+bash run_dabs_r234.sh native-install-check --replica 0
 ```
 
-路径不同就替换。`--project` 只决定采集哪份项目源码；执行的采集工具仍是新版工具。默认记录当前项目。先采集旧代码，再更新旧工作目录，可以保留现场 `keepalive=0` 等手工修正证据。
+只核对适配涉及的已安装源码哈希与版本，不加载模型、不推理、不重启。成功判据：JSON 中 `compatible: true`、`errors: []`。文本结果在终端打印的 `outputs/native-install-check-*/replica-0.txt`。
 
-无本地改动的 Git 目录可用 `git pull --ff-only`；ZIP 解压目录不能 `git pull`。首次下载：
+适配锁定已核对的官方 tag 源码，**不能凭版本号相同认定现场源码相同**。哈希不匹配会拒绝安装：只复制 `errors` 中的文件路径、expected/actual，再按开发端指定复制对应源码片段。无需重新环境采集或重跑 HTTP 探针，不得改哈希白名单强行安装。
+
+## 单副本安装和回滚
+
+要求 Linux、Bash、宿主机 Python ≥3.9、`sudo docker`；已有镜像内 Python 3.12、httpx、NumPy。默认服务 Python 为 `/usr/local/python3.12.13/bin/python`，不同则设置 `CONTROLLER_PYTHON`。不执行 pip 升级，不另起模型服务。
+
+检查成功后，只安装 0 号容器：
 
 ```bash
-git clone https://github.com/micavro/dabs-ascend.git
-cd dabs-ascend
-bash run_dabs_r234.sh inspect
+bash run_dabs_r234.sh native-install --replica 0
 ```
 
-## 2. 采集结果在哪里
-
-```text
-outputs/repair_probe_时间_编号/
-  SUMMARY.txt             先复制这一份文字
-  inspection.json         完整结构化信息，不含原始 Docker Env
-  readiness.jsonl         每轮容器状态和健康检查结果
-  service_logs/           未就绪服务最近启动的筛选日志，普通 .txt
-  npu-smi.txt              NPU 资源情况；命令不可用时在 JSON 记录
-  installed_sources/      相关已安装引擎源码，保存为 .txt
-  project_source/         当前或指定旧项目的源码快照
-  README.txt              文件用途
-```
-
-`SUMMARY.txt` 包含四个服务的运行状态、退出码、OOM 标记、启动/退出时间、重启次数、镜像 ID、vLLM/vLLM-Ascend/torch 等版本、白名单启动参数、端口、模型元数据哈希、采集错误和现场 keepalive 设置。失败摘要附每服务最多 12 行筛选日志；更多内容在 `service_logs/`，会省略含凭据或请求内容的行，并非完整日志。日志以 Docker 最近启动时间为起点，取不到时间时限最近 30 分钟。
-
-另有 `resource_comparison`：现场已知服务 `max_num_batched_tokens=1024`、`max_num_seqs=10`、`max_model_len=4096`；控制器的批次假设为 4096，客户端并发默认 2。批次预算差异会明确提示；客户端并发与服务最大序列数分别记录。CLI 参数不等于引擎实时状态，工具不会自动修改这些设置。详细源码需要时再复制指定 `.txt` 内容。所有结果留在现场，不要求传文件。
-
-摘要显示 `采集完整: False` 时也保留并复制摘要，里面有失败步骤；这不表示要重装环境。
-
-若明确显示原有四个容器都是 `exited`，需要恢复这些服务时可手动执行：
+保存打印的 `backup` 完整路径。安装备份原件并校验哈希，只加四处 hook，**不会重启**。由操作者在允许的时段手动加载补丁：
 
 ```bash
-sudo docker start wushibo-qwen-small-npu{0,1,2,3}
-bash run_dabs_r234.sh prepare
+sudo docker restart wushibo-qwen-small-npu0
 ```
 
-上述名称是默认配置；使用其他 `DEVICE_IDS` / `CONTAINER_PREFIX` 时请按实际名称启动。`prepare` 自带就绪等待，刚启动后的 HTTP 000 不再需要手工循环检查。若再次退出，先复制摘要；退出码 137 不能单独判定为显存不足，`OOM=false` 也不能排除系统层问题。
-
-## 3. 需要什么环境
-
-| 项目 | 默认配置 / 要求 |
-|---|---|
-| 执行位置 | Linux 宿主机，包含 `run_dabs_r234.sh` 的新版项目目录 |
-| 宿主机工具 | Bash、`python3` ≥3.8、可执行 `sudo docker` |
-| 选用服务 | `wushibo-qwen-small-npu0`～`3`，已经运行 |
-| 端口 | `8001`～`8004` |
-| 服务内 Python | `/usr/local/python3.12.13/bin/python`；用于读取包元数据，不加载模型 |
-| 模型目录 | `/data/model/Qwen2.5-1.5B-Instruct` |
-| NPU | 现场报告为 910B3；以采集结果为准，四服务用四张卡 |
-
-服务内解释器不同，例如使用 `python3`：
+待原服务加载完成后：
 
 ```bash
-CONTROLLER_PYTHON=python3 bash run_dabs_r234.sh inspect
+bash run_dabs_r234.sh native-check
+bash run_dabs_r234.sh native-probe-one
 ```
 
-其他配置用 `DEVICE_IDS`、`CONTAINER_PREFIX`、`BASE_PORT`、`MODEL_PATH` 修改，例如 `DEVICE_IDS=4,5,6,7 bash run_dabs_r234.sh inspect`。只读取选中的四个容器。实验前需与同机用户协调资源，采集工具不会结束其他进程。
+`native-check` 不发推理请求，须看到真实 NPU worker、EngineCore 身份和 1024/128/10/4096 配置。`native-probe-one` 才发送测试负载，摘要所有 checks 须为 true。waiting 测试会并发提交 **12 个请求：前 10 个为 3584+16，后 2 个为 3584+512**，超过服务序列上限 10，以真实 waiting 和队列回执验收；物理 KV 不足会拒绝，不改配置凑结果。
 
-## 4. 采集后的诊断与报告命令
+回滚（替换为安装打印的备份路径）：
 
-**下面的 `diagnose` 会执行真实推理；它是 HTTP 受限诊断，不是原生机制已修复。** 只有需要重测客户端流程时再运行。该模式复用服务镜像启动临时 CPU 控制容器，依赖已有 `httpx`、`numpy` 和完整模型目录。
+```bash
+bash run_dabs_r234.sh native-rollback --replica 0 --backup /实际/dabs_native_backup_时间
+sudo docker restart wushibo-qwen-small-npu0
+```
 
-| 用途 | 一行命令 |
-|---|---|
-| 只采集现场，立即检查 | `bash run_dabs_r234.sh inspect` |
-| 就绪等待 + 环境采集 + 72 请求小探针，当前推荐 | `bash run_dabs_r234.sh prepare` |
-| 只等待并采集，不发送推理请求 | `bash run_dabs_r234.sh inspect --wait-ready 300` |
-| 已采集过，只运行小探针 | `bash run_dabs_r234.sh probe` |
-| 从旧实验提取有限决策片段，不推理 | `bash run_dabs_r234.sh explain /旧项目/outputs/原实验目录` |
-| 旧结果重生成报告，不执行推理 | `bash run_dabs_r234.sh report /旧项目/outputs/原实验目录` |
-| 检查服务、模型和控制端环境 | `bash run_dabs_r234.sh check` |
-| 查看预先固定的 96 条件计划 | `bash run_dabs_r234.sh plan` |
-| HTTP 诊断，前 8 条件后正常暂停 | `bash run_dabs_r234.sh diagnose` |
-| HTTP 诊断，只跑前 4 条件 | `bash run_dabs_r234.sh diagnose --max-conditions 4` |
-| 继续同一份诊断，再跑 4 条件 | `bash run_dabs_r234.sh diagnose --resume outputs/上次目录 --max-conditions 4` |
+回滚先校验补丁和备份，再恢复服务源码；适配包保留在备份目录。额外修改过的补丁拒绝覆盖。`outputs/native-control.json` 是本机认证密钥，不提交、不复制到聊天。
 
-`report` 和 `inspect` 直接使用宿主机 Python，不创建控制容器。`plan` 仍使用现场已有镜像，无需加载模型。
+## 单独测试重启失效，再部署其余副本
 
-`explain` 也只用宿主机 Python，默认读取 R4/λ8、R2/λ16、R3/λ8 第一轮 Ours 的前 500 条决策，各条件单独标明覆盖范围，输出 `OLD_RUN_SUMMARY.txt`、`DECISIONS.txt`、`old_run_analysis.json`。资料只有 CSV 时也可计算计数与配对差值，并明确标记原始决策缺失。它不会运行资料包里那个生成 tar.gz 的收集脚本。
+普通检查不触发重启。0 号补丁加载并检查成功后：
 
-小探针结果在 `outputs/r234_probe_时间_编号/`：`PROBE_SUMMARY.txt` 是可复制摘要，`service_metrics.jsonl` 是前/中/后接口观测，`cases.jsonl` 是逐组结果，`requests.jsonl` 是请求和流数据，`REPRODUCE.md`、`probe_protocol.json`、`console.log` 记录运行方式和代码身份。`/metrics` 缺失时记录 unavailable，不伪造零。全局缓存命中计数不是逐前缀驻留证据；HTTP 重叠也不是引擎 batch 证明。
+```bash
+bash run_dabs_r234.sh native-restart-arm
+sudo docker restart wushibo-qwen-small-npu0
+```
 
-直接运行 `bash run_dabs_r234.sh` 或 `benchmark` 会在推理前提示原生机制未就绪并退出，避免把旧 HTTP 链路重新跑完误作机制修复成功。若明确只需完整 HTTP 对照，入口是 `bash run_dabs_r234.sh benchmark --execution-scope http-limited`；其结论仍为 HTTP 受限实验。
+待加载完成：
 
-## 5. 实验内容、记录和续跑
+```bash
+bash run_dabs_r234.sh native-restart-check
+bash run_dabs_r234.sh native-probe-one
+```
 
-条件内容保持原包：**副本数 2/3/4 × 到达率 4/8/12/16 × RR/SLL/Ayo/Ours × 两轮 = 96 条件**。每条件 64 工作流、216 请求、每请求 3584 输入 token、合计 13184 输出 token。
+新引擎必须拒绝旧身份动作。重启前的探针和标定不能用于新引擎验收。
 
-按修复方案预先调整执行顺序：前 4 个是 R4/λ8，随后 4 个是 R2/λ16；方法位置按组轮换，第二轮完整镜像。前 8 个只是检查点，48 个是第一轮。工作量、DAG、种子未改；不根据方法胜负选择继续与否。
+0 号验证后，对 1、2、3 号分别执行 `native-install-check --replica N`、`native-install --replica N`，每次只手动重启对应容器。不要批量盲装。
 
-诊断结果保存在 `outputs/r234_ascend_时间_编号/`：
+## 原生标定、验收与正式运行
 
-| 文件 | 内容 |
-|---|---|
-| `TEST_REPORT.md`、`acceptance.json` | 完成情况、配对比较、机制缺失项 |
-| `RESULTS.html` | 离线指标图表 |
-| `REPRODUCE.md`、`process.jsonl`、`console.log` | 命令、路径、实际执行文件和过程 |
-| `protocol.json`、`repair_protocol.json` | 源码哈希、完整计划、参数、实验范围 |
-| `metrics.csv`、`diagnostic_reasons.csv` | JCT/TTFT/P95、评分开始/完成计数及失败原因 |
-| `group_audits.jsonl` | 每四种方法的工作量检查；不冒充原生机制放行 |
-| `conditions/条件名/` | 原始请求、决策、节点、配置、结果和哈希 |
+四个副本的补丁都已加载后：
 
-报告重生成写入**新的** `outputs/r234_report_时间_编号/`，校验原始结果后读取日志，不改原实验目录。旧版已丢弃的超时评分结果无法恢复，会明确标注证据不全。
+```bash
+bash run_dabs_r234.sh native-probe-four
+bash run_dabs_r234.sh native-calibrate
+```
 
-本版 R234 默认 `--http-keepalive 0`，保留现场已报告的连接复用绕行设置；不把它当作性能优化结论。每副本客户端并发默认 2，可通过 `MAX_INFLIGHT` 统一配置；它不同于服务端 `max_num_seqs`。
+标定使用独立 train/holdout 流量，涵盖冷/热、输入/输出长度、并发与实际 prefill/decode/mixed 批次。按师兄确认，目标是 **真实 EngineCore step 入口到返回的主机 elapsed time**。NPU forward Event 仅作辅助观测，不能代替拟合目标。每次调用分别记录提交和完成的 batch ID；V1 流水线可能提交 B、完成 A，这种交叠调用不冒充旧版“一次 step 对应一个批次”，保留原始记录并排除同口径拟合。
 
-续跑只接受 `--max-conditions` 正常暂停的同版本实验。代码、参数、部署和标定改变后必须新开记录；旧版 96 条件保留为“修复前 HTTP 适配实验”，不能和本版或将来的原生机制结果混合。失败目录保留，不自动跳过失败或重试。
+若出现 `require >=20 ... same host step call`，表示现场异步边界没有提供足够的同口径样本，**标定不冻结、正式实验停止**。把该次 `SUMMARY.txt`、`native_profile.json` 中 failures/validation 和少量 host_calls 原文复制回来；无需再做 prepare。代码不会关闭异步调度或改用 forward/HTTP 时间绕过此项。
 
-长时间诊断可使用机器已有的 `tmux`；实验记录始终保留在文件中。只复制报告文字，按需再复制指定日志片段，**不要打包或上传**。
+下面是单独的破坏性缓存探针：排空后**清空 0 号服务 prefix cache**，不重启、不改模型：
 
-## 6. 已修与待修
+```bash
+bash run_dabs_r234.sh native-invalidate
+```
 
-已补充容器状态与启动诊断、就绪等待、批次预算差异记录，以及现场采集、启动参数识别、资源单位区分、整批提交前校验、超时评分诊断、动作阶段记录、请求 ID、TTFT P95 和旧报告重生成。原包 373 个文件保持字节不变。本次依据与下一步见 [现场反馈处理记录](docs/field-feedback-20261016.md)。
+汇总验收重新计算各项检查，并向当前引擎验证原始记录签名、服务身份、代码、配置和冻结标定：
 
-**尚未完成：原生前缀 KV 观测、真实 running/waiting 压力、引擎队列应用确认、原生 batch-step 标定及昇腾现场验证。** 得到 `SUMMARY.txt` 后继续按版本处理，详见 [修复记录](docs/repair-20261016.md)。
+```bash
+bash run_dabs_r234.sh native-accept
+```
 
-开发机自检：`python tools/run_ascend.py test`。CPU 测试只验证逻辑，不能证明 NPU 实测或性能提升。
+成功判据为 `pass: true`、`live_verified: true`、`missing: []`。接口存在、HTTP 200、TTFT 降低和 CPU 测试通过均不能放行。
 
-[R234 协议细节](docs/r234-ascend.md) · [旧版已有服务入口](README_existing.md) · [自启动服务部署](docs/ascend-linux.md) · [原 NVIDIA 工程](README_先读我.md)
+前八个正式条件，一行启动：
+
+```bash
+bash run_dabs_r234.sh benchmark --max-conditions 8
+```
+
+直接执行全部 96 条件：`bash run_dabs_r234.sh benchmark`。前八条正常暂停后续跑：
+
+```bash
+bash run_dabs_r234.sh benchmark --resume outputs/r234_native_实际目录
+```
+
+每条件仍为 **64 工作流、216 请求、每请求 3584 输入 token、总输出 13184 token**。RR/SLL/Ayo/Ours、DAG、种子、96 条件和既有顺序不变；四方法共用原生观测、资源约束和执行器。保留负收益、零偏离和失败，不要求 Ours 更快。原生结果使用新的 `outputs/r234_native_*`，不能续跑旧 HTTP 结果。代码、配置、服务身份或标定改变后新开实验。
+
+与 3080 对齐的口径：优先级仅在当前固定 200 ms 周期的剩余窗口内有效；到期后下一次调度恢复 Prefill 原始准入 FIFO，保留 5 秒年龄保护及 Decode/在途保护。Ayo 使用完整 token 预算的保守 KV 预留量，不改成物理占用率。细节见 [原生实现与验收](docs/native-v023.md)。
+
+## 保存和复制
+
+检查、探针、标定和验收各写新的 `outputs/native-命令-时间-编号/`，先复制 `SUMMARY.txt`。完整文件包括：
+
+- `native_events.jsonl`：快照、具体 token 前缀查询、动作回执、batch ID 和设备计时。
+- `requests.jsonl`：节点、客户端/服务端/引擎 ID 关联及实际 token 使用。
+- `native_profile.json`、`calibration_samples.json`：冻结模型、样本分组、覆盖和验证误差。
+- 正式条件的 `decisions.jsonl`：评分失败、回退原因，客户端提交与引擎回执分别记录。
+- `TEST_REPORT.md`、CSV、`REPRODUCE.md`：结果、命令、实际运行文件和保存路径。
+
+所有结果仅保存普通文本/JSON/CSV/HTML。按需复制摘要，**不打包、不上传**。旧资料完整保留。
+
+开发机 CPU 自检：`python tools/run_ascend.py test`。Linux 原包回归：`bash source/spra_workflow_fullgrid_r234_sll_v1/run_checks.sh`。实现与差异见 [原生适配说明](docs/native-v023.md)。
+
+旧 HTTP 诊断：`bash run_dabs_r234.sh diagnose`；旧报告重生成：`bash run_dabs_r234.sh report /旧实验目录`。`prepare/inspect/probe` 保留兼容，但不是本次适配的下一步。默认 keepalive=0 沿用现场设置，不宣称已证明性能收益。

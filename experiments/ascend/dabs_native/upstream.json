@@ -1,0 +1,50 @@
+{
+  "versions": {
+    "vllm": [
+      "0.23.0",
+      "0.23.0+empty"
+    ],
+    "vllm-ascend": [
+      "0.23.0rc1"
+    ]
+  },
+  "upstream": {
+    "vllm": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+    "vllm-ascend": "f4a08bddd0cc65a0bd8c3d377b158ae5ca7527db"
+  },
+  "provenance": "Reviewed official tag source; site equivalence must be checked, not asserted.",
+  "files": {
+    "vllm/config/scheduler.py": "36bdfcf50a8f30d9f1c0dbdd3630a0075234f5c9e1a77943a934c45329f25c86",
+    "vllm/v1/core/sched/scheduler.py": "9ae1491f57a6294e32416b93ef2ea68107fa0d65c3a4d7f745f1261012f735e9",
+    "vllm/v1/core/sched/async_scheduler.py": "0022e12f356fd46406f6e6d3c82755daf7287ca2d86e2000c27b05bb8d9621cc",
+    "vllm/v1/core/sched/request_queue.py": "4b8d938e5fb8152fe61030b8aa991f983fcac9a405c37ed8908045e05e82ae5e",
+    "vllm/v1/core/sched/output.py": "44230b995721a011dbe2c1d012371b1d9ec844b1b09abfc24dd0c6d8a9e307fc",
+    "vllm/v1/core/kv_cache_manager.py": "a69aa08062714b40b149648bbec031a42d22e422fbf9543cd10fbd12d2496edb",
+    "vllm/v1/core/kv_cache_utils.py": "b89f9afa7f95fcc30412ae2031d5370a23e95f35d068fa14e5824dce1c900ee5",
+    "vllm/v1/core/kv_cache_coordinator.py": "aeca063d319413d2bd0f094158a16be08c2a4c9b1c96a21617f97936c23bd9ce",
+    "vllm/v1/core/block_pool.py": "84755b84c36ed6460ceefe2690c9484a9c31488c5da6daa6c918f497d8837dee",
+    "vllm/v1/core/single_type_kv_cache_manager.py": "dc425e1e87b6157f3e5c46be2bfee54076ccb020b86c5a8aaa3d9901c75e46ef",
+    "vllm/v1/request.py": "4b97f41fc0ea474149f78d52a44ce89c16a9921c0641c48ad2573bdb8b7f71a4",
+    "vllm/v1/engine/core.py": "cf9cbde601afb80925254aae814033abeab3817f9c4fe7bf01ca92edc9d10c2d",
+    "vllm/v1/engine/core_client.py": "e41fe15caa59dfd289ae212b3eaefc20c34be87a72e779df03d970f9714b793d",
+    "vllm/v1/engine/async_llm.py": "2128cf018fe136b698c5e89dc7325bc6dced9d516cc9d772695f044716970b64",
+    "vllm/v1/engine/input_processor.py": "c5673988c0f7cfec268220e3f044e718702c015a4f236c020937cfd40a793f15",
+    "vllm/v1/serial_utils.py": "a87f4cc50114eef931834270242b94c2ed2fc7fb78e9bdb7636428d0a99bf998",
+    "vllm/sampling_params.py": "2e2d240bb8f3192e9a1551f3b2bef6e98ef0de5782422f182449d847767eb747",
+    "vllm/entrypoints/openai/api_server.py": "6d8df133280618a1afffa9d03e4655af011f2f94ced0f90c15f7fc8b0afc538f",
+    "vllm_ascend/platform.py": "210c7889341c20676d849faf939d1ba48d0dbd4444f4d80006fd39d299326136",
+    "vllm_ascend/worker/worker.py": "d1e016f1c214d335a22211273180270e188f0e31f1e49c2a081d1ec324fa9c6f",
+    "vllm_ascend/worker/model_runner_v1.py": "e4ad64b16d3707189ee54bb73be06b87a04423c1d7189e2dd8122530c605bb50",
+    "vllm_ascend/core/single_type_kv_cache_manager.py": "5292cf9c33c90f83abe7097de1a8b07e1381f3601f38c57bd65119388263e408",
+    "vllm_ascend/patch/platform/patch_balance_schedule.py": "d6a77d35afc1a981edd4423409cb3bd0b8c6e3527392f0d43d9452ab27c9389c",
+    "vllm_ascend/patch/platform/patch_kv_cache_coordinator.py": "35a62e6bb3960f88192ff609751d631eeafbbc29f087560afd60906b3a504999",
+    "vllm_ascend/patch/platform/patch_kv_cache_utils.py": "6ed0f8d41aef9936e546e59c16a83f6f9ba3dc146083c61bcd507c1f3b6fd827",
+    "vllm_ascend/patch/platform/patch_multiproc_executor.py": "e6bac27986d863b10fa0d2e4a37965e57970991935c85881644c00bd86b6ea7d",
+    "vllm_ascend/patch/platform/patch_use_v2_model_runner.py": "e0021ba98a46ceb024d4859be4969cdac1c53967915a38dbf843aa8d1b65468a",
+    "vllm_ascend/patch/platform/__init__.py": "86df892119c232a17460fb8e041b4a5232a8c80978dedd0d155c5fac530e6a10",
+    "vllm_ascend/patch/worker/__init__.py": "11002e315e93b2534d1fa4e859cf5bdcfbb22caaae370a26f29fbf586144cfb6",
+    "vllm_ascend/core/kv_cache_interface.py": "a83a04d288f61e60218242fd31bb0ebdd36e44bdbb83b4649cab0c871cdda26b",
+    "vllm/v1/executor/abstract.py": "419002195d13cf050c3ea9705d18a12456c890c27c470a1efadce7de27ded0b1",
+    "vllm/v1/executor/multiproc_executor.py": "a2837f18010a1f3539ea062b0824ae6dacaced0ec5813910a4b6edef7875af18"
+  }
+}

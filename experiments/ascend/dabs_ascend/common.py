@@ -58,6 +58,7 @@ def source_identity():
                   ROOT / "profiles/reference/configuration.json", ROOT / 'run_dabs_r234.sh',
                   ROOT / 'provenance/r234_import.json'])
     paths.extend(ROOT / 'tools' / name for name in ('inspect_dabs_repair.py', 'probe_dabs_container.py', 'report_dabs_r234.py', 'explain_dabs_r234.py'))
+    paths.extend([ROOT / 'tools/native_dabs.py', ROOT / 'experiments/ascend/dabs_native/upstream.json'])
     return {p.relative_to(ROOT).as_posix(): sha(p) for p in sorted(paths)}
 
 
@@ -75,11 +76,20 @@ def verify_original_assets():
             "manifest_sha256": assets["source_dataset_manifest_sha256"]}
 
 
-def configuration(replicas):
+def configuration(replicas, native_resources=None, client_max_inflight=2):
     cfg = read_json(ROOT / "profiles/reference/configuration.json")
     cfg.update(replicas=replicas, base_cap=4096, wf_router_seed=20261014,
                wf_public_method="DAG", apply_delay_ms=0.,
                phase_model_required=False, cache_scenario="no_unverified_reuse")
+    if native_resources is not None:
+        from dabs_native.contracts import validate_resources
+        resources = validate_resources(native_resources)
+        cfg.update(execution_scope='native', block_size=resources['block_size'],
+                   base_cap=resources['step_tokens'], hard_total=resources['step_tokens'],
+                   caps=[resources['step_tokens']], max_model_len=resources['context_tokens'],
+                   max_num_seqs=resources['server_max_seqs'], client_max_inflight=client_max_inflight,
+                   long_prefill_token_threshold=resources.get('long_prefill_token_threshold', 0),
+                   effective_native_resources=resources, phase_model_required=True)
     return cfg
 
 

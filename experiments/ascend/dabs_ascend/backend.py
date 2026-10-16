@@ -50,6 +50,7 @@ class Backend:
     def __init__(self, client, endpoints):
         self.client, self.endpoints = client, endpoints
         self.fields = []
+        self.native = None
 
     async def inspect(self, *, fixed=False):
         records = []
@@ -81,8 +82,9 @@ class Backend:
 
     async def generate(self, replica, node, seed, log, schema=SCHEMA):
         tokens = node["tokens"]
-        if not tokens or len(tokens) + node["max_output_tokens"] > 4096:
-            raise ValueError("Prompt plus output budget exceeds 4096")
+        context = self.native.capabilities[replica]['resources']['context_tokens'] if self.native else 4096
+        if not tokens or len(tokens) + node["max_output_tokens"] > context:
+            raise ValueError("Prompt plus output budget exceeds effective context limit")
         payload = {"model": MODEL_NAME, "prompt": tokens, "max_tokens": node["max_output_tokens"],
                    "temperature": 0., "top_p": 1., "seed": seed, "n": 1,
                    "stream": True, "stream_options": {"include_usage": True}, "add_special_tokens": False}
@@ -94,16 +96,24 @@ class Backend:
             field = self.fields[replica]
             payload[field] = {"json": copy.deepcopy(schema)} if field == "structured_outputs" else copy.deepcopy(schema)
         started = time.monotonic()
-        request_id = 'dabs-' + uuid.uuid4().hex
+        request_id = node['client_request_id'] if self.native else 'dabs-' + uuid.uuid4().hex
         node['client_request_id'] = request_id
+        endpoint = self.endpoints[replica] + '/v1/completions'
+        headers = {'X-Request-Id': request_id}
+        if self.native:
+            if schema is not None or not node.get('native_action_id'):
+                raise ValueError('native fixed replay requires an engine admission permit')
+            endpoint = self.endpoints[replica] + '/dabs/v1/generate'
+            headers.update(self.native.headers(replica))
+            payload = {'client_request_id': request_id, 'node_id': node['id'], 'seed': seed,
+                       'tokens': tokens, 'max_tokens': node['max_output_tokens'], 'cache_salt': node['cache_salt']}
         server_id = None
         fragments, first, last, usage, finish, done = [], None, None, None, None, False
         node["request_started_at"] = started
         append_json(log, {"event": "request", "node": node["id"], "replica": replica,
                           "at": started, "client_request_id": request_id, "payload": payload})
         try:
-            async with self.client.stream("POST", self.endpoints[replica] + "/v1/completions", json=payload,
-                                          headers={'X-Request-Id': request_id}) as response:
+            async with self.client.stream("POST", endpoint, json=payload, headers=headers) as response:
                 header = time.monotonic()
                 if response.status_code != 200:
                     body = (await response.aread()).decode("utf-8", "replace")
@@ -159,6 +169,12 @@ class Backend:
                                              if usage["completion_tokens"] > 1 else None),
                       "timing_boundary": "client HTTP text chunks; not exact native token/kernel timing"}
             node["stream"] = result
+            if self.native:
+                mapping = await self.native.call(replica, 'mapping', client_request_ids=[request_id])
+                if len(mapping['mappings']) != 1 or mapping['mappings'][0].get('rejected'):
+                    raise ValueError('native engine request binding failed')
+                result['native_mapping'] = mapping
+                result['engine_action_acknowledged'] = mapping['mappings'][0]['action_id']
             node["answer_contract"] = parse(result["text"], finish) if schema is not None else None
             append_json(log, {"event": "response", "node": node["id"], "result": result})
             return result
@@ -182,6 +198,8 @@ class Backend:
             for count in (16, 32, 48, 64, 128):
                 node = {'id': f'fixed-canary-r{replica}-o{count}', 'tokens': tokens,
                         'max_output_tokens': count, 'fixed_workload_replay': True}
+                if self.native:
+                    await self.native.reserve(replica, node)
                 result = await self.generate(replica, node, 190500, out / 'canaries.jsonl', schema=None)
                 rows.append({'replica': replica, 'passed': True, 'usage': result['usage'],
                              'tokenization_equal': True, 'fixed_output_budget': count})

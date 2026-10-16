@@ -94,15 +94,30 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
     pending_origin = None
     decisions, history, errors = [], {}, []
     fixed = spec.get('measurement_mode') == 'fixed_token_replay'
+    native = cfg.get('execution_scope') == 'native'
+    if native:
+        import uuid
+        backend.native.salt = 'dabs-condition-' + uuid.uuid4().hex
+        backend.native.log = out / 'native_events.jsonl'
+        await backend.native.drain(cfg['replicas'])
     if fixed:
         from . import r234
     try:
         # Historical output-length priors and GPU timing coefficients are not loaded.
-        nodes, materialize, proof = await instantiate(packets, tokenizer, cfg, spec["seed"], output_prior=None)
+        # Preserve the frozen input protocol's 16-token namespace sanity check.
+        # It is not an allocator block size: physical projections/queries/scoring
+        # below use cfg.block_size=128. Changing input construction would create
+        # a different workload (and its within-condition check assumes 16).
+        input_cfg = {**cfg, 'block_size': 16} if native else cfg
+        nodes, materialize, proof = await instantiate(packets, tokenizer, input_cfg, spec["seed"], output_prior=None)
         if fixed:
             proof.update(await r234.convert(nodes, tokenizer))
         proof.update(native_cold_guard_unchanged=False, native_cache_observed=False,
                      native_input_readback=False, execution_adapter="ascend-http-v1")
+        if native:
+            proof.update(native_cache_observed=True, native_input_readback=True, execution_adapter='dabs-native-v023-1',
+                         cache_namespace=backend.native.salt, cold_boundary='fresh per-condition engine cache salt',
+                         frozen_input_namespace_check_tokens=16, physical_kv_block_tokens=cfg['block_size'])
         write_json(out / "input_proof.json", proof)
         write_json(out / "initial_nodes.json", nodes)
         for node in nodes.values():
@@ -190,7 +205,14 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                 now = time.monotonic()
                 next_tick = start + (math.floor((now - start) / cfg["epoch_s"]) + 1) * cfg["epoch_s"]
                 index += 1
-                state = snapshot(nodes, history, cfg["replicas"], cfg, index, now)
+                if native:
+                    if index % 5 == 0:
+                        await backend.native.harvest(cfg['replicas'])
+                    state = await backend.native.observe(nodes, cfg, index, model)
+                    state['action_deadline_ns'] = int(next_tick * 1e9)
+                    state['action_horizon_ms'] = max(.001, (next_tick - state['now']) * 1000)
+                else:
+                    state = snapshot(nodes, history, cfg["replicas"], cfg, index, now)
                 if not state["ready"]:
                     if pending is not None and pending.done():
                         await consume_late_plan()
@@ -200,6 +222,8 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                 decision = {"index": index, "at": now, "snapshot": state,
                             'engine_accepted': None, 'engine_applied': None,
                             'client_applied_nonreference': False}
+                if native:
+                    decision['reference_action'] = copy.deepcopy(base)
                 if spec["method"] in ("DAG-Ascend", 'Ours'):
                     if pending is not None and pending.done():
                         await consume_late_plan()
@@ -227,6 +251,39 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                 validate_action(action, state, cfg)
                 decision['requested_action'] = copy.deepcopy(action)
                 reason = admission_check(action, nodes, cfg, state['now'], time.monotonic())
+                if native:
+                    # Never refresh an old queue permutation under a new snapshot.
+                    # A stale selection can only fall back to fresh reference admission.
+                    fallback = bool(reason or state.get('native_observation_errors'))
+                    if fallback:
+                        state = await backend.native.observe(nodes, cfg, index, model)
+                        action = r234.baseline(state, cfg, spec['method'])
+                    order, receipts = await backend.native.commit(action, state, nodes, fallback=fallback)
+                    decision.update(native_receipts=receipts, engine_applied=any(
+                        x['receipt']['status'] in ('applied', 'partially_applied') for x in receipts),
+                        engine_accepted=any(x['receipt']['accepted'] for x in receipts),
+                        native_fallback_reason=reason or state.get('native_observation_errors'),
+                        applied_submission_order=order, result=result)
+                    # If an engine advanced during scoring, retain the rejection;
+                    # make a separately labelled atomic baseline admission next.
+                    if not order and action['admit'] and not fallback:
+                        fresh_state = await backend.native.observe(nodes, cfg, index, model)
+                        base_now = r234.baseline(fresh_state, cfg, spec['method'])
+                        order, extra = await backend.native.commit(base_now, fresh_state, nodes, fallback=True)
+                        action = base_now
+                        decision['native_receipts'] += extra
+                        decision['native_fallback_reason'] = 'engine_rejected_selection; fresh atomic baseline admission'
+                        decision['applied_submission_order'] = order
+                    decision['client_applied_nonreference'] = bool(order and not decision.get('native_fallback_reason')
+                        and result.get('selected_cell', '00') != '00' and effect_signature(action, nodes) != effect_signature(base, nodes))
+                    for key in order:
+                        node = nodes[key]
+                        replica = action['placement'][key]
+                        node.update(state='submitted', replica=replica, start=time.monotonic(), phase='prefill')
+                        spawn(execute(key, replica))
+                    decisions.append(decision)
+                    append_json(out / 'decisions.jsonl', decision)
+                    continue
                 if reason:
                     decision['commit_reject_reason'] = reason
                     fresh = snapshot(nodes, history, cfg['replicas'], cfg, index)
@@ -271,6 +328,37 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                     'quality_scope': 'nonsemantic_fixed_token_replay', 'applicable': False}}
                    if fixed else evaluate(nodes, DATASET, finish - start))
         summary = {"spec": spec, **summarize(nodes, start, finish, decisions, quality, fixed=fixed)}
+        if native:
+            await backend.native.drain(cfg['replicas'])
+            while await backend.native.harvest(cfg['replicas'], wait_complete=True):
+                pass
+            applied, routed, queued = 0, 0, 0
+            for decision in decisions:
+                if decision.get('result', {}).get('selected_cell', '00') == '00' or decision.get('native_fallback_reason'):
+                    continue
+                route_effect, queue_effect = False, False
+                reference = decision['reference_action']
+                for item in decision.get('native_receipts', []):
+                    receipt = await backend.native.call(item['replica'], 'receipt', action_id=item['receipt']['action_id'])
+                    for mapping in receipt.get('engine_admissions', []):
+                        key = mapping['node_id']
+                        if key not in reference['admit'] or reference['placement'].get(key) != item['replica']:
+                            route_effect = True
+                    # A permutation that expired before a target was scheduled
+                    # is a queue application, but not an executed nonreference order.
+                    actual = [r for r in receipt.get('priority_scheduled_order', []) if r in receipt.get('applied', [])]
+                    old = [r['engine_request_id'] for r in decision['snapshot']['native_snapshots'][item['replica']]['waiting']]
+                    if len(actual) >= 2 and actual != [r for r in old if r in actual]:
+                        queue_effect = True
+                    append_json(out / 'decisions.jsonl', {'event': 'final_engine_receipt', 'decision_index': decision['index'],
+                        'replica': item['replica'], 'receipt': receipt})
+                applied += route_effect or queue_effect
+                routed += route_effect; queued += queue_effect
+            summary.update(execution_scope='native', native_cache_observed=True,
+                native_prefill_decode_ms='see signed native_events.jsonl; engine host-step and auxiliary NPU forward events are separate',
+                engine_applied_nonreference_actions=applied, engine_nonreference_routing_actions=routed,
+                engine_nonreference_queue_actions=queued,
+                engine_admitted_requests=sum(bool(n['stream'].get('native_mapping')) for n in nodes.values()))
         if fixed:
             replica_rows = []
             for replica in range(cfg['replicas']):
@@ -293,7 +381,7 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                            v5_decisions=sum('v5_revision' in d['result'] for d in decisions),
                            replica_rows=replica_rows,
                            planner_mean_wall_ms=(statistics.mean(values) if (values := [d['result']['wall_ms'] for d in decisions if 'wall_ms' in d['result']]) else None),
-                           native_cache_observed=False)
+                           native_cache_observed=native)
             summary['functional_pass'] &= summary['fixed_work_pass']
         write_json(out / "quality.json", quality)
         write_json(out / "summary.json", summary)

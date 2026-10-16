@@ -6,6 +6,7 @@ export DEVICE_IDS="${DEVICE_IDS:-0,1,2,3}"
 MODE=benchmark
 if (( $# > 0 )) && [[ "$1" != --* ]]; then MODE="$1"; shift; fi
 case "$MODE" in
+  native-*) exec python3 "$ROOT/tools/native_dabs.py" "$MODE" "$@" ;;
   prepare)
     (( $# == 0 )) || { echo 'prepare takes environment settings only; use probe for extra options.' >&2; exit 1; }
     python3 "$ROOT/tools/inspect_dabs_repair.py" --wait-ready "${READY_TIMEOUT:-300}"
