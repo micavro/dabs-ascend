@@ -167,9 +167,9 @@ class NativeClient:
                         p += request['prefill_tokens']; pc = max(pc, request['context_tokens'])
                     if request['decode_tokens']:
                         dec.append(key); dc += request['context_tokens']
-                # Event start position inside an asynchronous device stream is
-                # unobserved at decision time. Use a conservative full duration,
-                # explicitly as a prediction, never as elapsed device time.
+                # Predict an entire completion charge for each pending batch.
+                # The current interval may be partly elapsed: this is a rollout
+                # approximation, NOT a measured duration or guaranteed bound.
                 from .native_scoring import check_model_range
                 try:
                     if p or dec:
@@ -183,7 +183,8 @@ class NativeClient:
                     state['native_observation_errors'].append(str(exc))
                 state['inflight_batches'].append({'replica': replica, 'batch_id': batch['batch_id'],
                     'prefill': pre, 'decode': dec, 'remaining_ms': end, 'cap': resource['step_tokens'],
-                    'timing_source': 'frozen native host-step prediction; conservative serial pending queue' if end is not None else 'unknown; outside frozen model support'})
+                    'timing_target': model.get('timing_target'),
+                    'timing_source': 'frozen completion-charge prediction; serial rollout approximation' if end is not None else 'unknown; outside frozen model support'})
         state['native_pressure'] = list(state['pressure'])
         state['native_state_ages_s'] = list(state['state_ages_s'])
         state['pressure_source'] = 'engine running + 2*waiting'

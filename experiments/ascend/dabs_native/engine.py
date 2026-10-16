@@ -39,6 +39,7 @@ class EngineAdapter:
         self.accepted_ns, self.active_control = {}, None
         self.engine_ids_by_client, self.batch_index = {}, {}
         self.host_call, self.host_call_serial = None, 0
+        self.last_completion_boundary = None
         self.completed_progress = {}
         self.resources = self.read_resources()
 
@@ -309,6 +310,7 @@ class EngineAdapter:
         self.host_call_serial += 1
         call = {'call_id': self.identity['engine_instance'] + '/host/' + str(self.host_call_serial),
                 'begin_ns': time.monotonic_ns(), 'scheduled_batch_ids': [], 'completed_batch_ids': [],
+                'host_call_serial': self.host_call_serial, 'pending_before': list(self.pending),
                 'boundary': original.__name__, 'gpu_kernel_ms': None}
         self.host_call = call
         try:
@@ -319,6 +321,7 @@ class EngineAdapter:
         finally:
             call['end_ns'] = time.monotonic_ns()
             call['engine_host_ms'] = (call['end_ns'] - call['begin_ns']) / 1e6
+            call['pending_after'] = list(self.pending)
             self.host_call = None
         # A call can submit B while completing A. Do not assign B's dispatch
         # elapsed time to A, or silently call overlapping host time equivalent.
@@ -327,10 +330,14 @@ class EngineAdapter:
             batch = self.batch_index[bid]
             batch.setdefault('host_calls', []).append(copy.deepcopy(call))
             if batch['batch_id'] in call['completed_batch_ids']:
+                batch['completion_predecessor'] = copy.deepcopy(self.last_completion_boundary)
                 batch['engine_host_ms'] = call['engine_host_ms']
                 batch['host_step_equivalent'] = (call['scheduled_batch_ids'] == [batch['batch_id']]
                     and call['completed_batch_ids'] == [batch['batch_id']] and 'error' not in call)
                 batch['host_batch_span_ms'] = (call['end_ns'] - batch['host_begin_ns']) / 1e6
+        if call['completed_batch_ids']:
+            self.last_completion_boundary = {'call_id': call['call_id'], 'end_ns': call['end_ns'],
+                                             'batch_ids': list(call['completed_batch_ids'])}
         return result
 
     def schedule(self, original):
@@ -430,6 +437,7 @@ class EngineAdapter:
                 'vendor_patched_sha256': self.installation.get('patched_sha256', {}),
                 'host_step_boundary': 'EngineCore.step_with_batch_queue' if self.core.batch_queue_size > 1 else 'EngineCore.step',
                 'batch_queue_size': self.core.batch_queue_size,
+                'timing_fields': ['host_call_serial', 'pending_before', 'pending_after', 'completion_predecessor'],
                 'operations': ['capabilities', 'snapshot', 'apply', 'admit', 'receipt', 'mapping', 'batches', 'ack-trace'],
                 'supported_actions': ['admission_permits', 'unsubmitted_route', 'safe_prefill_queue_order'],
                 'unsupported_actions': ['migrate_submitted', 'decode_reorder', 'budget_change', 'preempt'],

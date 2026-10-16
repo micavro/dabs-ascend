@@ -57,6 +57,7 @@ def fake_engine():
     a.snapshots, a.pending, a.batches, a.permits, a.mappings = {}, {}, [], {}, {}
     a.receipts, a.client_ids, a.receipt_for_step = Receipts(), set(), []
     a.active_control, a.host_call, a.host_call_serial = None, None, 0
+    a.last_completion_boundary = None
     a.engine_ids_by_client, a.batch_index = {}, {}
     a.accepted_ns = {'x': time.monotonic_ns() - 2_000_000, 'y': time.monotonic_ns() - 1_000_000}
     def req(rid, phase='WAITING', computed=0):

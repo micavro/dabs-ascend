@@ -23,13 +23,13 @@
 
 `native_algorithms.py` 在隔离模块中对冻结 V5/Ayo/RR/SLL 和评分器进行精确锚点变换；记录 `transformation_manifest()`，记录原始来源。V5/Ayo 的 4096 限制变为有效步预算；Ayo 保留原 conservative reserved-block 负载：已提交请求的完整 prompt+max_output 预算，加本轮拟放置请求；不扣预期命中，不计可回收缓存。分母为引擎真实 KV 容量，physical active 块仅另行观测。原算法候选数、收益门槛、decode guard、目标函数和时间窗口不放宽。
 
-`native_scoring.py` 只替换依赖引擎语义的批次构造：真实 running 顺序后接 waiting；APC 跳过发生在 token 预算扣除之前；FullAttention 的 chunk 可按 token 切分，不能把 128-token KV 块大小错误当作 chunk 必须整除的单位。异步待完成批次按 batch ID 保留，冻结模型保守地串行预测剩余 host-step 时间，不冒充设备已执行时间。评分的排序先投影到服务端可执行的安全槽位。
+`native_scoring.py` 只替换依赖引擎语义的批次构造：真实 running 顺序后接 waiting；APC 跳过发生在 token 预算扣除之前；FullAttention 的 chunk 可按 token 切分，不能把 128-token KV 块大小错误当作 chunk 必须整除的单位。异步待完成批次按 batch ID 保留，冻结模型串行预测完成时间份额，这是近似而非保守上界，不冒充设备已执行时间。评分的排序先投影到服务端可执行的安全槽位。
 
 输入构造仍沿用冻结协议的 16-token 命名空间检查，保持原始 tokens/DAG；这个检查不是物理 KV 块大小。物理分配、共享前缀证据长度与资源投影按 128 对齐。服务模型中 `/16`、`/1024` 等特征缩放是回归量纲，也不是物理块大小。
 
 ## 2. 原生状态、缓存与动作
 
-师兄后续确认的三项口径已落实：有限窗口排序、Ayo 保守 KV 预留负载、引擎 host-step elapsed。原始依据分别为 `joint18v2/common.py` 的 `resolve_control/stable_prefill_reorder`、`runtime/joint18v2_hook.py` 的 `reorder/schedule/begin_step/end_step`、`wfsched/ayo_topology.py` 与 `joint18v2/service_fit.py`。这些冻结文件没有修改。
+有限窗口排序、Ayo 保守 KV 预留负载保持师兄确认的口径。原引擎 host-step elapsed 在异步路径不能直接等价迁移，新版标定使用明确声明的完成时间份额近似，见 [异步标定协议](native-async-calibration.md)。原始依据分别为 `joint18v2/common.py` 的 `resolve_control/stable_prefill_reorder`、`runtime/joint18v2_hook.py` 的 `reorder/schedule/begin_step/end_step`、`wfsched/ayo_topology.py` 与 `joint18v2/service_fit.py`。这些冻结文件没有修改。
 
 调用链：HTTP → 现有 `engine_core.call_utility_async` → EngineCore 主循环 → 原 scheduler / KV manager / coordinator / block pool。设备计时经原 worker collective RPC 返回。HTTP 进程没有模拟 KV 或影子队列。
 
@@ -47,11 +47,11 @@ requested → accepted → applied/rejected/expired 有独立时间记录；部�
 
 ## 3. 标定、验收与证据边界
 
-标定目标已按补充纠正为 `engine_host_ms`，不再使用 forward 作为目标。对实际 `core.step_fn`（`EngineCore.step` 或 `step_with_batch_queue`）计时，记录调用起止、提交批次 ID 和完成批次 ID。只有同一调用明确提交且完成同一个批次时，才作为与旧主机 step 边界对应的拟合样本。异步流水线可能在一次调用提交 B、回收 A：保留其调用 elapsed 和逐批 host span，但标识交叠/近似，排除同口径拟合。样本不足时保持未冻结，不能把这个问题写成现场已解决；不修改现场异步开关。
+旧版只接受同一次调用提交并完成同一 batch，现场 8896 条记录因此没有合格样本。新版保留原始 host call 计时，并用 `async_host_completion_accounting_v1` 重建不重叠完成时间份额；以副本/call ID 去重，校验 pending 与前一完成边界。它是新的吞吐量近似模型，不宣称等价于原 GPU host-step。完整定义、验证方法和限制见 [异步标定协议](native-async-calibration.md)。
 
 NPUWorker 在已核对的 `_model_forward` 当前流前后记录两个 `torch.npu.Event`。只有 end.query() 完成才读取 elapsed_time；无 synchronize 强行串行化。host schedule、host dispatch、设备 forward、EngineCore 输出观察、HTTP 时延分开。forward 区间不包括 sampling/D2H/主机排队，也不宣称是整个 batch 的端到端时延。事件和查询开销保留在实验中。
 
-独立标定预先固定 train/holdout 运行，覆盖 128/129/1024/2048/3584 输入，16/32/48/64/128 输出，并发 1/4 与服务上限附近负载、冷/热和实际 mixed 批次。按 replica/phase 拟合原六特征非负模型。每分组至少 20 个 train 和 20 个 holdout 批次；P95 相对误差≤35%，RMSE/均值≤25%，并检查实际 token/context 覆盖。失败记录保留，不利用正式结果反向调参。
+独立标定预先固定 train/holdout 运行，覆盖 128/129/1024/2048/3584 输入，16/32/48/64/128 输出，并发 1/2/4 与服务上限附近负载、冷/热和实际 mixed 批次。按 replica/phase 拟合原六特征非负模型。每分组至少 20 个 train 和 20 个 holdout 批次；P95 相对误差≤35%，RMSE/均值≤25%，并检查实际 token/context 覆盖。失败记录保留，不利用正式结果反向调参。
 
 实际输入 token、APC 跳过量和逻辑 prefill 量分别记录。六特征以实际输入量（等价于原 logical minus skip）和缓存跳过前的 computed context 构造；回归缩放保持原实现。现场新标定不载入 NVIDIA 系数，预先声明独立训练/验证和误差门槛；这不同于原包已有四块旧 pilot 的迁移系数选择流程，报告保留该差异。预测超过已冻结的 phase 范围时，候选不具备可评分资格，回退原因保留。
 

@@ -29,13 +29,14 @@ class Stopped(Exception):
 
 
 class Workflow:
-    def __init__(self, root, mode, invalidate_cache=False, verify_restart=False, ready_timeout=900):
+    def __init__(self, root, mode, invalidate_cache=False, verify_restart=False, ready_timeout=900, replica=None, input_path=None):
         self.root, self.mode = Path(root).resolve(), mode
         stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ_') + uuid.uuid4().hex[:8]
         self.out = self.root / 'outputs' / ('native_' + mode + '_' + stamp)
         self.out.mkdir(parents=True)
         self.invalidate_cache = invalidate_cache
         self.verify_restart, self.ready_timeout = verify_restart, ready_timeout
+        self.replica, self.input_path = replica, input_path
         self.record = {'mode': mode, 'status': 'running', 'started_utc': utc(),
                        'output': self.relative(self.out), 'steps': [], 'next_commands': [],
                        'explicit_cache_invalidation': invalidate_cache, 'explicit_restart_test': verify_restart}
@@ -58,7 +59,8 @@ class Workflow:
 
     def save(self):
         write_json(self.out / 'run.json', self.record)
-        lines = ['DABS 原生' + {'test': '测试', 'experiment': '实验', 'install': '安装'}[self.mode],
+        lines = ['DABS 原生' + {'test': '测试', 'experiment': '实验', 'install': '安装',
+                 'smoke': '计时关联短诊断', 'calibrate': '单副本完整标定', 'audit': '旧事件离线审计'}[self.mode],
                  '状态: ' + self.record['status'], '结果目录: ' + str(self.out)]
         for step in self.record['steps']:
             lines.append(step['label'] + ': ' + step['status'] + '；日志 ' + step['log'])
@@ -138,6 +140,17 @@ class Workflow:
         except Exception as exc:
             raise Stopped(str(exc) + ' 已完成的副本及备份保留；回滚命令见本目录 ROLLBACK.txt。') from exc
 
+    def audit(self):
+        self.step('native-timing-audit', '离线统计已有原始事件（不发推理）', ['--input', str(self.input_path)])
+
+    def smoke(self):
+        self.step('native-calibration-smoke', '单副本短诊断（不能代替完整标定）', ['--replica', str(self.replica or 0)])
+        self.record['next_commands'] = ['bash run_native.sh calibrate --replica ' + str(self.replica or 0)]
+
+    def calibrate(self):
+        self.step('native-calibrate-one', '单副本完整标定与留出验证', ['--replica', str(self.replica or 0)])
+        self.record['next_commands'] = ['bash run_native.sh install', 'bash run_native.sh test --invalidate-cache']
+
     def test(self):
         # Do not silently install hooks or restart services as part of ordinary tests.
         self.step('native-check-four', '检查四个服务的原生能力（不发推理请求）')
@@ -212,11 +225,19 @@ class Workflow:
 
 def main():
     parser = argparse.ArgumentParser(description='现场一键入口：install 安装并重启现有服务；test 测试验收；experiment 跑全部 96 条件。')
-    parser.add_argument('mode', choices=('install', 'test', 'experiment'))
+    parser.add_argument('mode', choices=('install', 'smoke', 'calibrate', 'audit', 'test', 'experiment'))
+    parser.add_argument('--replica', type=int, choices=range(4), help='install/smoke/calibrate: select one existing service')
+    parser.add_argument('--input', type=Path, help='audit: existing calibration directory (read-only)')
     parser.add_argument('--invalidate-cache', action='store_true', help='仅 test：明确执行副本 0 缓存清空/失效测试；默认不执行')
     parser.add_argument('--verify-restart', action='store_true', help='仅 install：明确额外重启副本 0 并验证旧身份失效')
     parser.add_argument('--ready-timeout', type=int, default=900, help='install 每个服务加载等待秒数，默认 900')
     args = parser.parse_args()
+    if args.replica is not None and args.mode not in ('install', 'smoke', 'calibrate'):
+        parser.error('--replica 仅用于 install/smoke/calibrate')
+    if bool(args.input) != (args.mode == 'audit'):
+        parser.error('audit 必须提供 --input；其他模式不使用 --input')
+    if args.verify_restart and args.replica not in (None, 0):
+        parser.error('--verify-restart 仅支持副本 0')
     if args.invalidate_cache and args.mode != 'test':
         parser.error('--invalidate-cache 仅用于 test')
     if args.verify_restart and args.mode != 'install':
@@ -234,9 +255,10 @@ def main():
         with ExitStack() as stack:
             lock = stack.enter_context((ROOT / 'outputs/.native-entry.lock').open('a+'))
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            if args.mode in ('test', 'install'):
+            if args.mode in ('test', 'install', 'smoke', 'calibrate'):
                 stack.enter_context(device_locks(range(4), ROOT / 'outputs/.existing_controller_locks'))
-            return Workflow(ROOT, args.mode, args.invalidate_cache, args.verify_restart, args.ready_timeout).run()
+            return Workflow(ROOT, args.mode, args.invalidate_cache, args.verify_restart, args.ready_timeout,
+                            args.replica, args.input).run()
     except BlockingIOError:
         print('已有测试或实验使用这些服务；请等待当前任务结束。', file=sys.stderr)
         return 2

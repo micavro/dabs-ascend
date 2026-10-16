@@ -5,6 +5,7 @@ import random
 import uuid
 
 from .common import write_json, source_identity, sha
+from .native_timing import TARGET, audit, read_events, reconstruct, require_timing, collection_floors
 
 PHASES = ('prefill_only', 'decode_only', 'mixed')
 
@@ -38,15 +39,33 @@ def fit_model(samples, capabilities):
     import numpy as np
     from .common import percentile
     models, validation, failures = {}, {}, []
-    ambiguous = sum(s.get('host_step_equivalent') is not True for s in samples)
-    eligible = [s for s in samples if s.get('host_step_equivalent') is True]
+    accounting = any(s.get('timing_target') == TARGET for s in samples)
+    if accounting and any(s.get('timing_target') != TARGET for s in samples):
+        raise ValueError('mixed timing targets')
+    eligible = [s for s in samples if (s.get('accounting_valid') is True if accounting else s.get('host_step_equivalent') is True)]
+    ambiguous = len(samples) - len(eligible)
+    seen, group_splits = set(), {}
+    for s in eligible:
+        key = s['replica'], s['batch_id']
+        if key in seen or not math.isfinite(s['y']) or s['y'] <= 0:
+            raise ValueError('duplicate batch or invalid timing sample')
+        seen.add(key)
+        if s['split'] not in ('train', 'holdout') or s['group']['split'] != s['split']:
+            raise ValueError('invalid train/holdout assignment')
+        key = s['replica'], s['group']['seed']
+        if key in group_splits and group_splits[key] != s['split']:
+            raise ValueError('train/holdout group leakage')
+        group_splits[key] = s['split']
     for replica, capability in enumerate(capabilities):
         phases, checks = {}, {}
         for phase in PHASES:
             train = [s for s in eligible if s['replica'] == replica and s['phase'] == phase and s['split'] == 'train']
             holdout = [s for s in eligible if s['replica'] == replica and s['phase'] == phase and s['split'] == 'holdout']
+            checks[phase] = {'train_batches': len(train), 'holdout_batches': len(holdout), 'pass': False,
+                'train_groups': len({s['group']['seed'] for s in train}),
+                'holdout_groups': len({s['group']['seed'] for s in holdout})}
             if len(train) < 20 or len(holdout) < 20:
-                failures.append(f'r{replica}/{phase}: require >=20 independent train and holdout batches with one batch scheduled AND completed in the same host step call; async overlapping calls excluded')
+                failures.append(f'r{replica}/{phase}: require >=20 batches in EACH independent train/holdout split; actual train={len(train)}, holdout={len(holdout)}; target={TARGET if accounting else "same-batch host call"}')
                 continue
             x, y = np.asarray([s['x'] for s in train]), np.asarray([s['y'] for s in train])
             # Nonnegative least squares by deterministic coordinate descent.
@@ -64,9 +83,9 @@ def fit_model(samples, capabilities):
             rmse = math.sqrt(sum((p - s['y']) ** 2 for p, s in zip(pred, holdout)) / len(holdout))
             mean = sum(s['y'] for s in holdout) / len(holdout)
             passed = percentile(errors, .95) <= .35 and rmse <= .25 * max(.1, mean)
-            checks[phase] = {'train_batches': len(train), 'holdout_batches': len(holdout),
+            checks[phase].update({
                 'p95_relative_error': percentile(errors, .95), 'rmse_ms': rmse, 'holdout_mean_ms': mean,
-                'pass': passed, 'range': {k: [min(s[k] for s in train), max(s[k] for s in train)] for k in ('p', 'd', 'dc', 'pc')}}
+                'pass': passed, 'range': {k: [min(s[k] for s in train), max(s[k] for s in train)] for k in ('p', 'd', 'dc', 'pc')}})
             phases[phase] = {'coef': coef.tolist()}
             if not passed:
                 failures.append(f'r{replica}/{phase}: frozen holdout error thresholds exceeded')
@@ -77,31 +96,57 @@ def fit_model(samples, capabilities):
             failures.append(f'r{replica}: actual batch coverage does not cover the fixed R234/client-inflight=2 workload')
         models[str(replica)], validation[str(replica)] = {'phases': phases}, checks
     return {'models': models, 'validation': validation, 'failures': failures, 'pass': not failures,
-            'timing_target': 'engine_host_ms: actual EngineCore step entry to return, only unambiguous same-batch calls',
+            'timing_target': TARGET if accounting else 'engine_host_ms: actual EngineCore step entry to return, only unambiguous same-batch calls',
             'excluded_ambiguous_host_batches': ambiguous, 'eligible_host_batches': len(eligible),
-            'host_step_equivalence': not failures,
+            'host_step_equivalence': False if accounting else not failures,
+            'accounting_model': accounting, 'original_gpu_timing_equivalent': False if accounting else not failures,
+            'prediction_semantics': 'additive nonoverlapping host completion charges; throughput proxy including startup, not per-batch latency or device execution' if accounting else 'same-batch host step',
             'overhead': 'host monotonic_ns brackets plus two auxiliary NPU events and nonblocking queries; instrumentation is included, not subtracted',
             'thresholds_predeclared': {'minimum_batches_per_split_phase_replica': 20, 'p95_relative_error': .35, 'rmse_over_mean': .25},
-            'pending_batch_model': 'conservative serial pending host-step intervals, not a physical NPU simulator',
+            'pending_batch_model': 'serial predicted completion charges; no conservative bound claimed for a partly completed interval' if accounting else 'conservative serial pending host-step intervals, not a physical NPU simulator',
             'identities': [c['identity'] for c in capabilities], 'resources': [c['resources'] for c in capabilities],
             'source_sha256': source_identity(), 'frozen': not failures}
 
 
-async def run_calibration(backend, tokenizer, out):
-    native = backend.native
-    await native.drain(len(backend.endpoints))
-    base = await tokenizer.encode(' Native DABS calibration sample. ')
-    pads = await tokenizer.encode(' A B C D E F G H I J K L M N O P Q R S T U V W X Y Z')
+def calibration_plan(diagnostic=False):
+    # Fixed in advance; no adapting cases/thresholds to holdout outcomes.
     cases = [(128, 1, 16, False), (129, 1, 16, False), (1024, 1, 32, False),
              (2048, 1, 48, False), (3584, 1, 64, False), (3584, 1, 128, False),
+             (3584, 2, 64, False), (3584, 2, 128, False),
              (3584, 4, 16, False), (3584, 4, 128, False), (3584, 10, 128, False),
              (3584, 12, 128, False), (3584, 4, 128, True), (1024, 4, 64, False)]
-    plan = [{'split': split, 'length': length, 'concurrency': concurrency, 'output': output, 'hot': hot,
-             'seed': 271800 + offset * 10000 + i * 100 + concurrency}
+    if diagnostic:
+        cases = [(3584, 1, 16, False), (3584, 2, 32, False)]
+    repeats = 1  # Fixed budget; insufficient phase coverage is reported, never padded.
+    return [{'split': split, 'length': length, 'concurrency': concurrency, 'output': output,
+             'hot': hot, 'repeat': repeat, 'seed': 271800 + offset * 100000 + repeat * 10000 + i * 100 + concurrency}
             for offset, split in enumerate(('train', 'holdout'))
+            for repeat in range(repeats)
             for i, (length, concurrency, output, hot) in enumerate(cases)]
+
+
+def rebuild(directory):
+    from .common import read_json
+    rows = list(read_events(directory / 'native_events.jsonl'))
+    record = read_json(directory / 'calibration_plan.json')
+    samples, excluded = reconstruct(rows, record['plan'], after_steps=collection_floors(rows, record))
+    write_json(directory / 'timing_audit.json', audit(rows))
+    write_json(directory / 'calibration_samples.json', samples)
+    write_json(directory / 'calibration_excluded.json', excluded)
+    return samples, excluded
+
+
+async def run_calibration(backend, tokenizer, out, *, diagnostic=False):
+    native = backend.native
+    for capability in native.capabilities:
+        require_timing(capability)
+    starting = await native.drain(len(backend.endpoints))
+    base = await tokenizer.encode(' Native DABS calibration sample. ')
+    pads = await tokenizer.encode(' A B C D E F G H I J K L M N O P Q R S T U V W X Y Z')
+    plan = calibration_plan(diagnostic)
     write_json(out / 'calibration_plan.json', {'plan': plan, 'fit_after_collection': True,
-        'formal_experiment_data_used': False, 'timing_target': 'engine host step; overlapping call/batch associations excluded',
+        'collection_start': {str(r): {'snapshot_id': s['snapshot_id'], 'step': s['step']} for r, s in enumerate(starting)},
+        'formal_experiment_data_used': False, 'timing_target': TARGET, 'diagnostic_only': diagnostic,
         'thresholds': '>=20 batches/split/phase/replica; p95 relative error<=.35, RMSE/mean<=.25'})
     samples = []
     for replica in range(len(backend.endpoints)):
@@ -122,7 +167,18 @@ async def run_calibration(backend, tokenizer, out):
                     pass
             async def one(j, node):
                 # Stagger later arrivals to observe real mixed prefill/decode.
-                await asyncio.sleep(.015 * j)
+                if j:
+                    # Observe decode before later arrivals; a 15 ms sleep did not
+                    # reliably produce mixed batches on the real ~50 ms engine.
+                    deadline = asyncio.get_running_loop().time() + 30
+                    while True:
+                        state = await native.call(replica, 'snapshot')
+                        if any(r['phase'] == 'decode' for r in state['running']):
+                            break
+                        if asyncio.get_running_loop().time() >= deadline:
+                            raise ValueError('calibration mixed-load trigger: no observed decode within 30s')
+                        await asyncio.sleep(.02)
+                    await asyncio.sleep(.015 * (j - 1))
                 await native.reserve(replica, node)
                 return await backend.generate(replica, node, group['seed'], out / 'requests.jsonl', schema=None)
             await asyncio.gather(*(one(j, n) for j, n in enumerate(nodes)))
@@ -131,13 +187,26 @@ async def run_calibration(backend, tokenizer, out):
                 rows = await native.harvest(len(backend.endpoints), wait_complete=True)
                 if not rows:
                     break
-                ids = {n['id'] for n in nodes}
-                for r, batch in rows:
-                    if r == replica and batch['requests'] and all(q['mapping'] and q['mapping']['node_id'] in ids for q in batch['requests']):
-                        samples.append({**batch_features(batch), 'replica': r, 'split': group['split'], 'group': group})
-            write_json(out / 'calibration_samples.json', samples)
-            print('NATIVE_CALIBRATION', replica, group, 'samples', len(samples), flush=True)
+            samples, excluded = rebuild(out)
+            partial = fit_model(samples, native.capabilities)
+            write_json(out / 'calibration_progress.json', {'validation': partial['validation'], 'excluded': excluded,
+                'samples': len(samples), 'diagnostic_only': diagnostic})
+            print('NATIVE_CALIBRATION', replica, group, 'eligible', len(samples), 'excluded', len(excluded), flush=True)
+            if excluded or not samples:
+                partial['pass'] = partial['frozen'] = False
+                partial['failures'] += ['timing association failed early; inspect timing_audit.json/calibration_excluded.json']
+                write_json(out / 'native_profile.json', partial)
+                return partial
     model = fit_model(samples, native.capabilities)
+    if diagnostic:
+        model['diagnostic_only'] = True
+        model['association_pass'] = bool(samples) and not excluded
+        model['frozen'] = False
+        # Diagnostic success NEVER implies a calibrated model or acceptance.
+        write_json(out / 'native_profile.json', model)
+        return {'pass': model['association_pass'], 'association_pass': model['association_pass'],
+                'calibration_pass': model['pass'], 'diagnostic_only': True, 'frozen': False,
+                'eligible_host_batches': len(samples), 'validation': model['validation'], 'failures': model['failures']}
     model['raw_samples_sha256'] = sha(out / 'calibration_samples.json')
     model['raw_native_sha256'] = sha(out / 'native_events.jsonl')
     write_json(out / 'native_profile.json', model)

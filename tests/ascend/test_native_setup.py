@@ -123,7 +123,7 @@ class SetupTests(unittest.TestCase):
         self.installer.verify_restart = True
         self.run_setup()
         self.assertEqual(self.events[-3:], [('native-restart-arm', None), ('restart', 0), ('native-restart-check', None)])
-        self.assertEqual(self.w.record['next_commands'], ['bash run_native.sh test'])
+        self.assertEqual(self.w.record['next_commands'], ['bash run_native.sh smoke'])
 
     def test_idle_refuses_unknown_and_nonzero_metrics(self):
         for metrics in ('', 'vllm:num_requests_running 1\nvllm:num_requests_waiting 0',
@@ -137,13 +137,15 @@ class SetupTests(unittest.TestCase):
         with patch.object(self.installer, 'idle') as idle, patch.object(self.installer, 'wait_ready') as wait, \
              patch.object(self.w, 'launch', return_value=0) as launch, redirect_stdout(io.StringIO()):
             self.installer.restart(2)
-        self.assertEqual(launch.call_args.args[0], ['sudo', 'docker', 'restart', 'wushibo-qwen-small-npu2'])
+        self.assertEqual(launch.call_args.args[0], ['sudo', 'docker', 'restart', '--time', '120', 'wushibo-qwen-small-npu2'])
         idle.assert_called_once_with(2)
         wait.assert_called_once_with(2)
 
     def test_readiness_uses_actual_interfaces_not_adapter_hash(self):
         from test_native_simplification import capability, observation
         good = capability()
+        from dabs_ascend.native_timing import FIELDS
+        good['timing_fields'] = list(FIELDS)
         for row, expected in (({}, False), (dict(good, adapter_sha256={'old': 'different'}), True), (good, True)):
             with patch.object(self.installer, 'http', side_effect=['', json.dumps(row), json.dumps(observation())]):
                 self.assertEqual(bool(self.installer.ready(0)), expected)
@@ -152,6 +154,18 @@ class SetupTests(unittest.TestCase):
         self.loaded.update(range(4))
         self.run_setup(idle=AssertionError('ordinary capability reuse must not idle-gate'))
         self.assertEqual(self.events, [('native-check-four', None)])
+
+    def test_old_working_interface_needs_timing_update_not_hash_match(self):
+        from test_native_simplification import capability
+        with patch.object(self.installer, 'http', side_effect=['', json.dumps(capability())]):
+            self.assertIsNone(self.installer.ready(0))
+        self.assertIn('pending_before', self.installer.last_ready_error)
+
+    def test_selected_install_touches_only_one_replica(self):
+        self.w.replica = 2
+        self.run_setup()
+        self.assertEqual([r for mode, r in self.events if mode in ('inspect', 'restart')], [2, 2])
+        self.assertEqual(self.events[-1][0], 'native-check')
 
     def test_timeout_does_not_move_on(self):
         with patch.object(self.installer, 'ready', return_value=None), \

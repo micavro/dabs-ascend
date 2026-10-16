@@ -182,7 +182,7 @@ class NativeWorkflowTests(unittest.TestCase):
 
     def test_native_docker_forwards_explicit_artifacts_without_npu_mapping(self):
         args = SimpleNamespace(mode='native-accept', replica=None, backup=None,
-                               out=Path('outputs/one/accept'), evidence=Path('outputs/one/evidence.json'))
+                               out=Path('outputs/one/accept'), evidence=Path('outputs/one/evidence.json'), input=None)
         with patch.object(native_cli, 'ROOT', self.root), patch.object(native_cli.sys, 'platform', 'linux'), \
              patch.object(native_cli.os, 'getuid', return_value=1000, create=True), \
              patch.object(native_cli.os, 'getgid', return_value=1000, create=True), \
@@ -204,6 +204,35 @@ class NativeWorkflowTests(unittest.TestCase):
         self.assertIn('failure detail', console.getvalue())
         self.assertIn('before failure', logfile.read_text(encoding='utf-8'))
         self.assertIn('failure detail', logfile.read_text(encoding='utf-8'))
+
+    def test_short_modes_never_install_restart_or_launch_formal_experiment(self):
+        for mode, child in [('smoke', 'native-calibration-smoke'), ('calibrate', 'native-calibrate-one')]:
+            self.commands = []
+            run, code = self.run_workflow(mode)
+            self.assertEqual(code, 0)
+            self.assertEqual([c[2] for c in self.commands], [child])
+            self.assertNotIn('experiment', ' '.join(run.record['next_commands']))
+        # A passed smoke is not a passed native test and cannot start an experiment.
+        self.commands = []
+        run, code = self.run_workflow('experiment')
+        self.assertEqual(code, 2)
+        self.assertEqual(self.commands, [])
+
+    def test_audit_old_directory_is_mounted_readonly_without_devices(self):
+        old = self.root / 'older-checkout/outputs/calibration'; old.mkdir(parents=True)
+        args = SimpleNamespace(mode='native-timing-audit', replica=None, backup=None,
+                               out=Path('outputs/audit'), evidence=None, input=old)
+        with patch.object(native_cli, 'ROOT', self.root), patch.object(native_cli.sys, 'platform', 'linux'), \
+             patch.object(native_cli.os, 'getuid', return_value=1000, create=True), \
+             patch.object(native_cli.os, 'getgid', return_value=1000, create=True), \
+             patch.object(native_cli, 'docker', return_value=SimpleNamespace(stdout='fixture-image\n')), \
+             patch.object(native_cli.subprocess, 'call', return_value=0) as call:
+            self.assertEqual(native_cli.host(args), 0)
+        command = call.call_args.args[0]
+        self.assertIn('type=bind,src=' + str(old.resolve()) + ',dst=/audit-input,readonly', command)
+        self.assertEqual(command[-2:], ['--input', '/audit-input'])
+        self.assertNotIn('--device', command)
+        self.assertNotIn('restart', command)
 
     @unittest.skipUnless(platform.system() == 'Linux', 'Bash entry runs on the Linux deployment host')
     def test_bash_help_needs_no_docker(self):

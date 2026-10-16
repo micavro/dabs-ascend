@@ -175,7 +175,8 @@ async def execute(args, out, plan, summaries, identity):
                 protocol.update(limits=['Native capability/evidence gate passed; performance equivalence is not implied.',
                     '200 ms finite priority window; original FIFO continuation and 5 s age guard.',
                     'Ayo uses conservative reserved KV blocks divided by physical capacity.',
-                    'Service model target is actual unambiguous engine host-step elapsed time; device events are auxiliary.'],
+                    'Service model target: ' + model['timing_target'] + '; device events are auxiliary. See native-async-calibration.md for approximation limits.'],
+                    timing_target=model['timing_target'], original_gpu_timing_equivalent=model.get('original_gpu_timing_equivalent', False),
                     effective_resources=[c['resources'] for c in caps], client_max_inflight=args.max_inflight)
                 write_json(out / 'protocol.json', protocol)
                 repair = read_json(out / 'repair_protocol.json')
@@ -293,7 +294,7 @@ def main(args):
                 'revision': '20261016-native-v023-v1', 'execution_scope': args.execution_scope,
                 'plan_revision': 'R4-L8_then_R2-L16_rotating_methods_mirrored_round2',
                 'http_keepalive': args.http_keepalive, 'native_mechanism_test_pass': False,
-                'calibration_scope': 'frozen engine host-step elapsed; independent holdout' if args.execution_scope == 'native' else 'HTTP TTFT/TPOT proxy; not native batch-step validation',
+                'calibration_scope': model.get('timing_target') if args.execution_scope == 'native' else 'HTTP TTFT/TPOT proxy; not native batch-step validation',
                 'group_audit_conditions': 4, 'first_checkpoint_conditions': 8,
                 'previous_results_combinable': False})
             write_json(out / 'index.json', [])

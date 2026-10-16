@@ -2,6 +2,8 @@
 
 推荐入口：`bash run_native.sh install` → `bash run_native.sh test` → `bash run_native.sh experiment`。在 Linux 宿主机的新项目目录运行。环境与结果位置见 [README](../README.md)。普通 test 连接现有服务，不重新安装、不重启、不主动清空缓存。
 
+**本次异步标定更新先执行单副本流程**：`bash run_native.sh install --replica 0` → `bash run_native.sh smoke` → `bash run_native.sh calibrate`，成功后再安装其余副本并执行四卡 test。旧记录的只读审计、成功判据和新计时口径见 [异步标定协议](native-async-calibration.md)。安装现在检查实际需要的在途批次/完成边界字段，缺少时更新；不是版本或哈希门禁。
+
 ## 安装行为
 
 安装命令先尝试无凭据的 `/dabs/v1/control`，读取真实 EngineCore/worker 能力和快照。可用副本跳过部署；其余副本检查四处实际 hook 插入点，缺少时报告文件与类/函数名。版本、源码和适配文件哈希仅用于排查，不作为兼容白名单。

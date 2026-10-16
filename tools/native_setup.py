@@ -12,6 +12,7 @@ import os
 from dabs_native.contracts import validate_capabilities, validate_observation
 from dabs_ascend.common import read_json, write_json
 from dabs_ascend.telemetry import metric_pressure, parse_metrics
+from dabs_ascend.native_timing import require_timing
 
 
 # Executed only if the live service lacks usable native capabilities.
@@ -90,6 +91,7 @@ class Installer:
             self.http(replica, '/health')
             row = json.loads(self.http(replica, '/dabs/v1/control', {'op': 'capabilities'}))
             validate_capabilities(row)
+            require_timing(row)
             snapshot = json.loads(self.http(replica, '/dabs/v1/control', {'op': 'snapshot'}))
             validate_observation(snapshot)
             self.last_ready_error = None
@@ -115,7 +117,7 @@ class Installer:
         # Shared controller locks exclude our experiments; refuse observed external work.
         self.idle(replica)
         container = self.container(replica)
-        command = ['sudo', 'docker', 'restart', container]
+        command = ['sudo', 'docker', 'restart', '--time', '120', container]
         logfile = self.w.out / ('restart-' + str(replica) + '-' + uuid.uuid4().hex[:8] + '.txt')
         step = {'mode': 'restart-' + str(replica), 'label': '重启现有服务 ' + container,
                 'status': 'running', 'command': command, 'log': self.w.relative(logfile)}
@@ -147,7 +149,8 @@ class Installer:
         print('先连接现有服务；仅对缺少可用原生接口的副本安装补丁并逐个重启。', flush=True)
         self.save_backups()
         pending = []
-        for replica in range(4):
+        selected = [self.w.replica] if getattr(self.w, 'replica', None) is not None else list(range(4))
+        for replica in selected:
             if self.ready(replica):
                 print('副本 ' + str(replica) + ' 原生接口已可用，跳过安装和重启。', flush=True)
                 continue
@@ -179,9 +182,12 @@ class Installer:
             self.backups[replica] = result['backup']
             self.save_backups()
             self.restart(replica)
-        self.w.step('native-check-four', '核验四服务的真实原生能力')
+        if len(selected) == 1:
+            self.w.step('native-check', '核验所选服务原生能力', ['--replica', str(selected[0])])
+        else:
+            self.w.step('native-check-four', '核验四服务的真实原生能力')
         if self.verify_restart:
             self.w.step('native-restart-arm', '保存副本 0 重启前身份')
             self.restart(0)
             self.w.step('native-restart-check', '验证副本 0 拒绝旧引擎身份动作')
-        self.w.record['next_commands'] = ['bash run_native.sh test']
+        self.w.record['next_commands'] = ['bash run_native.sh smoke']

@@ -1,6 +1,44 @@
 # DABS 昇腾复现
 
-## 现场只需这三条命令
+## 本次标定修复：先单卡验证，再跑四卡
+
+从 GitHub main 下载到**新目录**，进入目录，在 Linux 宿主机按顺序执行。旧项目和失败输出都保留。
+
+先只读分析已有 8896 条记录（不发推理、不安装、不重启）：
+
+```bash
+bash run_native.sh audit --input /data/wushibo/dabs-ascend-main-2026101603/outputs/native_test_20261016T073330Z_b2e635a7/04-native-calibrate
+```
+
+先更新一个副本，再做四组短诊断：
+
+```bash
+bash run_native.sh install --replica 0
+bash run_native.sh smoke
+```
+
+`install --replica 0` 保留现有容器参数，备份并更新缺少新计时字段的适配器，只重启这个副本并等健康恢复。安装输出目录有 `ROLLBACK.txt`。旧适配器即使 HTTP 正常，也需要加载新增的在途批次和完成边界字段。没有密钥、源码哈希门禁。
+
+`smoke` 成功判据是 `association_pass: true`、有效样本数大于零、排除记录为空；它只验证关联，不代表模型验收。**短诊断成功后**再执行单副本完整标定（28 组，独立训练/留出）：
+
+```bash
+bash run_native.sh calibrate
+```
+
+成功判据：单副本标定状态 `passed`，`native_profile.json` 为 `pass: true`、`frozen: true`，三类阶段的 train/holdout 均至少 20 条且覆盖和误差检查通过。失败就停在这一步，复制 `SUMMARY.txt`、`calibration_progress.json` 或 `native_profile.json` 的失败项，**不要直接重跑四卡长测试**。也可对单个其它副本使用 `--replica 1`、`2`、`3`。
+
+单卡完整标定通过后，再更新其余服务并测试：
+
+```bash
+bash run_native.sh install
+bash run_native.sh test --invalidate-cache
+```
+
+安装逐个处理缺少计时能力的副本；已加载新字段的副本跳过。测试不自动重启；`--invalidate-cache` 明确允许最后执行副本 0 缓存失效专项。普通测试仍可使用 `bash run_native.sh test`。完整验收通过以后才运行 `bash run_native.sh experiment`。
+
+**计时口径发生变化**：新标定是 `async_host_completion_accounting_v1`，按完成顺序计算不重叠的主机时间份额，包含首批启动时间，作为吞吐量近似模型。它不是旧 GPU 的同 batch host-step 时间，也不是 NPU forward 或 HTTP 时间；`host_step_equivalence` 正确保持 `false`。验收从原始事件重新计算，不能改 PASS 或 equivalent 标志放行。具体定义、限制和差异见 [异步标定协议](docs/native-async-calibration.md)。本地无 NPU，尚不能宣称新口径已在现场通过。
+
+## 日常测试和实验
 
 从 GitHub **main** 下载到新目录，进入目录，在 **Linux 宿主机**执行：
 
@@ -8,7 +46,7 @@
 bash run_native.sh install
 ```
 
-自动连接现有四个服务。原生接口可用的副本直接复用；缺少接口、或仍使用旧认证接口的副本，自动备份、安装/更新补丁、逐个重启并等待就绪。只有安装需要加载补丁时才重启；请在这些服务没有其它任务时执行。**不需要生成或复制任何密钥，不依赖旧项目目录，版本字符串和代码哈希不同不会单独阻止运行。** 不创建新模型服务、不升级推理栈、不修改服务资源参数。
+自动连接现有四个服务。原生接口和所需计时字段可用的副本直接复用；缺少接口、计时字段或仍使用旧认证接口的副本，自动备份、安装/更新补丁、逐个重启并等待就绪。只有安装需要加载补丁时才重启；请在这些服务没有其它任务时执行。**不需要生成或复制任何密钥，不依赖旧项目目录，版本字符串和代码哈希不同不会单独阻止运行。** 不创建新模型服务、不升级推理栈、不修改服务资源参数。
 
 一行启动测试：
 
@@ -44,8 +82,8 @@ git clone -b main https://github.com/micavro/dabs-ascend.git dabs-native-current
 
 所有结果保存普通文本／JSON／CSV；只复制需要的文字，不打包、不上传。失败、零偏离和负收益均保留。
 
-2026-10-16 的现场反馈：单卡探针首次因优先动作发出过早失败；等待短请求输出达到 14/16 token 后，重跑摘要为 19/19 通过、`live_verified=false`。此触发修正已纳入代码，保留固定窗口和真实执行顺序检查。该结果来自用户提供的现场记录，第二次逐批原始日志尚未在本地核对，**不能代替四卡、标定及完整原生验收**。当前移除了旧 `source_identity` 哈希通过项，剩余机制检查没有放宽。
+2026-10-16 的现场反馈：旧版本经现场修改后，单卡探针 19/19、四卡探针 20/20、重启失效检查通过；单卡优先动作触发修正 14/16 已合入。随后标定采集 8896 条，旧规则合格数 0，全部排除；缓存失效专项和最终验收尚未执行。以上来自用户提供的终端/配置摘要，本地尚未取得完整原始事件，实际提交/完成组合请运行上面的离线 audit 确认。**不能把旧版本探针成功写成新版标定或完整原生验收通过。** 当前移除了旧 `source_identity` 哈希通过项，剩余机制检查没有放宽。
 
 重启/主动清空缓存测试是可选的独立专项，未执行会在验收中标记 `not_run`，不伪报通过。普通验收仍检查快照过期、实例改变、应用时缓存重查、重复动作和安全队列边界。详见 [部署与专项命令](docs/native-operations.md)、[机制与验收说明](docs/native-v023.md)。
 
-本地 CPU 自检：`python tools/run_ascend.py test`。CPU 通过不代表 NPU 验收通过；如果现场异步 Host-step 无法提供足够的同口径标定样本，会明确停止并保留原始记录，不能用 HTTP 或 forward 时间替代。
+本地 CPU 自检：`python tools/run_ascend.py test`。CPU 通过不代表 NPU 验收通过。新计时口径仍需满足样本数量、覆盖和留出误差；失败保留原始记录，不使用 HTTP 或 forward 时间替代。

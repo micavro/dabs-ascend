@@ -62,6 +62,9 @@ def check_model_range(model, replica, p, d, dc, pc):
     """No silent extrapolation outside this frozen native calibration."""
     if 'validation' not in model:
         return  # CPU fixtures; real runs require the raw native model gate.
+    from .native_timing import TARGET
+    if model.get('timing_target') == TARGET and model.get('host_step_equivalence') is not False:
+        raise ValueError('native_calibration_out_of_range:async accounting mislabeled as same-batch host step')
     from core18v2.service import phase
     observed = model['validation'][str(replica)][phase(p, d)]['range']
     for key, value in dict(p=p, d=d, dc=dc, pc=pc).items():
@@ -87,7 +90,10 @@ def next_batch(state, action, model, replica, cfg):
     dc = sum(ns[k]['prompt'] + ns[k].get('output_done', 0) for k in dec)
     if p or d:
         check_model_range(model, replica, p, d, dc, pc)
+    if d:
+        check_model_range(model, replica, 0, d, dc, 0)
     return {'prefill': p, 'decode': d, 'decode_context': dc, 'cache_credit': 0,
+            'timing_target': model.get('timing_target'),
             'max_prefill_context': pc, 'step_ms': predict(model, replica, p, d, dc, pc) if p or d else 0.,
             'decode_only_ms': predict(model, replica, 0, d, dc, 0) if d else 0.,
             'new_decode_next_step': sum(ns[k]['computed'] + n == ns[k]['prompt'] for k, n in pre)}

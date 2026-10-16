@@ -16,6 +16,7 @@ from dabs_ascend.common import read_json, write_json, source_paths
 
 MODES = ('native-install-check', 'native-install', 'native-verify', 'native-rollback',
          'native-check', 'native-check-four', 'native-probe-one', 'native-probe-four', 'native-calibrate',
+         'native-calibrate-one', 'native-calibration-smoke', 'native-timing-audit',
          'native-invalidate', 'native-restart-arm', 'native-restart-check', 'native-accept')
 
 
@@ -85,6 +86,15 @@ def host(args):
         command += ['--out', mounted_path(args.out)]
     if args.evidence:
         command += ['--evidence', mounted_path(args.evidence)]
+    if args.input:
+        # Offline audit may read an older checkout. Mount it read-only; never
+        # change/ack/repackage the original files or connect to model services.
+        source = args.input.resolve()
+        if not source.is_dir():
+            raise ValueError('--input must be an existing calibration directory')
+        at = command.index('--workdir')
+        command[at:at] = ['--mount', 'type=bind,src=' + str(source) + ',dst=/audit-input,readonly']
+        command += ['--input', '/audit-input']
     return subprocess.call(command)
 
 
@@ -95,11 +105,31 @@ async def worker(args, out):
     from dabs_ascend.native_probe import probe, invalidation_probe
     from dabs_ascend.native_gate import verify_live
     from dabs_ascend.native_calibration import run_calibration
+    if args.mode == 'native-timing-audit':
+        from dabs_ascend.native_timing import audit, read_events, reconstruct, collection_floors
+        rows = list(read_events(args.input / 'native_events.jsonl'))
+        report = audit(rows)
+        write_json(out / 'timing_audit.json', report)
+        plan_file = args.input / 'calibration_plan.json'
+        if plan_file.exists():
+            record = read_json(plan_file)
+            floors = collection_floors(rows, record) if record.get('collection_start') else None
+            samples, excluded = reconstruct(rows, record['plan'], require_new_fields=False, after_steps=floors)
+            report.update(candidate_completion_intervals=len(samples), excluded_intervals=excluded,
+                          diagnostic_only=True, acceptance_granted=False)
+        write_json(out / 'timing_audit.json', report)
+        write_json(out / 'result.json', {'pass': True, 'diagnostic_only': True, 'acceptance_granted': False})
+        summary = json.dumps(report, ensure_ascii=False, indent=2)
+        (out / 'SUMMARY.txt').write_text(summary, encoding='utf-8')
+        print(summary)
+        print('NATIVE_OUTPUT=' + str(out))
+        return 0
     async with httpx.AsyncClient(timeout=300, trust_env=False, limits=httpx.Limits(max_connections=128, max_keepalive_connections=0)) as client:
         endpoints = ['http://127.0.0.1:' + str(8001 + r) for r in range(4)]
         # A single-replica check/probe is possible before patching the other three.
-        if args.mode in ('native-check', 'native-probe-one', 'native-restart-arm', 'native-restart-check') and args.replica in (None, 0):
-            endpoints = endpoints[:1]
+        if args.mode in ('native-check', 'native-probe-one', 'native-restart-arm', 'native-restart-check',
+                         'native-calibrate-one', 'native-calibration-smoke'):
+            endpoints = [endpoints[args.replica or 0]]
         native = NativeClient(client, endpoints, out / 'native_events.jsonl')
         caps = await native.inspect()
         write_json(out / 'capabilities.json', caps)
@@ -118,8 +148,8 @@ async def worker(args, out):
             from dabs_ascend.native_gate import evaluate_probe
             result = {'checks': evaluate_probe(out, count)}
             result['pass'] = all(result['checks'].values())
-        elif args.mode == 'native-calibrate':
-            result = await run_calibration(backend, tokenizer, out)
+        elif args.mode in ('native-calibrate', 'native-calibrate-one', 'native-calibration-smoke'):
+            result = await run_calibration(backend, tokenizer, out, diagnostic=args.mode == 'native-calibration-smoke')
         elif args.mode == 'native-invalidate':
             result = await invalidation_probe(native, tokenizer, backend, out)
         elif args.mode == 'native-restart-arm':
@@ -142,9 +172,14 @@ async def worker(args, out):
         write_json(latest_file, latest)
         write_json(out / 'result.json', result)
         summary = {'mode': args.mode, 'output': str(out), 'pass': result.get('pass'),
+                   'physical_replica': args.replica if args.replica is not None else (0 if len(endpoints) == 1 else None),
                    'live_verified': result.get('live_verified', False),
                    'checks': result.get('checks'), 'not_run': result.get('not_run', []), 'missing': result.get('missing') or result.get('failures'),
-                   'inference_executed': args.mode in ('native-probe-one', 'native-probe-four', 'native-calibrate', 'native-invalidate')}
+                   'diagnostic_only': result.get('diagnostic_only', False),
+                   'association_pass': result.get('association_pass'),
+                   'calibration_pass': result.get('calibration_pass'),
+                   'inference_executed': args.mode in ('native-probe-one', 'native-probe-four', 'native-calibrate',
+                       'native-calibrate-one', 'native-calibration-smoke', 'native-invalidate')}
         (out / 'SUMMARY.txt').write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding='utf-8')
         print(json.dumps(summary, ensure_ascii=False, indent=2))
         return 2 if result.get('pass') is False else 0
@@ -157,11 +192,14 @@ def main():
     parser.add_argument('--backup')
     parser.add_argument('--out', type=Path, help='new output directory inside project outputs; never overwrite')
     parser.add_argument('--evidence', type=Path, help='native-accept only: explicit JSON with raw evidence paths')
+    parser.add_argument('--input', type=Path, help='native-timing-audit: old calibration directory, read-only')
     parser.add_argument('--worker', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
     if args.evidence and args.mode != 'native-accept':
         parser.error('--evidence is only for native-accept')
-    if args.mode not in MODES[:4] and args.replica not in (None, 0):
+    if (args.mode == 'native-timing-audit') != bool(args.input):
+        parser.error('--input is required only for native-timing-audit')
+    if args.mode not in (*MODES[:4], 'native-check', 'native-calibrate-one', 'native-calibration-smoke') and args.replica not in (None, 0):
         parser.error('--replica 1..3 is for install/check/verify/rollback; active one-replica probes use replica 0, four-replica probes use all four')
     if not args.worker:
         return host(args)

@@ -175,6 +175,6 @@ def choose(state, model, cfg, deadline):
     finally:
         selector.proposals = original_proposals
     result.update(method='Ours', action_projection='native_safe_prefill_queues',
-                  calibration_source='frozen_native_engine_host_step', native_cache_observed=True,
+                  calibration_source=model.get('timing_target', 'frozen_native_engine_host_step'), native_cache_observed=True,
                   native_dag_equivalent=False, surrogate_is_measured_counterfactual=False)
     return result

@@ -5,6 +5,7 @@ from pathlib import Path
 from .common import read_json, sha, source_identity
 from .native_calibration import batch_features, fit_model
 from dabs_native.contracts import engine_epoch, resource_values
+from .native_timing import TARGET, reconstruct, collection_floors
 
 
 def events(directory):
@@ -101,11 +102,28 @@ def evaluate_local(paths):
         calibration = Path(paths['native-calibrate'])
         model, samples = read_json(calibration / 'native_profile.json'), read_json(calibration / 'calibration_samples.json')
         caps = read_json(calibration / 'capabilities.json')
-        raw = {(e['replica'], b['batch_id']): batch_features(b) for e in events(calibration) if e['op'] == 'batches'
+        accounting = model.get('timing_target') == TARGET
+        raw = {} if accounting else {(e['replica'], b['batch_id']): batch_features(b) for e in events(calibration) if e['op'] == 'batches'
                for b in e['response']['batches'] if b.get('device')}
         raw_batches = {(e['replica'], b['batch_id']): b for e in events(calibration) if e['op'] == 'batches'
                        for b in e['response']['batches'] if b.get('device')}
-        declared_plan = read_json(calibration / 'calibration_plan.json')['plan']
+        plan_record = read_json(calibration / 'calibration_plan.json')
+        declared_plan = plan_record['plan']
+        if accounting:
+            from .native_calibration import calibration_plan
+            if plan_record.get('diagnostic_only') is not False or declared_plan != calibration_plan():
+                raise ValueError('diagnostic or incomplete/nondeclared calibration plan cannot open gate')
+            raw_events = events(calibration)
+            floors = collection_floors(raw_events, plan_record)
+            if set(floors) != set(range(len(caps))):
+                raise ValueError('missing replica collection-start snapshot')
+            rebuilt, excluded = reconstruct(raw_events, declared_plan, after_steps=floors)
+            raw = {(s['replica'], s['batch_id']): s for s in rebuilt}
+            if excluded or len(samples) != len(raw):
+                raise ValueError('excluded or omitted raw calibration batches')
+            expected = {(r, g['seed']) for r in range(len(caps)) for g in declared_plan}
+            if {(s['replica'], s['group']['seed']) for s in rebuilt} != expected:
+                raise ValueError('incomplete calibration groups')
         seen = set()
         for sample in samples:
             key = sample['replica'], sample['batch_id']
@@ -120,7 +138,12 @@ def evaluate_local(paths):
         recomputed = fit_model(samples, caps)
         checks['calibration'] = {'frozen_independent_holdout': recomputed['pass'] and model['models'] == recomputed['models'] and
             model['validation'] == recomputed['validation'] and
-            model['timing_target'] == recomputed['timing_target'] and model['host_step_equivalence'] is True}
+            model['timing_target'] == recomputed['timing_target'] and
+            model['host_step_equivalence'] == recomputed['host_step_equivalence'] and
+            model.get('frozen') is True and not model.get('diagnostic_only', False) and
+            model['identities'] == recomputed['identities'] and model['resources'] == recomputed['resources'] and
+            all(model.get(k) == recomputed.get(k) for k in ('original_gpu_timing_equivalent',
+                'accounting_model', 'prediction_semantics', 'pending_batch_model', 'thresholds_predeclared'))}
         for name in (*required, *(name for name in optional if name in paths)):
             directory = Path(paths[name])
             for path in directory.iterdir():

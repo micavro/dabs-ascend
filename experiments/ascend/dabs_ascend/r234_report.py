@@ -71,7 +71,7 @@ def procedure(out, record):
              'Ours 收益 = (基线平均 JCT − Ours 平均 JCT) / 基线平均 JCT；正值为改善，负值为退化。',
              '这是固定 token DAG 负载，无问答准确率。原生 KV 和引擎阶段指标不可得，保持 null。', '']
     if record['arguments'].get('execution_scope') == 'native':
-        lines[lines.index('4. `dabs_ascend.backend`：逐服务验证 3584 输入以及 16/32/48/64/128 输出，随后 `calibration.py` 采集本机 HTTP 时延。')] = '4. 原生门禁重新验证引擎签名、代码、配置和独立引擎 host-step 标定；加载冻结模型，正式数据不参与拟合。'
+        lines[lines.index('4. `dabs_ascend.backend`：逐服务验证 3584 输入以及 16/32/48/64/128 输出，随后 `calibration.py` 采集本机 HTTP 时延。')] = '4. 原生门禁重新计算原始事件、核对引擎实例、配置和独立标定；加载冻结模型，计时口径见 protocol.json，正式数据不参与拟合。'
         lines[-2] = '原生状态、KV 查询、引擎回执和带 batch ID 的引擎 host-step 与辅助 NPU forward 时间保存在 native_events.jsonl；HTTP TTFT/TPOT 仍只标作客户端代理。'
     (out / 'REPRODUCE.md').write_text('\n'.join(lines), encoding='utf-8')
 
@@ -119,6 +119,7 @@ def make_report(out, plan, summaries, status, error=None, *, source_out=None):
     canaries = read_json(source_out / 'canary_summary.json') if (source_out / 'canary_summary.json').exists() else []
     native_gate = read_json(source_out / 'native_gate.json') if (source_out / 'native_gate.json').exists() else {}
     native = bool(native_gate.get('pass') and native_gate.get('live_verified'))
+    profile = read_json(source_out / 'ascend_profile.json') if (source_out / 'ascend_profile.json').exists() else {}
     canary_ok = (len(canaries) == 20 and all(r['passed'] for r in canaries)
                  and {(r['replica'], r['fixed_output_budget']) for r in canaries} == {(r, n) for r in range(4) for n in (16, 32, 48, 64, 128)})
     rows, workflows, stages, loads, reasons = [], [], [], [], []
@@ -153,7 +154,10 @@ def make_report(out, plan, summaries, status, error=None, *, source_out=None):
               'declared_conditions': 96, 'functional_test_pass': bool(passed),
               'fixed_work_pass': work_ok, 'http_inference_verified': canary_ok,
               'real_npu_verified': native, 'native_mechanism_test_pass': bool(native and passed),
-              'strict_native_reproduction_pass': bool(native and passed and not native_gate.get('not_run', [])),
+              'strict_native_reproduction_pass': bool(native and passed and not native_gate.get('not_run', [])
+                                                      and profile.get('original_gpu_timing_equivalent') is True),
+              'timing_target': profile.get('timing_target') if native else None,
+              'original_gpu_timing_equivalent': profile.get('original_gpu_timing_equivalent', False) if native else False,
               'native_optional_tests_not_run': native_gate.get('not_run', []),
               'native_acceptance_scope': native_gate.get('scope'),
               'native_cache_observed': native, 'native_kv_hit_rate': None,
@@ -165,7 +169,7 @@ def make_report(out, plan, summaries, status, error=None, *, source_out=None):
               'ours_engine_applied_nonreference_actions': sum(s.get('engine_applied_nonreference_actions', 0) for s in ours) if native else None,
               'limits': ([
                   'Native EngineCore snapshots/cache queries/receipts are in conditions/*/native_events.jsonl; HTTP timing remains explicitly separate.',
-                  'Timing target: actual engine host-step elapsed, using unambiguous batch/call associations. NPU forward events are auxiliary; predictions remain approximations.',
+                  'Timing target: ' + str(profile.get('timing_target')) + '. Async completion accounting is a new throughput proxy, not the original GPU host-step target. NPU forward events remain auxiliary.',
                   'Only unsubmitted routing, admission permits and safe waiting/partial-prefill queue slots are supported. Decode/inflight requests cannot be moved.',
                   'Input/DAG/seeds/96-condition order remain frozen. Negative gains, zero deviations and failures are retained.',
                   'Mechanism validation is distinct from reproducing NVIDIA performance numbers.',
