@@ -8,14 +8,14 @@
 
 ## 下载到新目录
 
-开发分支：`codex/native-v023`。保留 `/data/wushibo/dabs-ascend-main-2026101602` 和所有旧结果。在 Linux 宿主机执行：
+原生适配已合入 `main`，现场机制仍待真机验收。保留 `/data/wushibo/dabs-ascend-main-2026101602` 和所有旧结果。在 Linux 宿主机执行：
 
 ```bash
-git clone -b codex/native-v023 https://github.com/micavro/dabs-ascend.git dabs-native-v023
+git clone -b main https://github.com/micavro/dabs-ascend.git dabs-native-v023
 cd dabs-native-v023
 ```
 
-也可从 GitHub 此分支下载源码 ZIP，解压到新目录。**源码下载包与实验结果不同；实验结果不打包、不上传。**
+也可从 GitHub 的 `main` 分支下载源码 ZIP，解压到新目录。**源码下载包与实验结果不同；实验结果不打包、不上传。**
 
 ## 新目录第一条命令
 
