@@ -73,6 +73,12 @@ def procedure(out, record):
     if record['arguments'].get('execution_scope') == 'native':
         lines[lines.index('4. `dabs_ascend.backend`：逐服务验证 3584 输入以及 16/32/48/64/128 输出，随后 `calibration.py` 采集本机 HTTP 时延。')] = '4. 原生门禁重新计算原始事件、核对引擎实例、配置和独立标定；加载冻结模型，计时口径见 protocol.json，正式数据不参与拟合。'
         lines[-2] = '原生状态、KV 查询、引擎回执和带 batch ID 的引擎 host-step 与辅助 NPU forward 时间保存在 native_events.jsonl；HTTP TTFT/TPOT 仍只标作客户端代理。'
+    if record['arguments'].get('screening'):
+        from .r234 import screening_plan
+        count = len(screening_plan(record['arguments']['screening']))
+        lines = [f'本次为诊断筛查，共 {count} 条；工作量完成与规划完整评分独立判断，不拼入或续接正式矩阵。'
+                 if text.startswith('96/96 且检查通过') else text for text in lines]
+        lines[2:2] = ['诊断筛查：' + record['arguments']['screening'] + '。仅运行预定 T1 四方法组，不拼入或续接 96 条矩阵；使用 run_native.sh screen 时，完整评分结论另见上级工作流目录 planning_audit.json。', '']
     (out / 'REPRODUCE.md').write_text('\n'.join(lines), encoding='utf-8')
 
 
@@ -115,6 +121,11 @@ def chart(summaries, metric, title):
 
 def make_report(out, plan, summaries, status, error=None, *, source_out=None):
     source_out = source_out or out
+    protocol = read_json(source_out / 'protocol.json') if (source_out / 'protocol.json').exists() else {}
+    screening = protocol.get('screening')
+    from .r234 import screening_plan
+    expected = len(screening_plan(screening)) if screening else 96
+    plan_valid = plan == screening_plan(screening) if screening else len(plan) == 96
     env = read_json(source_out / 'environment.json') if (source_out / 'environment.json').exists() else {}
     canaries = read_json(source_out / 'canary_summary.json') if (source_out / 'canary_summary.json').exists() else []
     native_gate = read_json(source_out / 'native_gate.json') if (source_out / 'native_gate.json').exists() else {}
@@ -150,18 +161,20 @@ def make_report(out, plan, summaries, status, error=None, *, source_out=None):
             stages.append({**spec, 'wid': w['wid'], 'jct_ms': w['jct_ms'], **w['critical_path_ms']})
         loads.extend({**spec, **r} for r in s.get('replica_rows', []))
     pairs = paired_rows(summaries)
-    count_ok = len(summaries) == 96 and [s['spec'] for s in summaries] == plan
+    count_ok = plan_valid and len(summaries) == expected and [s['spec'] for s in summaries] == plan
     work_ok = bool(summaries) and all(s['functional_pass'] and s['fixed_work_pass'] for s in summaries)
-    passed = status == 'complete' and count_ok and work_ok and env.get('passed', False) and canary_ok and all(p['paired_work_pass'] for p in pairs) and len(pairs) == 72
+    passed = status == 'complete' and count_ok and work_ok and env.get('passed', False) and canary_ok and all(p['paired_work_pass'] for p in pairs) and len(pairs) == expected // 4 * 3
     ours = [s for s in summaries if s['spec']['method'] == 'Ours']
     report = {'suite': 'dabs-r234-balanced-64', 'status': status, 'completed_conditions': len(summaries),
-              'exploratory': exploratory, 'formal_acceptance': bool(native and not exploratory),
+              'exploratory': exploratory, 'formal_acceptance': bool(native and not exploratory and not screening),
+              'screening': screening, 'diagnostic_only': bool(screening),
+              'screening_completed': bool(screening and passed), 'full_matrix_complete': bool(not screening and passed),
               'calibration_error_deferred': native_gate.get('calibration_error_deferred', []),
               'model_transfer_from_replica_0': native_gate.get('model_transfer_from_replica_0', False),
-              'declared_conditions': 96, 'functional_test_pass': bool(passed),
+              'declared_conditions': expected, 'functional_test_pass': bool(passed),
               'fixed_work_pass': work_ok, 'http_inference_verified': canary_ok,
               'real_npu_verified': native, 'native_mechanism_test_pass': bool(native and passed),
-              'strict_native_reproduction_pass': bool(native and passed and not native_gate.get('not_run', [])
+              'strict_native_reproduction_pass': bool(native and passed and not screening and not native_gate.get('not_run', [])
                                                       and profile.get('original_gpu_timing_equivalent') is True),
               'timing_target': profile.get('timing_target') if observed_native else None,
               'original_gpu_timing_equivalent': profile.get('original_gpu_timing_equivalent', False) if native else False,
@@ -183,6 +196,9 @@ def make_report(out, plan, summaries, status, error=None, *, source_out=None):
                   'Optional destructive probes NOT_RUN: ' + ', '.join(native_gate.get('not_run', []))] if observed_native else LIMITS) + env.get('limits', []), 'error': error}
     if exploratory:
         report['limits'].insert(0, 'EXPLORATORY ONLY: prediction accuracy not accepted; model transfer=' + str(native_gate.get('model_transfer_from_replica_0')))
+    if screening:
+        report['limits'] = [text for text in report['limits'] if '96-condition' not in text and 'Same 96 condition' not in text]
+        report['limits'].insert(0, 'SCREENING ONLY: predetermined T1 subset; original specs and within-group method order retained. Not full-matrix or performance acceptance.')
     write_json(out / 'acceptance.json', report)
     for filename, values in [('metrics.csv', rows), ('paired_comparisons.csv', pairs),
                              ('workflow_metrics.csv', workflows), ('latency_decomposition.csv', stages),
@@ -190,18 +206,18 @@ def make_report(out, plan, summaries, status, error=None, *, source_out=None):
         write_csv(out / filename, values)
     if not reasons:
         (out / 'diagnostic_reasons.csv').write_text('label,replicas,rate,repeat,method,stage,reason,count\n', encoding='utf-8-sig')
-    lines = ['# R234 昇腾运行报告', '', f'状态：{status}；完成 **{len(summaries)}/96** 个条件。',
+    lines = ['# R234 昇腾运行报告', '', f'状态：{status}；完成 **{len(summaries)}/{expected}** 个条件。',
              f"完整负载运行检查：{'PASS' if passed else '未通过或尚未完成'}。", '',
              '每条件 64 工作流 / 216 请求 / 774144 输入 token / 13184 输出 token。',
-             '完整实验：6144 工作流 / 20736 请求 / 1265664 输出 token（不含预检、预热和校准）。', '',
+             f'本次计划：{expected*64} 工作流 / {expected*216} 请求 / {expected*13184} 输出 token（不含预检、预热和校准）。', '',
              '过程与保存路径见 [REPRODUCE.md](REPRODUCE.md)，可视化见 [RESULTS.html](RESULTS.html)。', '',
              '## Ours 与配对基线比较', '',
              '正值表示 Ours 的平均 JCT 更低，负值表示更慢；仅纳入已完成配对，未完成不能作完整实验结论。', '',
-             '| 基线 | 已完成配对 / 24 | 平均 JCT 改善 |', '|---|---:|---:|']
+             f'| 基线 | 已完成配对 / {expected//4} | 平均 JCT 改善 |', '|---|---:|---:|']
     for method in METHODS[:-1]:
         values = [p['ours_jct_reduction_pct'] for p in pairs if p['reference'] == method and p['paired_work_pass']]
         value = f'{statistics.mean(values):+.2f}%' if values else '尚无'
-        lines.append(f'| {method} | {len(values)} / 24 | {value} |')
+        lines.append(f'| {method} | {len(values)} / {expected//4} | {value} |')
     lines += ['', f"Ours 已执行条件：{len(ours)}；无完整参考评分的条件：{len(report['ours_conditions_without_scoring'])}；无完整候选评分的条件：{len(report['ours_conditions_without_rankable_candidate'])}。",
               f"选择非基线动作：{report['ours_selected_nonreference_actions']}；客户端实际产生不同提交序列/路由：{report['ours_client_applied_nonreference_actions']}；引擎应用次数：{report['ours_engine_applied_nonreference_actions']}。",
               '旧版 nonreference_actions 只计选择且未过期，不能当作引擎已应用；None 表示缺少证据。',
@@ -210,6 +226,8 @@ def make_report(out, plan, summaries, status, error=None, *, source_out=None):
               '## 原生指标与适配边界', ''] + ['- ' + text for text in report['limits']]
     if error:
         lines += ['', '错误：`' + error.replace('`', "'") + '`；详见 error.txt。']
+    if screening:
+        lines[2:2] = ['**诊断筛查，不是 96 条正式实验。工作量完成与 Ours 完整评分分开判定；单轮结果不证明性能优势。**', '']
     if exploratory:
         lines[2:2] = ['**探索性试跑：暂不要求预测误差合格，不计正式验收。**',
                       '共用副本 0 预测模型：' + str(native_gate.get('model_transfer_from_replica_0')),
@@ -222,10 +240,12 @@ def make_report(out, plan, summaries, status, error=None, *, source_out=None):
     table += '</tbody></table>'
     document = '<!doctype html><html lang="zh"><meta charset="utf-8"><title>R234 results</title><style>body{font:16px system-ui;max-width:1100px;margin:32px auto;padding:16px;color:#172033;background:#f5f7fb}table{border-collapse:collapse;background:white}td,th{padding:8px;border:1px solid #ddd}svg{max-width:530px;background:white;margin:8px}h1{color:#123452}</style>'
     boundary = '原生证据见 native_events.jsonl；引擎 host-step、辅助 NPU forward 和 HTTP 时延分开记录' if observed_native else '原生 KV / 引擎阶段时间未观测'
-    document += f'<h1>R234 昇腾实验：{len(summaries)}/96</h1><p>状态：{html.escape(status)}。固定 token DAG 回放；{boundary}。</p><p>RR 蓝 · SLL 橙 · Ayo 绿 · Ours 紫。图表只展示已完成条件；完成前不能据此筛选条件。</p>'
+    document += f'<h1>R234 昇腾实验：{len(summaries)}/{expected}</h1><p>状态：{html.escape(status)}。固定 token DAG 回放；{boundary}。</p><p>RR 蓝 · SLL 橙 · Ayo 绿 · Ours 紫。图表只展示已完成条件；完成前不能据此筛选条件。</p>'
     document += chart(summaries, 'jct_mean_ms', '平均 JCT (ms)') + chart(summaries, 'workflows_s', '完成吞吐 (工作流/s)')
     document += '<h2>逐条件结果</h2>' + table + '<p>过程：REPRODUCE.md · 结论：TEST_REPORT.md · 配对比较：paired_comparisons.csv</p></html>'
     if exploratory:
         document = document.replace('<h1>', '<p><strong>探索性试跑：预测误差未获验收；可能共用副本 0 的估计。不是正式复现结果。</strong></p><h1>', 1)
+    if screening:
+        document = document.replace('<h1>', '<p><strong>诊断筛查，不是 96 条正式实验；工作量完成不等于 Ours 完整评分或性能优势。</strong></p><h1>', 1)
     (out / 'RESULTS.html').write_text(document, encoding='utf-8')
     return report

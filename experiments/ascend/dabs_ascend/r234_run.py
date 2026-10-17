@@ -49,7 +49,8 @@ def arguments(args):
 
 def stable_arguments(args):
     return {k: v for k, v in arguments(args).items()
-            if k not in ('out', 'resume', 'max_conditions', 'deployment_manifest', 'mode', 'native_evidence', 'model')}
+            if k not in ('out', 'resume', 'max_conditions', 'deployment_manifest', 'mode', 'native_evidence', 'model')
+            and not (k == 'screening' and not v)}
 
 
 def native_paths(args):
@@ -189,7 +190,8 @@ async def execute(args, out, plan, summaries, identity):
                     timing_target=model['timing_target'], predictor=model.get('predictor', 'phase6_v1'),
                     original_gpu_timing_equivalent=model.get('original_gpu_timing_equivalent', False),
                     effective_resources=[c['resources'] for c in caps], client_max_inflight=args.max_inflight,
-                    exploratory=bool(gate.get('exploratory')), formal_acceptance=gate['pass'])
+                    exploratory=bool(gate.get('exploratory')),
+                    formal_acceptance=gate['pass'] and not bool(getattr(args, 'screening', None)))
                 protocol['planning_contract'] = PLANNING_CONTRACT
                 write_json(out / 'protocol.json', protocol)
                 repair = read_json(out / 'repair_protocol.json')
@@ -231,7 +233,7 @@ async def execute(args, out, plan, summaries, identity):
                                 'dabs_r234_frozen.fixed_work.convert_nodes', 'dabs_ascend.r234.baseline',
                                 'dabs_ascend.r234.plan_ours' if spec['method'] == 'Ours' else None],
                             'output': str(directory), 'logical_to_physical_devices': args.devices[:spec['replicas']]})
-                print(f"R234_CONDITION {index + 1}/96 {spec['label']}", flush=True)
+                print(f"R234_CONDITION {index + 1}/{len(plan)} {spec['label']}", flush=True)
                 emit(out, 'CONDITION', index=index + 1, label=spec['label'], seed=spec['seed'],
                      output='conditions/' + spec['label'], planning=PLANNING_CONTRACT if native else 'http')
                 summary = await run_condition(backend, tok, packets, model, current, spec, directory, pool, servers.check_alive)
@@ -264,7 +266,7 @@ async def execute(args, out, plan, summaries, identity):
                             'label': spec['label'], 'mean_jct_ms': summary['jct_mean_ms'], 'output': str(directory)})
                 from .r234_report import make_report
                 make_report(out, plan, summaries, 'running')
-                print(f"R234_DONE {index + 1}/96 mean_JCT_ms={summary['jct_mean_ms']:.2f} output_tokens={summary['output_tokens']}", flush=True)
+                print(f"R234_DONE {index + 1}/{len(plan)} mean_JCT_ms={summary['jct_mean_ms']:.2f} output_tokens={summary['output_tokens']}", flush=True)
             servers.check_alive()
         finally:
             if pool is not None:
@@ -276,9 +278,12 @@ async def execute(args, out, plan, summaries, identity):
 
 
 def main(args):
-    plan = r234.plan()
+    screening = getattr(args, 'screening', None)
+    plan = r234.screening_plan(screening) if screening else r234.plan()
     if args.mode == 'plan':
-        print(json.dumps({'suite': r234.SUITE, 'conditions': 96, 'plan': plan, 'limits': r234.LIMITS,
+        print(json.dumps({'suite': r234.SUITE, 'conditions': len(plan), 'plan': plan,
+                          'screening': screening, 'formal_acceptance': False,
+                          'limits': ['Predetermined diagnostic subset, not the full 96-condition experiment.'] if screening else r234.LIMITS,
                           'requests_per_condition': 216, 'output_tokens_per_condition': 13184,
                           'inference_executed': False}, ensure_ascii=False, indent=2))
         return 0
@@ -296,7 +301,7 @@ def main(args):
         if args.service_mode != 'existing' or not (gate['pass'] or gate.get('exploratory_allowed')):
             print('R234_NATIVE_GATE=' + json.dumps(gate, ensure_ascii=False), file=sys.stderr)
             return 2
-    prefix = 'r234_native_' if args.execution_scope == 'native' else 'r234_ascend_'
+    prefix = 'r234_screening_' if screening else 'r234_native_' if args.execution_scope == 'native' else 'r234_ascend_'
     out = args.resume or args.out or ROOT / 'outputs' / (prefix + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ_') + uuid.uuid4().hex[:8])
     out = out.expanduser().resolve()
     identity = source_identity()
@@ -317,17 +322,20 @@ def main(args):
             out.mkdir(parents=True, exist_ok=False)
             summaries = []
             write_json(out / 'protocol.json', {'suite': r234.SUITE, 'plan': plan, 'source_sha256': identity,
-                       'stable_arguments': stable_arguments(args), 'limits': r234.LIMITS,
+                       'screening': screening, 'screening_revision': r234.SCREENING_REVISION if screening else None,
+                       'diagnostic_only': bool(screening),
+                       'stable_arguments': stable_arguments(args),
+                       'limits': ['Diagnostic subset only; original condition specs unchanged; native gate pending.'] if screening else r234.LIMITS,
                        'workflows_per_condition': 64, 'requests_per_condition': 216,
                        'input_tokens_per_request': 3584, 'output_tokens_per_condition': 13184,
                        'strict_native_reproduction': False, 'automatic_retry': False,
                        'planning_contract': PLANNING_CONTRACT if args.execution_scope == 'native' else None})
             write_json(out / 'repair_protocol.json', {
                 'revision': '20261016-native-v023-v1', 'execution_scope': args.execution_scope,
-                'plan_revision': 'R4-L8_then_R2-L16_rotating_methods_mirrored_round2',
+                'plan_revision': r234.SCREENING_REVISION if screening else 'R4-L8_then_R2-L16_rotating_methods_mirrored_round2',
                 'http_keepalive': args.http_keepalive, 'native_mechanism_test_pass': False,
                 'calibration_scope': 'pending native preflight' if args.execution_scope == 'native' else 'HTTP TTFT/TPOT proxy; not native batch-step validation',
-                'group_audit_conditions': 4, 'first_checkpoint_conditions': 8,
+                'group_audit_conditions': 4, 'first_checkpoint_conditions': 4 if screening else 8,
                 'previous_results_combinable': False})
             write_json(out / 'index.json', [])
     except Exception as exc:
@@ -389,7 +397,7 @@ def run_recorded(args, out, plan, summaries, identity):
         else:
             write_json(out / 'status.json', {'status': 'running'})
             asyncio.run(execute(args, out, plan, summaries, identity))
-            status = 'complete' if len(summaries) == 96 else 'paused'
+            status = 'complete' if len(summaries) == len(plan) else 'paused'
     except BaseException as exc:
         error = repr(exc)
         (out / 'error.txt').write_text(traceback.format_exc(), encoding='utf-8')
@@ -405,7 +413,7 @@ def run_recorded(args, out, plan, summaries, identity):
     print('R234_REPORT=' + str(out / 'TEST_REPORT.md'), flush=True)
     if status == 'paused':
         relative = out.relative_to(ROOT).as_posix() if out.is_relative_to(ROOT) else str(out)
-        print('CLEAN_PAUSE: remaining=' + str(96 - len(summaries)), flush=True)
+        print('CLEAN_PAUSE: remaining=' + str(len(plan) - len(summaries)), flush=True)
         command = ['bash', 'run_dabs_r234.sh', 'benchmark', '--execution-scope', args.execution_scope, '--resume', relative]
         if getattr(args, 'native_evidence', None):
             command += ['--native-evidence', str(args.native_evidence)]

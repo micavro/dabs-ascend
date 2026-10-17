@@ -11,6 +11,8 @@ from .common import ROOT, read_json, sha, source_paths
 SUITE = 'dabs-r234-balanced-64'
 FROZEN = ROOT / 'source/spra_workflow_fullgrid_r234_sll_v1/wfsched'
 METHODS = ('RR', 'SLL', 'Ayo', 'Ours')
+SCREENING_CASES = {'r3-l8': (3, 8), 'r4-l4': (4, 4), 'r3-l4': (3, 4)}
+SCREENING_REVISION = 'native-screen-r3l8-r4l4-r3l4-t1-v1'
 LIMITS = [
     'Same 96 condition specifications, balanced DAG selection, arrivals and fixed token budgets as the new source package.',
     'HTTP controller adapter: not a native NVIDIA/Ascend engine-internal scheduler reproduction.',
@@ -100,6 +102,16 @@ def baseline(state, cfg, method):
         from joint18v2.search import reference
         return ready_projection(reference(state, cfg), state)
     raise ValueError('Unknown R234 method: ' + str(method))
+
+
+def screening_plan(group='all'):
+    """Predetermined diagnostic subset; retain exact specs and within-group order."""
+    if group != 'all' and group not in SCREENING_CASES:
+        raise ValueError('unknown screening group: ' + str(group))
+    cases = list(SCREENING_CASES.values()) if group == 'all' else [SCREENING_CASES[group]]
+    full = plan()
+    return [s for replicas, rate in cases for s in full
+            if (s['replicas'], s['rate'], s['repeat']) == (replicas, rate, 1)]
 
 
 def planner_ready(native=False):

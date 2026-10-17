@@ -59,6 +59,7 @@ class NativePlanning(unittest.TestCase):
                 new = adapted('engine').evaluate(s, a, model(), current, record_events=True)
                 self.assertTrue(old['complete'])
                 old.pop('cpu_wall_ms'); new.pop('cpu_wall_ms')
+                old.pop('diagnostic_stage_ms'); new.pop('diagnostic_stage_ms')
                 self.assertEqual(old, new)  # all events, admissions, costs, cache counters, DAG completions
 
     def test_115ms_observation_does_not_consume_post_observation_budget_or_extend_tick(self):

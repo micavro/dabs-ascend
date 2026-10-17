@@ -31,7 +31,7 @@ class Stopped(Exception):
 
 
 class Workflow:
-    def __init__(self, root, mode, invalidate_cache=False, verify_restart=False, ready_timeout=900, replica=None, input_path=None, max_conditions=None):
+    def __init__(self, root, mode, invalidate_cache=False, verify_restart=False, ready_timeout=900, replica=None, input_path=None, max_conditions=None, screen_group='all'):
         self.root, self.mode = Path(root).resolve(), mode
         stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ_') + uuid.uuid4().hex[:8]
         self.out = self.root / 'outputs' / ('native_' + mode + '_' + stamp)
@@ -39,6 +39,7 @@ class Workflow:
         self.invalidate_cache = invalidate_cache
         self.verify_restart, self.ready_timeout = verify_restart, ready_timeout
         self.replica, self.input_path = replica, input_path
+        self.screen_group = screen_group
         self.max_conditions = (8 if mode == 'verify' else 4) if max_conditions is None else max_conditions
         self.record = {'mode': mode, 'status': 'running', 'started_utc': utc(),
                        'output': self.relative(self.out), 'steps': [], 'next_commands': [],
@@ -62,7 +63,7 @@ class Workflow:
 
     def save(self):
         write_json(self.out / 'run.json', self.record)
-        lines = ['DABS 原生' + {'test': '测试', 'verify': '规划验证（原计划前若干条件）', 'experiment': '实验', 'install': '安装',
+        lines = ['DABS 原生' + {'test': '测试', 'verify': '规划验证（原计划前若干条件）', 'screen': '三组诊断筛查（非正式矩阵）', 'experiment': '实验', 'install': '安装',
                  'smoke': '计时关联短诊断', 'calibrate': '单副本完整标定', 'audit': '旧事件离线审计',
                  'refit': '旧数据离线重拟合（诊断，不作新验收）',
                  'explore': '带预测偏差的实验（非正式验收）'}[self.mode],
@@ -76,6 +77,11 @@ class Workflow:
         for field in ('acceptance', 'experiment_output', 'rollback_file'):
             if field in self.record:
                 lines.append(field + ': ' + self.record[field])
+        if self.mode == 'screen':
+            lines += ['筛查组: ' + self.screen_group,
+                      '工作量筛查完成: ' + str(self.record.get('screening_completed', False)),
+                      'Ours 时限内完整参考/不同候选评分: ' + str(self.record.get('planning_pass', '尚未审计')),
+                      '不是 96 条正式实验；不续接、不拼接；不以选择非参考动作或性能变快作为通过条件。']
         if self.record['next_commands']:
             lines += ['下一步（按顺序，涉及重启时等待服务重新就绪）:', *self.record['next_commands']]
         lines += ['复制用摘要（运行中持续追加）: ' + str(folder(self.out) / 'COPY.txt'),
@@ -242,10 +248,11 @@ class Workflow:
         """Copy plain evidence from an old checkout; no PASS flag grants acceptance."""
         tested = Path(self.input_path).resolve()
         if tested.parent.name != 'outputs':
-            raise Stopped('--input 必须指向旧项目 outputs/native_test_* 测试结果目录。')
+            raise Stopped('--input 必须指向旧项目 outputs 下的 native_test_* 目录；screen 也接受 native_verify_*。')
         source_root = tested.parent.parent
         record = read_json(tested / 'run.json')
-        if record.get('mode') != 'test' or record.get('status') != 'passed':
+        screen_source = self.mode == 'screen' and record.get('mode') == 'verify' and record.get('acceptance')
+        if not screen_source and (record.get('mode') != 'test' or record.get('status') != 'passed'):
             raise Stopped('指定测试没有完成；保留原始失败，不放行实验。')
 
         def source_path(value):
@@ -268,7 +275,7 @@ class Workflow:
             target = self.out / 'imported_test' / mode
             target.mkdir(parents=True)
             for path in source.iterdir():
-                if path.is_file() and path.suffix in ('.json', '.jsonl', '.txt', '.csv', '.md'):
+                if path.is_file() and 'manonly' not in path.name.lower() and path.suffix in ('.json', '.jsonl', '.txt', '.csv', '.md'):
                     shutil.copyfile(path, target / path.name)
             paths[mode] = self.container_path(target)
         shutil.copyfile(original, self.out / 'original_acceptance.json')
@@ -294,7 +301,7 @@ class Workflow:
             raise Stopped('测试原始验收记录缺失。', ['bash run_native.sh test'])
         return evidence
 
-    def verify(self):
+    def planning_evidence(self):
         evidence = self.test_evidence()
         from dabs_ascend.native_coverage import CONTRACT as COVERAGE
         manifest = read_json(evidence)
@@ -317,6 +324,10 @@ class Workflow:
             evidence = self.out / 'coverage_evidence.json'
             write_json(evidence, {'paths': paths, 'source_evidence': self.relative(old_evidence),
                                  'requires_raw_and_live_revalidation': True})
+        return evidence
+
+    def verify(self):
+        evidence = self.planning_evidence()
         result_dir = self.out / 'r234_native'
         self.record.update(acceptance=self.relative(evidence), experiment_output=self.relative(result_dir))
         self.step('benchmark', '运行前 ' + str(self.max_conditions) + ' 条件（子进程完成不等于规划验收通过）',
@@ -329,6 +340,38 @@ class Workflow:
         if not coverage['pass']:
             raise Stopped('规划验证未通过：' + '; '.join(coverage['missing']) + '。复制 copy_logs/COPY.txt；原结果保留。')
         self.record['next_commands'] = ['bash run_native.sh experiment']
+
+    def screen(self):
+        from dabs_ascend.r234 import screening_plan, SCREENING_REVISION
+        from dabs_ascend.planning_audit import audit
+        plan = screening_plan(self.screen_group)
+        self.record.update(diagnostic_only=True, formal_acceptance=False, screening_group=self.screen_group,
+                           screening_revision=SCREENING_REVISION, requested_conditions=len(plan), screening_completed=False)
+        # A failed scoring audit does not invalidate the independent calibration
+        # stored by verify. Import its raw paths, then use the unchanged live gate.
+        latest = self.root / 'outputs/native-entry-last-verify.json'
+        if self.input_path is None and latest.is_file():
+            self.input_path = self.host_path(read_json(latest)['output'])
+        evidence = self.planning_evidence()
+        result_dir = self.out / 'r234_screening'
+        self.record.update(acceptance=self.relative(evidence), experiment_output=self.relative(result_dir))
+        emit(self.out, 'SCREEN_PLAN', group=self.screen_group, conditions=len(plan),
+             labels=[s['label'] for s in plan], formal_acceptance=False)
+        self.step('benchmark', '预定筛查组；无候选/评分不完整继续，工作量或原生门禁失败仍停止',
+                  ['--execution-scope', 'native', '--native-evidence', self.container_path(evidence),
+                   '--screening', self.screen_group, '--out', self.container_path(result_dir)], native=False)
+        result = read_json(result_dir / 'status.json')
+        summaries = read_json(result_dir / 'index.json')
+        if (result.get('status') != 'complete' or result.get('completed_conditions') != len(plan)
+                or result.get('functional_test_pass') is not True or [s['spec'] for s in summaries] != plan
+                or not all(all(s.get(k) is True for k in ('functional_pass', 'fixed_work_pass', 'dependency_handoff_pass')) for s in summaries)):
+            raise Stopped('筛查工作量/配对/DAG 未完整通过；保留失败结果，不计筛查完成。')
+        coverage = audit(result_dir, len(plan), screening=self.screen_group)
+        write_json(self.out / 'planning_audit.json', coverage)
+        self.record.update(screening_completed=True, completed_conditions=len(plan), planning_pass=coverage['pass'])
+        emit(self.out, 'PLANNING_AUDIT', **coverage)
+        emit(self.out, 'SCREEN_RESULT', workload_complete=True, planning_pass=coverage['pass'], formal_acceptance=False)
+        self.record['next_commands'] = ['bash run_native.sh logs']
 
     def experiment(self):
         verified = self.root / 'outputs/native-entry-last-verify.json'
@@ -372,7 +415,7 @@ class Workflow:
         print('本次结果: ' + str(self.out), flush=True)
         try:
             getattr(self, self.mode)()
-            self.record['status'] = 'passed'
+            self.record['status'] = 'completed' if self.mode == 'screen' else 'passed'
             if self.mode == 'test':
                 self.record['next_commands'] = ['bash run_native.sh experiment']
             code = 0
@@ -389,21 +432,25 @@ class Workflow:
         self.record['finished_utc'] = utc()
         self.save()
         emit(self.out, 'END', status=self.record['status'], reason=self.record.get('reason'),
+             screening_completed=self.record.get('screening_completed'), planning_pass=self.record.get('planning_pass'),
              experiment=self.record.get('experiment_output'), next=self.record['next_commands'])
         print('\n' + (self.out / 'SUMMARY.txt').read_text(encoding='utf-8'), flush=True)
         return code
 
 
 def main():
-    parser = argparse.ArgumentParser(description='现场入口：install 安装；test 完整验收；verify 前8条规划验证；experiment 全部96条/续跑；logs 打印复制摘要。')
-    parser.add_argument('mode', choices=('install', 'smoke', 'calibrate', 'audit', 'refit', 'explore', 'test', 'verify', 'experiment', 'logs'))
+    parser = argparse.ArgumentParser(description='现场入口：screen 三组诊断筛查；verify 前8条规划验证；experiment 全部96条/续跑；logs 打印复制摘要。')
+    parser.add_argument('mode', choices=('install', 'smoke', 'calibrate', 'audit', 'refit', 'explore', 'test', 'verify', 'screen', 'experiment', 'logs'))
+    parser.add_argument('--group', choices=('all', 'r3-l8', 'r4-l4', 'r3-l4'), help='screen only; default all (12 conditions); each named group has 4 conditions')
     parser.add_argument('--replica', type=int, choices=range(4), help='install/smoke/calibrate: select one existing service')
-    parser.add_argument('--input', type=Path, help='audit/refit/explore: calibration directory; verify/experiment: prior native_test directory (read-only)')
+    parser.add_argument('--input', type=Path, help='audit/refit/explore: calibration directory; verify/experiment: prior native_test; screen: native_test or native_verify raw evidence (read-only)')
     parser.add_argument('--invalidate-cache', action='store_true', help='仅 test：明确执行副本 0 缓存清空/失效测试；默认不执行')
     parser.add_argument('--verify-restart', action='store_true', help='仅 install：明确额外重启副本 0 并验证旧身份失效')
     parser.add_argument('--ready-timeout', type=int, default=900, help='install 每个服务加载等待秒数，默认 900')
     parser.add_argument('--max-conditions', type=int, help='explore: 1..96 default 4; verify: 4..92, multiple of 4, default 8')
     args = parser.parse_args()
+    if args.group is not None and args.mode != 'screen':
+        parser.error('--group 仅用于 screen')
     if args.mode == 'logs':
         pointer = ROOT / 'outputs/native-entry-last-copy.json'
         if not pointer.exists():
@@ -422,7 +469,7 @@ def main():
             parser.error('--max-conditions 用于 explore 或 verify')
     if args.replica is not None and args.mode not in ('install', 'smoke', 'calibrate'):
         parser.error('--replica 仅用于 install/smoke/calibrate')
-    if (args.mode in ('audit', 'refit') and not args.input) or (args.input and args.mode not in ('audit', 'refit', 'explore', 'verify', 'experiment')):
+    if (args.mode in ('audit', 'refit') and not args.input) or (args.input and args.mode not in ('audit', 'refit', 'explore', 'verify', 'screen', 'experiment')):
         parser.error('audit/refit 必须提供 --input；explore 可指定已有标定目录；experiment 可指定旧 native_test 结果目录')
     if args.verify_restart and args.replica not in (None, 0):
         parser.error('--verify-restart 仅支持副本 0')
@@ -446,7 +493,7 @@ def main():
             if args.mode in ('test', 'install', 'smoke', 'calibrate'):
                 stack.enter_context(device_locks(range(4), ROOT / 'outputs/.existing_controller_locks'))
             return Workflow(ROOT, args.mode, args.invalidate_cache, args.verify_restart, args.ready_timeout,
-                            args.replica, args.input, args.max_conditions).run()
+                            args.replica, args.input, args.max_conditions, args.group or 'all').run()
     except BlockingIOError:
         print('已有测试或实验使用这些服务；请等待当前任务结束。', file=sys.stderr)
         return 2

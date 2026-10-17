@@ -98,12 +98,17 @@ class NativeClient:
         count = cfg['replicas']
         started = time.monotonic()
         input_keys = prefix_identities(nodes, self.salt, self.input_identity_cache)
+        identities_at = time.monotonic()
         queries, bindings, query_stats = prefix_queries(nodes, cfg, self.salt, enabled=cache_queries,
             model=model, hints=self.query_hints)
         rpc_started = time.monotonic()
         raw = await asyncio.gather(*(self.call(r, 'snapshot', queries=queries) for r in range(count)))
         now = time.monotonic()
         state = snapshot(nodes, {}, count, cfg, index, now)
+        query_ready = set(query_stats['ready_node_ids'])
+        query_stats.update(ready_at_snapshot=len(state['ready']),
+            covered_at_snapshot=sum(k in bindings for k in state['ready']),
+            new_ready_after_query=sum(k not in query_ready for k in state['ready']))
         state['native_query_budget'] = query_stats
         for key, n in state['nodes'].items():
             n['prefix_hash'] = input_keys[key]
@@ -209,6 +214,8 @@ class NativeClient:
                     'timing_source': 'loaded completion-charge prediction; serial rollout approximation' if end is not None else 'unknown; outside frozen model support'})
         returned_at = time.monotonic()
         state.update(native_observe_ms=(returned_at - started) * 1000,
+                     native_prepare_parts_ms={'identity_ms': (identities_at-started)*1000,
+                                              **query_stats['prepare_parts_ms']},
                      native_prepare_ms=(rpc_started - started) * 1000,
                      native_rpc_ms=(now - rpc_started) * 1000,
                      native_projection_ms=(returned_at - now) * 1000)

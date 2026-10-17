@@ -1,4 +1,5 @@
 """Bounded decision-time prefix queries; unqueried evidence stays unknown."""
+import time
 
 
 def prefix_identities(nodes, salt, cache=None):
@@ -27,23 +28,33 @@ def prefix_identities(nodes, salt, cache=None):
     return identities
 
 
-def query_priority(nodes, cfg, model, hints):
+def query_priority(nodes, cfg, model, hints, timings=None):
     from .native_algorithms import adapted, reference
     from .scheduler import snapshot
     # Hints only order queries. They cannot certify cache/state, route a request,
     # or bypass a fresh engine snapshot. All methods use this identical policy.
+    start = time.perf_counter()
     current = snapshot(nodes, {}, cfg['replicas'], cfg, 0)
+    snap_at = time.perf_counter()
     if len(hints.get('pressure', [])) == cfg['replicas']:
         current['pressure'] = hints['pressure']
     current.update(native_mutable=[], native_queue_groups={
         str(r): {'running_prefill': [], 'waiting': []} for r in range(cfg['replicas'])})
     base = reference(current, cfg)
+    ref_at = time.perf_counter()
     _, tails = adapted('semantic_selector').tail_values(current, model, base['placement'])
-    return sorted(current['ready'], key=lambda k: (
+    tail_at = time.perf_counter()
+    ordered = sorted(current['ready'], key=lambda k: (
         k not in base['admit'], -tails.get(k, 0.), nodes[k]['ready_at'], k))
+    if timings is not None:
+        timings.update(query_snapshot_ms=(snap_at-start)*1000, query_reference_ms=(ref_at-snap_at)*1000,
+                       query_tail_ms=(tail_at-ref_at)*1000, query_sort_ms=(time.perf_counter()-tail_at)*1000)
+    return ordered
 
 
 def prefix_queries(nodes, cfg, salt, *, enabled=True, model=None, hints=None):
+    started = time.perf_counter()
+    timings = {}
     max_queries = cfg.get('native_cache_query_limit', 8)
     max_tokens = cfg.get('native_cache_query_token_limit', 8192)
     queries, bindings, groups = [], {}, {}
@@ -51,9 +62,10 @@ def prefix_queries(nodes, cfg, salt, *, enabled=True, model=None, hints=None):
     ready = sorted((k for k, n in nodes.items() if n['state'] == 'ready'),
                    key=lambda k: (nodes[k]['ready_at'], k))
     if enabled and model is not None and ready:
-        focused = query_priority(nodes, cfg, model, hints or {})
+        focused = query_priority(nodes, cfg, model, hints or {}, timings)
         focused_keys = set(focused)
         ready = focused + [k for k in ready if k not in focused_keys]
+    pack_at = time.perf_counter()
     for key in ready:
         node = nodes[key]
         if not enabled:
@@ -79,6 +91,9 @@ def prefix_queries(nodes, cfg, salt, *, enabled=True, model=None, hints=None):
         'unique_queries': len(queries), 'query_tokens_per_replica': tokens_used,
         'covered_requests': len(bindings), 'unqueried_requests': len(ready) - len(bindings),
         'query_limit': max_queries, 'token_limit': max_tokens,
+        'ready_node_ids': list(ready),
+        'prepare_parts_ms': {**timings, 'query_pack_ms': (time.perf_counter()-pack_at)*1000,
+                             'query_total_ms': (time.perf_counter()-started)*1000},
         'priority': 'provisional-admission then original DAG tail; fresh evidence only',
         'queried_nodes': [q['query_id'] for q in queries],
         'scope': 'concrete shared-prefix blocks only; no full-prompt hit claim; unqueried is unknown'}

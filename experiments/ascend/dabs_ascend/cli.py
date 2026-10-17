@@ -35,6 +35,8 @@ def parser(existing=False):
     p.add_argument("--suite", choices=("smoke", "blocks", "case", "grid", 'r234', 'dabs-r234-balanced-64'), default=None)
     p.add_argument('--max-conditions', type=int, help='R234 only: clean pause after N additional conditions')
     p.add_argument('--resume', type=Path, help='R234 only: resume a cleanly paused output directory')
+    p.add_argument('--screening', nargs='?', const='all', choices=('all', 'r3-l8', 'r4-l4', 'r3-l4'),
+                   help='Native diagnostics only: three fixed four-method groups, or one named group; not the 96-condition run')
     p.add_argument('--execution-scope', choices=('native', 'http-limited'), default='native',
                    help='R234: native requires verified hooks; http-limited is diagnostic, not full mechanism reproduction')
     p.add_argument('--native-evidence', type=Path, help='native acceptance.json; default uses outputs/native-latest.json raw paths')
@@ -67,6 +69,10 @@ def prepare_args(argv=None, existing=False):
     args.suite = args.suite or ("smoke" if args.mode == "smoke" else "blocks")
     if args.suite == 'r234':
         args.suite = 'dabs-r234-balanced-64'
+    if args.screening and (not existing or args.mode not in ('plan', 'benchmark') or
+            args.suite != 'dabs-r234-balanced-64' or args.execution_scope != 'native' or
+            args.resume is not None or args.max_conditions is not None or args.exploratory_calibration):
+        p.error('screening requires existing native R234 plan/benchmark; no resume, max-conditions or exploratory-calibration')
     if args.exploratory_calibration and (not existing or args.mode != 'benchmark' or
             args.suite != 'dabs-r234-balanced-64' or args.execution_scope != 'native' or
             args.resume is not None or args.native_evidence is None):
@@ -120,8 +126,8 @@ def prepare_args(argv=None, existing=False):
 
 def make_plan(args):
     if args.suite == 'dabs-r234-balanced-64':
-        from .r234 import plan
-        return plan()
+        from .r234 import plan, screening_plan
+        return screening_plan(args.screening) if getattr(args, 'screening', None) else plan()
     from .scheduler import METHODS
     conditions = []
     replica_counts = list(range(1, min(4, len(args.devices)) + 1)) if args.suite == "grid" else [len(args.devices)]

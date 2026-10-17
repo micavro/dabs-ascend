@@ -7,6 +7,7 @@ for provenance and do not authorize or block deployment.
 import copy
 import types
 import sys
+import time
 from collections import Counter
 from functools import lru_cache
 
@@ -117,6 +118,9 @@ def transformation_manifest():
     result['engine']['eviction_optimization'] = 'skip sorting only when original inactive block sum fits allowance'
     result['engine']['coalesced_decode_support'] = 'check first and last context in each monotone coalesced interval'
     result['engine']['continuation_memoization'] = CONTINUATION_TRANSFORMS
+    from .native_diagnostics import REVISION
+    result['engine']['diagnostics'] = {'revision': REVISION, 'policy_changes': False,
+                                      'scope': 'stage timers, existing candidate funnel and skipped alternatives only'}
     return result
 
 
@@ -126,7 +130,7 @@ def verify_base():
 
 
 @lru_cache(None)
-def adapted(name, *, optimize=True):
+def adapted(name, *, optimize=True, diagnostics=True):
     r234.verify_import()
     verify_base()
     path = original_path(name)
@@ -156,10 +160,16 @@ def adapted(name, *, optimize=True):
         text = text.replace(anchor, "        from dabs_ascend.native_scoring import check_model_range\n        check_model_range(model, r, p, d, dc, context)\n" + anchor)
         text = text.replace("                dt=duration(lo)",
             "                check_model_range(model, r, 0, d, dc + d * (lo - 1), 0)\n                dt=duration(lo)")
-    module = types.ModuleType('dabs_native_derived_' + name + ('' if optimize else '_unoptimized'))
+    if diagnostics:
+        from .native_diagnostics import instrument
+        text = instrument(text, name)
+    module = types.ModuleType('dabs_native_derived_' + name + ('' if optimize else '_unoptimized') +
+                             ('' if diagnostics else '_uninstrumented'))
     module.__package__ = 'core18v2' if name == 'engine' else ''
     sys.modules[module.__name__] = module
     exec(compile(text, str(path) + ':native-derived', 'exec'), module.__dict__)
+    if name == 'v5_selector':
+        module.diagnostic_hook = lambda *args: None
     if name == 'engine' and optimize:
         from .native_scoring import cache_model_class
         module.CacheModel = cache_model_class()
@@ -237,14 +247,21 @@ def choose(state, model, cfg, deadline):
     selector = adapted('v5_selector')
     selector.dag = adapted('semantic_selector')
     from .native_scoring import next_batch
+    from .native_diagnostics import REVISION, evaluation_sample, opportunity
+    score_samples, reference_actions = [], []
     selector.dag.next_batch = lambda s, a, m, r: next_batch(s, a, m, r, cfg)
     def supported_evaluate(*args, **kwargs):
+        elapsed_start = time.perf_counter()
+        started = time.monotonic()
         try:
-            return adapted('engine').evaluate(*args, **kwargs)
+            value = adapted('engine').evaluate(*args, **kwargs)
         except ValueError as exc:
             if not str(exc).startswith('native_calibration_out_of_range:'):
                 raise
-            return {'rankable': False, 'complete': False, 'sum_remaining_jct_ms': None, 'reason': str(exc)}
+            value = {'rankable': False, 'complete': False, 'sum_remaining_jct_ms': None, 'reason': str(exc)}
+        elapsed_ms = (time.perf_counter()-elapsed_start)*1000
+        score_samples.append(evaluation_sample(value, started, kwargs.get('deadline'), deadline, elapsed_ms))
+        return value
     selector.evaluate = supported_evaluate
     original_cache_tokens = selector.cache_tokens
     cache_index = {}
@@ -256,28 +273,71 @@ def choose(state, model, cfg, deadline):
     selector.cache_tokens = lambda s, k, r: cache_index.get((s['nodes'][k].get('prefix_hash'), r))
     original_proposals = selector.proposals
     original_project, original_guard = selector.project, selector.dag.guard
+    original_hook = selector.diagnostic_hook
     causes = Counter()
-    selector.resources, selector.reference = resources, reference
+    samples, rejection_samples, rejected_nodes, proposal_ms = [], [], {}, []
+    def observed_reference(s, c):
+        base = reference(s, c)
+        reference_actions.append(base)
+        return base
+    selector.resources, selector.reference = resources, observed_reference
+    def diagnostic_hook(event, data):
+        if event == 'admission_change' and len(rejection_samples) < 2:
+            before, after = data
+            rejection_samples.append({'proposal': after.get('proposal'),
+                'lost_admissions': sorted(set(before['admit'])-set(after['admit']))[:2],
+                'gained_admissions': sorted(set(after['admit'])-set(before['admit']))[:2]})
+        elif event == 'route_pool':
+            causes['pressure_cache_eligible_routes'] += len(data)
+            causes['pressure_cache_eligible_nodes'] += len({row[1] for row in data})
+        elif event == 'seen_skip':
+            key, src, dst = data
+            causes['seen_node_skips'] += 1
+            if key in rejected_nodes:
+                causes['alternatives_skipped_after_rejection'] += 1
+                if len(samples) < 3:
+                    samples.append({'kind': 'seen_after_rejection', 'node': key, 'source': src,
+                                    'rejected_destination': rejected_nodes[key], 'skipped_destination': dst,
+                                    'alternative_feasibility': 'not_tested'})
+    selector.diagnostic_hook = diagnostic_hook
     def candidate_project(*args, **kwargs):
+        causes['resource_projection_attempts'] += 1
         action = original_project(*args, **kwargs)
         if action is None:
             causes['admission_set_would_change'] += 1
+            proposal = kwargs.get('proposal', {})
+            for key in proposal.get('moved_nodes', []):
+                rejected_nodes[key] = proposal.get('destination')
         return action
     selector.project = candidate_project
     def proposals(s, m, c, base):
         causes['proposal_calls'] += 1
         causes['source_cache_unknown'] += sum(selector.cache_tokens(s, k, base['placement'][k]) is None for k in s['ready'])
         choices, seen = [], {executable_key(base, s)}
-        for label, action, origin, affected in original_proposals(s, m, c, base):
+        started = time.perf_counter()
+        raw = original_proposals(s, m, c, base)
+        causes['shortlist_before_native_dedup'] += len(raw)
+        causes['shortlist_at_cap'] += len(raw) >= selector.MAX_NEW_CANDIDATES
+        for label, action, origin, affected in raw:
+            causes['shortlist_' + origin] += 1
             action = project(action, s)
             key = executable_key(action, s)
             if key in seen:
                 causes['no_distinct_native_effect'] += 1
+                causes['no_effect_' + origin] += 1
+                moved = action.get('proposal', {}).get('moved_nodes', [])
+                held_only = bool(moved) and not set(moved).intersection(base['admit'])
+                causes['held_only_route_no_effect'] += held_only
+                if len(samples) < 3:
+                    samples.append({'kind': 'native_duplicate', 'origin': origin,
+                                    'moved_nodes': moved[:2], 'held_only': held_only})
                 continue
             seen.add(key)
             choices.append((label, action, origin, affected))
         if not choices:
             causes['no_legal_distinct_candidate'] += 1
+        causes['distinct_executable_candidates'] += len(choices)
+        proposal_ms.append((time.perf_counter()-started)*1000)
         return choices
     selector.proposals = proposals
     def guard(*args, **kwargs):
@@ -304,7 +364,19 @@ def choose(state, model, cfg, deadline):
         selector.cache_tokens = original_cache_tokens
         selector.proposals = original_proposals
         selector.project, selector.dag.guard = original_project, original_guard
+        selector.diagnostic_hook = original_hook
+        selector.reference = reference
+    diagnostics_at = time.perf_counter()
+    for evaluation, sample in zip(result.get('evaluations', []), score_samples):
+        evaluation['diagnostic'] = sample
     result['candidate_diagnostics'] = dict(causes)
+    result['candidate_diagnostic_samples'] = samples
+    result['admission_rejection_samples'] = rejection_samples
+    result['proposal_elapsed_ms'] = sum(proposal_ms)
+    result['diagnostic_revision'] = REVISION
+    if reference_actions:
+        result['opportunity_diagnostics'] = opportunity(state, reference_actions[0], cfg, cache_index)
+    result['post_selection_diagnostics_ms'] = (time.perf_counter()-diagnostics_at)*1000
     result.setdefault('v5_stop_reason', 'nonreference_selected' if result.get('selected_cell', '00') != '00'
         else 'reference_retained_after_scoring' if result.get('v5_candidate_scored') else 'candidate_score_incomplete')
     result.update(method='Ours', action_projection='native_safe_prefill_queues',

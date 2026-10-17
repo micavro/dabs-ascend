@@ -9,16 +9,17 @@ from .native_algorithms import executable_key
 from .native_planning import CONTRACT
 
 
-def audit(directory, expected_conditions):
+def audit(directory, expected_conditions, *, screening=None):
     directory = Path(directory)
-    from .r234 import plan
+    from .r234 import plan, screening_plan
     summaries = read_json(directory / 'index.json')
     status = read_json(directory / 'status.json')
     missing, rows = [], []
-    if status.get('status') != 'paused' or status.get('completed_conditions') != expected_conditions:
-        missing.append('not_a_clean_condition_boundary_pause')
-    if len(summaries) != expected_conditions or [s['spec'] for s in summaries] != plan()[:expected_conditions]:
-        missing.append('completed_conditions_not_expected_plan_prefix')
+    if status.get('status') != ('complete' if screening else 'paused') or status.get('completed_conditions') != expected_conditions:
+        missing.append('not_a_complete_screening_run' if screening else 'not_a_clean_condition_boundary_pause')
+    expected = screening_plan(screening) if screening else plan()[:expected_conditions]
+    if len(summaries) != expected_conditions or [s['spec'] for s in summaries] != expected:
+        missing.append('completed_conditions_not_expected_screening_plan' if screening else 'completed_conditions_not_expected_plan_prefix')
     for summary in summaries:
         label = summary['spec']['label']
         if not all(summary.get(k) is True for k in ('functional_pass', 'fixed_work_pass', 'dependency_handoff_pass')):
@@ -61,4 +62,5 @@ def audit(directory, expected_conditions):
     if not rows:
         missing.append('no_Ours_condition')
     return {'pass': not missing, 'scope': 'raw_on_time_planning_coverage; not replacement for native/workload gates',
+            'screening': screening, 'full_matrix_acceptance': False,
             'nonreference_selection_required': False, 'conditions': rows, 'missing': missing}

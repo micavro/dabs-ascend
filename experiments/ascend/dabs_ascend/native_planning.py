@@ -14,10 +14,14 @@ def planning_window(state, cfg, tick, now=None):
                  [s['expires_ns'] / 1e9 for s in state.get('native_snapshots', []) if 'expires_ns' in s])
     reserve = cfg['commit_reserve_s']
     deadline = min(now + cfg['planning_soft_limit_s'], tick - reserve, expiry - reserve)
+    limits = {'soft_limit': now + cfg['planning_soft_limit_s'],
+              'fixed_tick': tick - reserve, 'snapshot_expiry': expiry - reserve}
     return {'contract': CONTRACT, 'prepared_at': now, 'deadline': deadline,
             'budget_ms': max(0., (deadline - now) * 1000),
             'fixed_action_deadline': tick, 'snapshot_expires_at': expiry,
-            'commit_reserve_ms': reserve * 1000}
+            'commit_reserve_ms': reserve * 1000,
+            'limit_remaining_ms': {k: (v - now) * 1000 for k, v in limits.items()},
+            'binding_limits': [k for k, v in limits.items() if abs(v - deadline) < 1e-9]}
 
 
 def scorer_view(state):
@@ -36,6 +40,7 @@ def run_planner(planner, state, model, cfg, window):
     result = planner(state, model, cfg, window['deadline'])
     result['planning_finished_at'] = time.monotonic()
     result['planning_dispatch_delay_ms'] = (started - window['prepared_at']) * 1000
+    result['planning_worker_budget_ms'] = (window['deadline'] - started) * 1000
     result['planning_deadline'] = window['deadline']
     result['worker_clock_contract'] = 'same-host monotonic absolute deadline; IPC consumes budget'
     return result

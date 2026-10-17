@@ -1,6 +1,49 @@
 # DABS 昇腾复现
 
-## 当前版本：观测、评分、覆盖与控制开销修复
+## 当前版本：只补诊断与三组筛查，不优化调度机制
+
+本次只增加诊断字段、受限复制摘要和预定筛查入口。**不修改候选生成次序/上限、`seen` 去重位置、准入与资源约束、查询优先级、观测前处理算法、评分时间分配、评分公式或模型门槛。** 固定周期、快照期限、提交预留、搜索上限与客户端并发保持原值。计时插桩本身有小额开销，不能将本版速度变化直接归因于算法优化。
+
+先确认上一轮实验控制器已经退出。在更新后的项目目录运行下面一行，复用这次 verify 中已经通过的新标定（旧目录只读；不自动重启或重装）：
+
+```bash
+bash run_native.sh screen --input ../dabs-ascend-main-2026101611/outputs/native_verify_20261016T135710Z_5f1e88ab
+```
+
+默认依次运行 **R3_L8、R4_L4、R3_L4**，每组四方法，共 **12 条 T1 条件**。也可单独运行一组：
+
+```bash
+bash run_native.sh screen --group r3-l8 --input ../dabs-ascend-main-2026101611/outputs/native_verify_20261016T135710Z_5f1e88ab
+bash run_native.sh screen --group r4-l4 --input ../dabs-ascend-main-2026101611/outputs/native_verify_20261016T135710Z_5f1e88ab
+bash run_native.sh screen --group r3-l4 --input ../dabs-ascend-main-2026101611/outputs/native_verify_20261016T135710Z_5f1e88ab
+```
+
+每条件仍为 64 工作流、216 请求、3584 输入 token/请求、13184 输出 token；保留原计划内的种子、到达、方法顺序与资源限制。R3_L8 为 SLL/Ayo/Ours/RR，另两组为 Ayo/Ours/RR/SLL。不开更大并发、不换数据、不强制制造非参考动作。这是定位筛查，不是预测哪组必胜。
+
+若在同一项目已运行 verify，可省略 `--input`，自动使用最近 verify 的原始证据；没有 verify 才使用最近通过的 test。即使旧 verify 因规划未过而 `blocked`，其独立机制/标定原始文件仍可导入，**不继承旧 PASS**，原来的原始证据和现场服务检查照常执行。覆盖已匹配则不重标定；若覆盖过旧，沿用 verify 的独立补标定流程；服务实例或资源变化仍停止。
+
+完成后看两个独立字段：`screening_completed=true` 表示所选工作量、配对和 DAG 检查完成；`planning_pass=true` 表示每个 Ours 条件至少存在一次时限内完整参考评分 + 不同可执行候选的完整评分。不要求选非参考动作或 JCT 更快。无候选/评分超时会保留并继续后面的筛查组；推理、工作量、原生门禁失败仍停止。入口状态为 `completed`，绝不是正式矩阵的 `passed`。筛查不续接、不拼入 96 条矩阵；原 verify/experiment 默认行为不变。
+
+运行中或结束后复制普通文本：
+
+```bash
+bash run_native.sh logs
+```
+
+`outputs/native_screen_*/copy_logs/COPY.txt` 为 v3：每条件 D 最多 6 条（同类 3 条），S 按部分评分/完整比较/生成后未评分各最多 1 条，SELECT 最多 2 条，回执最多 2 条；中途详情总预算 12 KiB（普通进度/原因共用其中最多 6 KiB，给稀有评分样例留空间），结尾 TIMING/DIAG/C 汇总另留。计数不受采样限制，省略条数显式记录。常规三组筛查目标是几十 KiB，实际大小取决于进度和检查输出；不是对包含补标定日志的整个文件作硬上限承诺。
+
+新增诊断解释见 [诊断字段与判读](docs/native-screening-diagnostics.md)。所有决策仍完整留在 `conditions/*/decisions.jsonl`，不把 prompt/token 列表或全份回执复制到摘要。原始证据不上传、不打包，不新增源码哈希真实性门禁。
+
+本地检查（CPU，不发推理）：
+
+```powershell
+python tools/run_ascend.py test
+python tools/run_dabs_existing.py plan --suite r234 --devices 0,1,2,3 --screening
+```
+
+下面保留上一版操作用于追溯；本次优先运行上面的 `screen` 定位问题，再决定机制修改。
+
+## 上一版：观测、评分、覆盖与控制开销修复
 
 1610 前 8 条已经完成工作量，但还没有完成 Ours 的候选比较。日志将问题区分为：部分决策没有有效规划预算；获得预算后仍可能没有不同且可执行的候选；少数评分被 `p:1/3`、`pc:3199/3200` 等模型范围检查中止。后一类还曾被误归为观测失败，影响 RR/SLL/Ayo。不能把这些交叉计数相加，也不能把所有无候选都解释为故障。
 
