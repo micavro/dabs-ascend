@@ -1,13 +1,14 @@
 """Developer CPU regressions; never part of the onsite ours-timing entry."""
 import asyncio
 from concurrent.futures import Future, ThreadPoolExecutor
-from contextlib import redirect_stdout
+from contextlib import redirect_stdout, redirect_stderr
 import copy
 import io
 import json
 from pathlib import Path
 import tempfile
 import time
+import sys
 from types import SimpleNamespace
 import unittest
 from unittest.mock import AsyncMock, patch
@@ -33,13 +34,35 @@ def context():
 
 
 class ShadowUnitTests(unittest.TestCase):
-    def test_only_ours_from_original_three_groups(self):
+    def test_only_ours_from_original_matrix_and_prefixes(self):
         plan = r234.ours_timing_plan()
-        self.assertEqual([s['label'] for s in plan], ['R3_L8_T1_B0_Ours', 'R4_L4_T1_B0_Ours', 'R3_L4_T1_B0_Ours'])
-        self.assertTrue(all(s in r234.plan() and s['method'] == 'Ours' for s in plan))
-        self.assertEqual(r234.ours_timing_plan('r3-l8'), plan[:1])
+        self.assertEqual(len(plan), 24)
+        self.assertEqual(plan, [s for s in r234.plan() if s['method'] == 'Ours'])
+        for n in range(1, 25):
+            self.assertEqual(r234.ours_timing_plan(limit=n), plan[:n])
+        old = r234.ours_timing_plan('screening')
+        self.assertEqual([s['label'] for s in old], ['R3_L8_T1_B0_Ours', 'R4_L4_T1_B0_Ours', 'R3_L4_T1_B0_Ours'])
+        self.assertEqual(r234.ours_timing_plan('r3-l8'), old[:1])
+        for n in (0, -1, 25, True):
+            with self.assertRaises(ValueError): r234.ours_timing_plan(limit=n)
+        with self.assertRaises(ValueError): r234.ours_timing_plan('r3-l8', 2)
         args = cli.prepare_args(['plan', '--suite', 'r234', '--devices', '0,1,2,3', '--ours-timing'], existing=True)
         self.assertEqual(cli.make_plan(args), plan)
+        args = cli.prepare_args(['plan', '--suite', 'r234', '--devices', '0,1,2,3', '--ours-timing', '-n', '6'], existing=True)
+        self.assertEqual(cli.make_plan(args), plan[:6])
+        with redirect_stdout(io.StringIO()) as printed:
+            r234_run.main(args)
+        self.assertEqual(json.loads(printed.getvalue())['plan'], plan[:6])
+
+    def test_count_and_part_flags_reject_wrong_scope_before_running(self):
+        for argv in (['ours-timing', '-n', '0', '--input', 'old'], ['ours-timing', '-n', '25', '--input', 'old'],
+                     ['ours-timing', '--group', 'r3-l8', '-n', '2', '--input', 'old'],
+                     ['screen', '-n', '4'], ['screen', '--group', 'screening'], ['ours-timing', '--part', 'x']):
+            with self.subTest(argv=argv), patch.object(sys, 'argv', ['run_native_workflow.py', *argv]), redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                workflows.entry.main()
+        for extra in (['-n', '0', '--ours-timing'], ['-n', '25', '--ours-timing'], ['-n', '6']):
+            with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                cli.prepare_args(['plan', '--suite', 'r234', '--devices', '0,1,2,3', *extra], existing=True)
 
     def test_cli_separates_diagnostic_from_normal_and_disallows_resume(self):
         base = ['plan', '--suite', 'r234', '--devices', '0,1,2,3', '--ours-timing']
@@ -113,6 +136,45 @@ class ShadowUnitTests(unittest.TestCase):
             self.assertEqual(shadow.profile_path(root/'r234_screening/ascend_profile.json'), root/'r234_screening/ascend_profile.json')
             write_json(root/'r234_native/ascend_profile.json', {})
             with self.assertRaises(ValueError): shadow.profile_path(root)
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            write_json(root/'r234_ours_timing/ascend_profile.json', model())
+            self.assertEqual(shadow.profile_path(root), root/'r234_ours_timing/ascend_profile.json')
+            write_json(root/'timing_input/ascend_profile.json', model())
+            self.assertEqual(shadow.profile_path(root), root/'timing_input/ascend_profile.json')
+
+    def test_split_copy_keeps_all_records_and_each_file_under_12kib(self):
+        from dabs_ascend.copy_log import enable_parts, emit
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            run = root/'outputs/run'
+            labels = [s['label'] for s in r234.ours_timing_plan()]
+            emit(run, 'START', mode='fixture')
+            enable_parts(run, labels)
+            for label in labels:
+                emit(run, 'DETAIL', condition=label, text='字'*9000)
+                emit(run, 'SHADOW_SUMMARY', condition=label, returned=617)
+                emit(run, 'SHADOW_BRIEF', label=label, counts={'returned': 617})
+            manifest = read_json(run/'copy_logs/parts.json')
+            texts = []
+            for f in manifest['files']:
+                path = run/'copy_logs'/f['name']
+                self.assertEqual(len(path.read_bytes()), f['bytes'])
+                self.assertLessEqual(f['bytes'], 12*1024)
+                texts.append(path.read_text(encoding='utf-8'))
+            joined = ''.join(texts)
+            self.assertEqual(joined.count('字'), 24*9000)
+            self.assertEqual(joined.count(' SHADOW_SUMMARY '), 24)
+            self.assertEqual(joined.count(' SHADOW_BRIEF '), 24)
+            self.assertIn(' START ', joined)
+            self.assertNotIn('SHADOW_SUMMARY', (run/'copy_logs/COPY.txt').read_text(encoding='utf-8'))
+            with patch.object(workflows.entry, 'ROOT', root), patch.object(sys, 'argv',
+                    ['run_native_workflow.py', 'logs', '--part', 'COPY_00_overview_01.txt']), redirect_stdout(io.StringIO()) as printed:
+                self.assertEqual(workflows.entry.main(), 0)
+            self.assertIn('SHADOW_BRIEF', printed.getvalue())
+            with patch.object(workflows.entry, 'ROOT', root), patch.object(sys, 'argv',
+                    ['run_native_workflow.py', 'logs', '--part', '../COPY.txt']), redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                workflows.entry.main()
 
     def test_compact_statistics_separate_candidate_calls_and_preserve_maxima(self):
         cfg, state = opportunity()
@@ -159,7 +221,7 @@ class ShadowUnitTests(unittest.TestCase):
             root = Path(d)
             source = root/'old/r234_native/ascend_profile.json'
             write_json(source, model()); saved = source.read_bytes()
-            run = workflows.entry.Workflow(root, 'ours-timing', input_path=root/'old', screen_group='r3-l8')
+            run = workflows.entry.Workflow(root, 'ours-timing', input_path=root/'old', timing_count=6)
             commands = []
             def launch(command, logfile):
                 commands.append(command)
@@ -172,7 +234,8 @@ class ShadowUnitTests(unittest.TestCase):
             self.assertEqual([c[2] for c in commands], ['benchmark'])
             self.assertIn('--ours-timing', commands[0])
             self.assertNotIn('--native-evidence', commands[0])
-            self.assertEqual(run.record['requested_conditions'], 1)
+            self.assertEqual(run.record['requested_conditions'], 6)
+            self.assertEqual(commands[0][commands[0].index('-n')+1], '6')
             self.assertEqual(run.record['status'], 'completed')
             self.assertFalse(run.record['formal_acceptance'])
             self.assertEqual(saved, source.read_bytes())

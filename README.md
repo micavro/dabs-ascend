@@ -1,5 +1,36 @@
 # DABS 昇腾复现
 
+## 24 条 Ours 计时与旧日志限量提取
+
+本次只扩展实验入口与日志工具；不修观测竞态、不改候选机制，也不调整 200ms 周期、120ms 快照期限或正常模式预算。
+
+从已有结果只读提取观测不可用、无候选的原因（宿主机 Python 标准库即可，不进容器、不发请求、不写旧结果）：
+
+```bash
+python3 tools/extract_ours_diagnostics.py --input /data/wushibo/dabs-ascend-main-2026101702/outputs/native_ours-timing_20261017T065100Z_ee880558
+```
+
+默认输出不超过 12KiB；`--max-kib 16` 可显式扩大。汇总统计不按样例数量裁剪；样例按原因限量。`NC_FUNNEL` 区分事件总数与涉及的规划次数，`OBS_*` 将出错决策的原快照关联至引擎接收/完成、HTTP 完成、mapping RPC 和客户端完成时间。没有原始证据时标记缺失，不猜测；不输出提示词、token 数组或整份快照。工具可单独复制到旧项目运行，不依赖新版实验代码。
+
+`ours-timing` 默认改为原 96 条矩阵中的全部 **24 条 Ours**：R=2/3/4 × L=4/8/12/16 × 2 轮；即 12 种配置、每种两轮，不是 24 种配置。沿用原计划中过滤出 Ours 的固定顺序和原配置/种子，不按结果排序。`-n` / `--timing-count` 只运行该序列前 n 条，n=1..24；不指定则运行全部。每次新建结果目录，不是续跑。
+
+```bash
+bash run_native.sh ours-timing -n 6 --input /data/wushibo/dabs-ascend-main-2026101702/outputs/native_ours-timing_20261017T065100Z_ee880558
+bash run_native.sh ours-timing -n 24 --input /data/wushibo/dabs-ascend-main-2026101702/outputs/native_ours-timing_20261017T065100Z_ee880558
+bash run_native.sh logs
+```
+
+只选择上面一条计时命令运行。可用 `python3 tools/run_dabs_existing.py plan --suite r234 --devices 0,1,2,3 --ours-timing -n 6` 只打印顺序，不发推理。原 `--group r3-l8/r4-l4/r3-l4` 保留（单条 T1）；`--group screening` 运行以前的三条。`-n` 不能超过所选组的条数。`--input` 新增支持旧 `native_ours-timing_*` 结果目录中的预测模型。
+
+实际仍只执行 default；后台规划无总 CPU 截止、无评分截止，超时结果不执行且等待自然返回。新 `copy_logs/COPY.txt` 是文件目录；`COPY_00_overview_01.txt` 等为总览，`COPY_01_R4_L8_T1_B0_Ours_01.txt` 等为逐条件明细。每片硬上限 12KiB，超出自动续片，不丢统计。总览保留每条件调用/候选/完整评分/错误计数、停机原因和完整评分的耗时分布；条件明细继续保留候选漏斗、原因和限量样例，不再挤在一个文件里。总览时间数组顺序为 `[n,p50,p95,p99,max]`，单位 ms。全部原始文件和新的 `test_result.txt` 仍保留。
+
+```bash
+bash run_native.sh logs
+bash run_native.sh logs --part COPY_00_overview_01.txt
+```
+
+先带出总览（若有多个总览片逐片复制），再按需带出指定条件。`logs --part` 文件名从 `logs` 的目录中选择；不会一次打印全部 24 条。
+
 ## 新入口：只跑 Ours，测后台规划完整运行时间
 
 这次**不验证现有时间分配规则，也不做离线样例回放**。运行真实负载，实际始终按 **Ours default/reference** 派发；旁路启动同一份真实快照上的 Ours 规划器，**取消规划总 CPU 截止和单次评分分片截止**，让它自然返回。超过原窗口只标记过期，**不取消、不 kill、不应用结果**；即使提前返回也不应用。候选生成、资源约束、评分公式、模型覆盖检查以及推演事件/时域边界不变。
@@ -10,7 +41,7 @@
 bash run_native.sh ours-timing --input ../dabs-ascend-main-2026101611/outputs/native_verify_20261016T135710Z_5f1e88ab
 ```
 
-默认只跑之前三组中的 **R3_L8、R4_L4、R3_L4 的 Ours**，总共 3 条，不跑 RR/SLL/Ayo。每条仍为 64 工作流、216 请求、13184 输出 token，原配置/种子/到达与数据不变。想先只测一条：
+默认跑上述 24 条 Ours，不跑 RR/SLL/Ayo；`--group screening` 可保留以前三条的范围。每条仍为 64 工作流、216 请求、13184 输出 token，原配置/种子/到达与数据不变。想先只测一条：
 
 ```bash
 bash run_native.sh ours-timing --group r3-l8 --input <已有的具体 native_screen 或 native_verify 结果目录>
@@ -26,7 +57,7 @@ bash run_native.sh ours-timing --group r3-l8 --input <已有的具体 native_scr
 bash run_native.sh logs
 ```
 
-`outputs/native_ours-timing_*/copy_logs/COPY.txt` 新增：
+`outputs/native_ours-timing_*/copy_logs/COPY.txt` 列出分片；逐条件分片包含：
 
 - `SHADOW`：少量具体样例，含原预算、实际完整规划时间、候选生成、reference/候选评分、保护检查、评分完成状态与原因。
 - `SHADOW_SUMMARY`：启动/返回/超原 deadline/忙时跳过/完整评分/错误数量。
@@ -35,7 +66,7 @@ bash run_native.sh logs
 
 `cycle_need_estimate_ms` = 本轮观测与准备 + 分派等待 + 完整规划 + 返回通信/事件循环延迟 + 原提交预留；`snapshot_need_estimate_ms` = 最早快照采集至结果回到控制器 + 原提交预留。返回延迟单独记录为 `return_delay_ms`。它们帮助后续决定试哪个周期/有效期，**不是已测试的新参数，也不保证状态仍有效或新周期的 JCT 不变**。本次实际是 default 轨迹，不能当 Ours 优化后的性能结果。
 
-另生成新的 `outputs/native_ours-timing_*/test_result.txt`；每条件全部计时保存在 `r234_ours_timing/conditions/*/decisions.jsonl` 和 `shadow_timing_summary.json`。本次只带出 COPY.txt 即可。没有候选或被模型/推演边界中止会明确记录，不伪称评分跑完整。此前未提交的离线预算/规则自检脚本已撤掉，旧输出文件保留。
+另生成新的 `outputs/native_ours-timing_*/test_result.txt`；每条件全部计时保存在 `r234_ours_timing/conditions/*/decisions.jsonl` 和 `shadow_timing_summary.json`。先带出总览分片，需要时再带指定条件的明细。没有候选或被模型/推演边界中止会明确记录，不伪称评分跑完整。此前未提交的离线预算/规则自检脚本已撤掉，旧输出文件保留。
 
 ## 当前版本：只补诊断与三组筛查，不优化调度机制
 

@@ -114,9 +114,13 @@ def screening_plan(group='all'):
             if (s['replicas'], s['rate'], s['repeat']) == (replicas, rate, 1)]
 
 
-def ours_timing_plan(group='all'):
-    """Only the Ours condition of each predetermined screening group."""
-    return [s for s in screening_plan(group) if s['method'] == 'Ours']
+def ours_timing_plan(group='all', limit=None):
+    """Fixed 24-row Ours subsequence; a prefix is a complete diagnostic run."""
+    selected = plan() if group == 'all' else screening_plan('all' if group == 'screening' else group)
+    selected = [s for s in selected if s['method'] == 'Ours']
+    if limit is not None and (type(limit) is not int or not 1 <= limit <= len(selected)):
+        raise ValueError('ours-timing -n must be 1..' + str(len(selected)) + ' for group ' + group)
+    return selected if limit is None else selected[:limit]
 
 
 def planner_ready(native=False):

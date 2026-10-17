@@ -31,7 +31,7 @@ class Stopped(Exception):
 
 
 class Workflow:
-    def __init__(self, root, mode, invalidate_cache=False, verify_restart=False, ready_timeout=900, replica=None, input_path=None, max_conditions=None, screen_group='all'):
+    def __init__(self, root, mode, invalidate_cache=False, verify_restart=False, ready_timeout=900, replica=None, input_path=None, max_conditions=None, screen_group='all', timing_count=None):
         self.root, self.mode = Path(root).resolve(), mode
         stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ_') + uuid.uuid4().hex[:8]
         self.out = self.root / 'outputs' / ('native_' + mode + '_' + stamp)
@@ -40,6 +40,7 @@ class Workflow:
         self.verify_restart, self.ready_timeout = verify_restart, ready_timeout
         self.replica, self.input_path = replica, input_path
         self.screen_group = screen_group
+        self.timing_count = timing_count
         self.max_conditions = (8 if mode == 'verify' else 4) if max_conditions is None else max_conditions
         self.record = {'mode': mode, 'status': 'running', 'started_utc': utc(),
                        'output': self.relative(self.out), 'steps': [], 'next_commands': [],
@@ -169,7 +170,7 @@ class Workflow:
         from dabs_ascend.native_shadow_timing import profile_path
         from dabs_ascend.r234 import ours_timing_plan
         self.record.update(diagnostic_only=True, formal_acceptance=False, default_only_execution=True,
-                           requested_conditions=len(ours_timing_plan(self.screen_group)))
+                           requested_conditions=len(ours_timing_plan(self.screen_group, self.timing_count)))
         source = profile_path(self.input_path)
         target = self.out/'timing_input/ascend_profile.json'
         target.parent.mkdir()
@@ -180,7 +181,8 @@ class Workflow:
         try:
             self.step('benchmark', '仅 Ours：default 实际执行；后台规划不设 CPU/评分期限，结果永不应用',
                       ['--execution-scope', 'native', '--ours-timing', self.screen_group,
-                       '--timing-profile', self.container_path(target), '--out', self.container_path(result_dir)], native=False)
+                       '--timing-profile', self.container_path(target), '--out', self.container_path(result_dir),
+                       *(['-n', str(self.timing_count)] if self.timing_count is not None else [])], native=False)
         finally:
             report = result_dir/'test_result.txt'
             if report.is_file():
@@ -471,7 +473,9 @@ class Workflow:
 def main():
     parser = argparse.ArgumentParser(description='现场入口：screen 三组诊断筛查；verify 前8条规划验证；experiment 全部96条/续跑；logs 打印复制摘要。')
     parser.add_argument('mode', choices=('install', 'smoke', 'calibrate', 'audit', 'refit', 'ours-timing', 'explore', 'test', 'verify', 'screen', 'experiment', 'logs'))
-    parser.add_argument('--group', choices=('all', 'r3-l8', 'r4-l4', 'r3-l4'), help='screen: 4 methods/group; ours-timing: only Ours/group; default all')
+    parser.add_argument('--group', choices=('all', 'screening', 'r3-l8', 'r4-l4', 'r3-l4'), help='ours-timing: all=24 Ours, screening=old 3; screen: 4 methods/group')
+    parser.add_argument('-n', '--timing-count', type=int, help='ours-timing only: run first n conditions of the fixed plan (default all 24)')
+    parser.add_argument('--part', help='logs only: print one COPY_*.txt file listed in COPY.txt')
     parser.add_argument('--replica', type=int, choices=range(4), help='install/smoke/calibrate: select one existing service')
     parser.add_argument('--input', type=Path, help='ours-timing: prior screen/verify/experiment or predictor JSON; audit/refit/explore: calibration; verify/experiment: native_test; screen: native_test/native_verify')
     parser.add_argument('--invalidate-cache', action='store_true', help='仅 test：明确执行副本 0 缓存清空/失效测试；默认不执行')
@@ -481,6 +485,18 @@ def main():
     args = parser.parse_args()
     if args.group is not None and args.mode not in ('screen', 'ours-timing'):
         parser.error('--group 仅用于 screen / ours-timing')
+    if args.part is not None and args.mode != 'logs':
+        parser.error('--part 仅用于 logs')
+    if args.group == 'screening' and args.mode != 'ours-timing':
+        parser.error('--group screening 仅用于 ours-timing；screen 的三组使用 --group all')
+    if args.timing_count is not None:
+        if args.mode != 'ours-timing':
+            parser.error('-n / --timing-count 仅用于 ours-timing')
+        from dabs_ascend.r234 import ours_timing_plan
+        try:
+            ours_timing_plan(args.group or 'all', args.timing_count)
+        except ValueError as exc:
+            parser.error(str(exc))
     if args.mode == 'logs':
         pointer = ROOT / 'outputs/native-entry-last-copy.json'
         if not pointer.exists():
@@ -489,6 +505,13 @@ def main():
         path = (ROOT / read_json(pointer)['file']).resolve()
         if not path.is_relative_to(ROOT / 'outputs'):
             parser.error('复制摘要路径不在 outputs 下')
+        if args.part:
+            if Path(args.part).name != args.part or not args.part.startswith('COPY_') or not args.part.endswith('.txt'):
+                parser.error('--part 使用 COPY.txt 目录内的 COPY_*.txt 文件名，不接受路径')
+            selected = (path.parent/args.part).resolve()
+            if not selected.is_relative_to(path.parent) or not selected.is_file():
+                parser.error('分片不存在：' + args.part)
+            path = selected
         print(path.read_text(encoding='utf-8'), end='')
         return 0
     if args.max_conditions is not None:
@@ -523,7 +546,7 @@ def main():
             if args.mode in ('test', 'install', 'smoke', 'calibrate'):
                 stack.enter_context(device_locks(range(4), ROOT / 'outputs/.existing_controller_locks'))
             return Workflow(ROOT, args.mode, args.invalidate_cache, args.verify_restart, args.ready_timeout,
-                            args.replica, args.input, args.max_conditions, args.group or 'all').run()
+                            args.replica, args.input, args.max_conditions, args.group or 'all', args.timing_count).run()
     except BlockingIOError:
         print('已有测试或实验使用这些服务；请等待当前任务结束。', file=sys.stderr)
         return 2

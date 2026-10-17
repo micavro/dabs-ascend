@@ -37,8 +37,9 @@ def parser(existing=False):
     p.add_argument('--resume', type=Path, help='R234 only: resume a cleanly paused output directory')
     p.add_argument('--screening', nargs='?', const='all', choices=('all', 'r3-l8', 'r4-l4', 'r3-l4'),
                    help='Native diagnostics only: three fixed four-method groups, or one named group; not the 96-condition run')
-    p.add_argument('--ours-timing', nargs='?', const='all', choices=('all', 'r3-l8', 'r4-l4', 'r3-l4'),
+    p.add_argument('--ours-timing', nargs='?', const='all', choices=('all', 'screening', 'r3-l8', 'r4-l4', 'r3-l4'),
                    help='Ours ONLY; live default actions, unbounded background planner whose results are never applied')
+    p.add_argument('-n', '--timing-count', type=int, help='ours-timing only: first N conditions of the fixed 24-row sequence')
     p.add_argument('--timing-profile', type=Path, help='ours-timing only: existing predictor JSON; no probe/canary/recalibration')
     p.add_argument('--execution-scope', choices=('native', 'http-limited'), default='native',
                    help='R234: native requires verified hooks; http-limited is diagnostic, not full mechanism reproduction')
@@ -79,6 +80,14 @@ def prepare_args(argv=None, existing=False):
         p.error('ours-timing needs existing native R234 plan/benchmark, new output, no screening/resume/max-conditions/evidence/exploratory mode')
     if (args.ours_timing and args.mode == 'benchmark' and not args.timing_profile) or (args.timing_profile and not args.ours_timing):
         p.error('--timing-profile is required for ours-timing benchmark and forbidden otherwise')
+    if args.timing_count is not None:
+        if not args.ours_timing:
+            p.error('-n/--timing-count is only available for ours-timing')
+        from .r234 import ours_timing_plan
+        try:
+            ours_timing_plan(args.ours_timing, args.timing_count)
+        except ValueError as exc:
+            p.error(str(exc))
     if args.screening and (not existing or args.mode not in ('plan', 'benchmark') or
             args.suite != 'dabs-r234-balanced-64' or args.execution_scope != 'native' or
             args.resume is not None or args.max_conditions is not None or args.exploratory_calibration):
@@ -138,7 +147,7 @@ def make_plan(args):
     if args.suite == 'dabs-r234-balanced-64':
         from .r234 import plan, screening_plan, ours_timing_plan
         if getattr(args, 'ours_timing', None):
-            return ours_timing_plan(args.ours_timing)
+            return ours_timing_plan(args.ours_timing, getattr(args, 'timing_count', None))
         return screening_plan(args.screening) if getattr(args, 'screening', None) else plan()
     from .scheduler import METHODS
     conditions = []

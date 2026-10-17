@@ -47,6 +47,58 @@ def folder(run):
     return path
 
 
+PART_HEADER = ('DABS分片摘要 v4；每片最多12KiB，统计不因分片截断；原始JSONL保留。\n'
+               'SHADOW_TIMING: ms 的 n/p50/p95/p99/max；SHADOW_BRIEF 数组=[n,p50,p95,p99,max]。\n'
+               '00_overview是总览；其余按条件分组。超长记录可能跨片续行。\n')
+
+
+def _parts_index(directory, manifest):
+    lines = ['DABS Ours 计时复制目录；先复制总览，再按需复制条件明细，不必一次带出全部。',
+             '每个 COPY_* 分片 <=12KiB；计数/分位数覆盖全部已记录调用，不只统计样例。',
+             '读取单片：bash run_native.sh logs --part <下面的文件名>',
+             '实际始终 default；后台结果永不应用；这是预算测量，不是性能对比。']
+    for entry in sorted(manifest['files'], key=lambda x: x['name']):
+        lines.append(entry['name'] + ' bytes=' + str(entry['bytes']))
+    (directory/'COPY.txt').write_text('\n'.join(lines)+'\n', encoding='utf-8')
+
+
+def _append_parts(directory, manifest, stream, line):
+    data = line.encode('utf-8')
+    header = PART_HEADER.encode('utf-8')
+    limit = manifest['max_bytes']
+    while data:
+        entries = [x for x in manifest['files'] if x['stream'] == stream]
+        entry = entries[-1] if entries else None
+        if entry is None or entry['bytes']+len(data) > limit:
+            entry = {'stream': stream, 'name': 'COPY_%s_%02d.txt' % (stream, len(entries)+1), 'bytes': len(header)}
+            manifest['files'].append(entry)
+            (directory/entry['name']).write_bytes(header)
+        remaining = limit-entry['bytes']
+        # Leave one byte for a newline on a split record, without splitting UTF-8.
+        piece = data if len(data) <= remaining else data[:remaining-1].decode('utf-8', errors='ignore').encode('utf-8')
+        written = piece if piece.endswith(b'\n') else piece+b'\n'
+        with (directory/entry['name']).open('ab') as target:
+            target.write(written)
+        entry['bytes'] += len(written)
+        data = data[len(piece):]
+    from .common import write_json
+    write_json(directory/'parts.json', manifest)
+    _parts_index(directory, manifest)
+
+
+def enable_parts(run, labels):
+    """Only the new Ours timing entry opts in; ordinary copy logs stay unchanged."""
+    directory = folder(run)
+    manifest_path = directory/'parts.json'
+    if manifest_path.exists():
+        return
+    if len(set(labels)) != len(labels) or any(not label or any(not (c.isalnum() or c in '_-') for c in label) for label in labels):
+        raise ValueError('Copy part labels must be unique safe filenames')
+    manifest = {'max_bytes': 12*1024, 'labels': {label: '%02d_%s' % (i+1, label) for i, label in enumerate(labels)}, 'files': []}
+    prior = (directory/'COPY.txt').read_text(encoding='utf-8') if (directory/'COPY.txt').exists() else ''
+    _append_parts(directory, manifest, '00_overview', prior or 'Ours timing started; condition details use separate parts.\n')
+
+
 def emit(run, event, **fields):
     path = folder(run) / 'COPY.txt'
     new = not path.exists()
@@ -54,12 +106,18 @@ def emit(run, event, **fields):
         if isinstance(v, (dict, list, tuple)):
             return json.dumps(v, ensure_ascii=False, separators=(',', ':'))
         return ' '.join(str(v).split())
-    with path.open('a', encoding='utf-8') as stream:
-        if new:
-            stream.write('DABS复制摘要 v3；P=30秒进度；D=原因；S=评分/候选详情；C=结果；DIAG=漏斗统计；TIMING=毫秒p50/p95。\n'
-                         '每条件D至多6条(同类3)、S至多3条、SELECT至多2条、回执2条；中途摘要总限12KiB，结尾汇总另留。省略有计数，完整证据在conditions/*/*.jsonl；wall_ms不是单次评分耗时。\n')
-        clock = datetime.now(timezone.utc).strftime('%H:%M:%SZ')
-        stream.write(clock + ' ' + event + ' ' + ' '.join(k + '=' + value(v) for k, v in fields.items() if v is not None) + '\n')
+    clock = datetime.now(timezone.utc).strftime('%H:%M:%SZ')
+    line = clock + ' ' + event + ' ' + ' '.join(k + '=' + value(v) for k, v in fields.items() if v is not None) + '\n'
+    if (path.parent/'parts.json').is_file():
+        manifest = json.loads((path.parent/'parts.json').read_text(encoding='utf-8'))
+        stream = manifest['labels'].get(fields.get('condition'), '00_overview')
+        _append_parts(path.parent, manifest, stream, line)
+    else:
+        with path.open('a', encoding='utf-8') as stream:
+            if new:
+                stream.write('DABS复制摘要 v3；P=30秒进度；D=原因；S=评分/候选详情；C=结果；DIAG=漏斗统计；TIMING=毫秒p50/p95。\n'
+                             '每条件D至多6条(同类3)、S至多3条、SELECT至多2条、回执2条；中途摘要总限12KiB，结尾汇总另留。省略有计数，完整证据在conditions/*/*.jsonl；wall_ms不是单次评分耗时。\n')
+            stream.write(line)
     # One read-only command can print the current run without finding directories.
     outputs = next((p for p in path.parents if p.name == 'outputs'), None)
     if outputs is not None:

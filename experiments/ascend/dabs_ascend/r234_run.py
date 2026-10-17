@@ -50,7 +50,7 @@ def arguments(args):
 def stable_arguments(args):
     return {k: v for k, v in arguments(args).items()
             if k not in ('out', 'resume', 'max_conditions', 'deployment_manifest', 'mode', 'native_evidence', 'model')
-            and not (k in ('screening', 'ours_timing', 'timing_profile') and not v)}
+            and not (k in ('screening', 'ours_timing', 'timing_profile', 'timing_count') and not v)}
 
 
 def native_paths(args):
@@ -136,6 +136,9 @@ async def execute(args, out, plan, summaries, identity):
         servers = Servers(args, out)
     pool = None
     shadow = bool(getattr(args, 'ours_timing', None))
+    if shadow:
+        from .copy_log import enable_parts
+        enable_parts(out, [s['label'] for s in plan])
     async with httpx.AsyncClient(timeout=httpx.Timeout(args.request_timeout, connect=10), trust_env=False,
                                  limits=httpx.Limits(max_connections=256, max_keepalive_connections=args.http_keepalive)) as client:
         try:
@@ -297,7 +300,7 @@ async def execute(args, out, plan, summaries, identity):
 def main(args):
     screening = getattr(args, 'screening', None)
     shadow = getattr(args, 'ours_timing', None)
-    plan = r234.ours_timing_plan(shadow) if shadow else r234.screening_plan(screening) if screening else r234.plan()
+    plan = r234.ours_timing_plan(shadow, getattr(args, 'timing_count', None)) if shadow else r234.screening_plan(screening) if screening else r234.plan()
     if args.mode == 'plan':
         print(json.dumps({'suite': r234.SUITE, 'conditions': len(plan), 'plan': plan,
                           'screening': screening, 'ours_timing': shadow, 'formal_acceptance': False,
@@ -341,7 +344,8 @@ def main(args):
             out.mkdir(parents=True, exist_ok=False)
             summaries = []
             write_json(out / 'protocol.json', {'suite': r234.SUITE, 'plan': plan, 'source_sha256': identity,
-                       'ours_timing': shadow,
+                       'ours_timing': shadow, 'timing_count': getattr(args, 'timing_count', None),
+                       'ours_timing_split_copy': bool(shadow),
                        'screening': screening, 'screening_revision': r234.SCREENING_REVISION if screening else None,
                        'diagnostic_only': bool(screening or shadow),
                        'stable_arguments': stable_arguments(args),

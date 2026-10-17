@@ -33,12 +33,16 @@ def profile_path(source):
     source = Path(source).resolve()
     if source.is_file() and source.name in ('ascend_profile.json', 'native_profile.json'):
         return source
+    # A timing run stages the exact predictor here; prefer it to its child copy.
+    staged = source/'timing_input/ascend_profile.json'
+    if staged.is_file():
+        return staged
     direct = [source/name for name in ('ascend_profile.json', 'native_profile.json') if (source/name).is_file()]
-    nested = [source/child/'ascend_profile.json' for child in ('r234_screening', 'r234_native', 'r234_exploratory')
+    nested = [source/child/'ascend_profile.json' for child in ('r234_screening', 'r234_native', 'r234_exploratory', 'r234_ours_timing')
               if (source/child/'ascend_profile.json').is_file()]
     candidates = direct or nested
     if len(candidates) != 1:
-        raise ValueError('--input needs one prior screen/verify/experiment result or a specific ascend_profile.json/native_profile.json')
+        raise ValueError('--input needs one prior ours-timing/screen/verify/experiment result or a specific ascend_profile.json/native_profile.json')
     return candidates[0]
 
 
@@ -212,6 +216,12 @@ class ShadowLog:
             emit(self.run, 'SHADOW_TIMING', condition=self.label, group=name, ms=timings)
         for sample in self.slow:
             emit(self.run, 'SHADOW_SLOW', condition=self.label, **compact(sample))
+        from .copy_log import folder
+        if (folder(self.run)/'parts.json').is_file():
+            packed = lambda d: [d.get(k) for k in ('n', 'p50', 'p95', 'p99', 'max')]
+            emit(self.run, 'SHADOW_BRIEF', label=self.label, counts=dict(self.counts), reasons=dict(self.reasons),
+                 complete_ms={k: packed(v) for k, v in summary['ms']['all_scores_complete'].items()
+                              if k in ('worker_wall_ms', 'cycle_need_estimate_ms', 'snapshot_need_estimate_ms')})
         return summary
 
 
@@ -231,7 +241,8 @@ def make_report(out, plan, summaries, status, error=None):
              '不运行额外规则自检、探针、canary、重标定或完整评分验收。实际动作的新鲜度/资源/回执安全检查不变。',
              '规划与单次评分均无 CPU 截止；过期结果只记日志，永远不应用；同一时刻最多一个规划，无积压。',
              '条件结束后等待最后一个后台任务自然完成；忙时未采样的窗口有计数。',
-             'COPY.txt 的 SHADOW_TIMING 分 all / with_candidates / all_scores_complete；用于预算判断优先看后两组。',
+             'copy_logs/COPY.txt 为分文件目录；COPY_00_overview_* 为总览，COPY_序号_条件_* 为该条件完整摘要，每份至多 12KiB。',
+             '条件摘要 SHADOW_TIMING 分 all / with_candidates / all_scores_complete；用于预算判断优先看后两组。总览数组为 [n,p50,p95,p99,max]，单位 ms。',
              'cycle_need_estimate_ms 与 snapshot_need_estimate_ms 含返回通信/事件循环延迟和原 25ms 提交预留；只估计当前轨迹，不保证新周期的效果。']
     import json
     for condition in report['conditions']:
