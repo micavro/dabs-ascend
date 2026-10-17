@@ -234,7 +234,11 @@ def executable_key(action, state):
                   for r in range(state['replicas'])), tuple(action['caps']))
 
 
-def choose(state, model, cfg, deadline):
+def choose(state, model, cfg, deadline, *, unbounded_timing=False):
+    # Only the isolated Ours timing worker enables this. The controller never
+    # receives an executable action from that worker. Normal budgets unchanged.
+    if unbounded_timing:
+        deadline = float('inf')
     if state.get('native_observation_errors'):
         return {'action': reference(state, cfg), 'evaluations': [], 'model_selection': False,
                 'selected_cell': '00', 'native_fallback': state['native_observation_errors'],
@@ -249,8 +253,11 @@ def choose(state, model, cfg, deadline):
     from .native_scoring import next_batch
     from .native_diagnostics import REVISION, evaluation_sample, opportunity
     score_samples, reference_actions = [], []
+    extra_timing = {'reference_build_ms': 0., 'guard_ms': 0.}
     selector.dag.next_batch = lambda s, a, m, r: next_batch(s, a, m, r, cfg)
     def supported_evaluate(*args, **kwargs):
+        if unbounded_timing:
+            kwargs['deadline'] = None  # No per-score or total CPU cutoff.
         elapsed_start = time.perf_counter()
         started = time.monotonic()
         try:
@@ -260,7 +267,8 @@ def choose(state, model, cfg, deadline):
                 raise
             value = {'rankable': False, 'complete': False, 'sum_remaining_jct_ms': None, 'reason': str(exc)}
         elapsed_ms = (time.perf_counter()-elapsed_start)*1000
-        score_samples.append(evaluation_sample(value, started, kwargs.get('deadline'), deadline, elapsed_ms))
+        score_samples.append(evaluation_sample(value, started, kwargs.get('deadline'),
+                                               None if unbounded_timing else deadline, elapsed_ms))
         return value
     selector.evaluate = supported_evaluate
     original_cache_tokens = selector.cache_tokens
@@ -277,7 +285,10 @@ def choose(state, model, cfg, deadline):
     causes = Counter()
     samples, rejection_samples, rejected_nodes, proposal_ms = [], [], {}, []
     def observed_reference(s, c):
+        started = time.perf_counter() if unbounded_timing else None
         base = reference(s, c)
+        if started is not None:
+            extra_timing['reference_build_ms'] += (time.perf_counter()-started)*1000
         reference_actions.append(base)
         return base
     selector.resources, selector.reference = resources, observed_reference
@@ -341,6 +352,7 @@ def choose(state, model, cfg, deadline):
         return choices
     selector.proposals = proposals
     def guard(*args, **kwargs):
+        started = time.perf_counter() if unbounded_timing else None
         try:
             return original_guard(*args, **kwargs)
         except ValueError as exc:
@@ -350,6 +362,9 @@ def choose(state, model, cfg, deadline):
             # candidate, never erases all the scores or bypasses the guard.
             causes[str(exc)] += 1
             return [{'kind': 'model_support', 'reason': str(exc)}]
+        finally:
+            if started is not None:
+                extra_timing['guard_ms'] += (time.perf_counter()-started)*1000
     selector.dag.guard = guard
     try:
         try:
@@ -377,6 +392,8 @@ def choose(state, model, cfg, deadline):
     if reference_actions:
         result['opportunity_diagnostics'] = opportunity(state, reference_actions[0], cfg, cache_index)
     result['post_selection_diagnostics_ms'] = (time.perf_counter()-diagnostics_at)*1000
+    if unbounded_timing:
+        result['unbounded_timing'] = extra_timing
     result.setdefault('v5_stop_reason', 'nonreference_selected' if result.get('selected_cell', '00') != '00'
         else 'reference_retained_after_scoring' if result.get('v5_candidate_scored') else 'candidate_score_incomplete')
     result.update(method='Ours', action_projection='native_safe_prefill_queues',

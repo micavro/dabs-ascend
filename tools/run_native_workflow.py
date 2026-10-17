@@ -65,7 +65,7 @@ class Workflow:
         write_json(self.out / 'run.json', self.record)
         lines = ['DABS 原生' + {'test': '测试', 'verify': '规划验证（原计划前若干条件）', 'screen': '三组诊断筛查（非正式矩阵）', 'experiment': '实验', 'install': '安装',
                  'smoke': '计时关联短诊断', 'calibrate': '单副本完整标定', 'audit': '旧事件离线审计',
-                 'refit': '旧数据离线重拟合（诊断，不作新验收）',
+                 'refit': '旧数据离线重拟合（诊断，不作新验收）', 'ours-timing': 'Ours default 实时负载＋无预算后台规划计时',
                  'explore': '带预测偏差的实验（非正式验收）'}[self.mode],
                  '状态: ' + self.record['status'], '结果目录: ' + str(self.out)]
         for step in self.record['steps']:
@@ -74,7 +74,7 @@ class Workflow:
             lines.append('未运行的专项（不计通过）: ' + ', '.join(self.record['optional_tests_not_run']))
         if self.record.get('reason'):
             lines.append('停止原因: ' + self.record['reason'])
-        for field in ('acceptance', 'experiment_output', 'rollback_file'):
+        for field in ('acceptance', 'experiment_output', 'rollback_file', 'test_result'):
             if field in self.record:
                 lines.append(field + ': ' + self.record[field])
         if self.mode == 'screen':
@@ -164,6 +164,31 @@ class Workflow:
 
     def audit(self):
         self.step('native-timing-audit', '离线统计已有原始事件（不发推理）', ['--input', str(self.input_path)])
+
+    def ours_timing(self):
+        from dabs_ascend.native_shadow_timing import profile_path
+        from dabs_ascend.r234 import ours_timing_plan
+        self.record.update(diagnostic_only=True, formal_acceptance=False, default_only_execution=True,
+                           requested_conditions=len(ours_timing_plan(self.screen_group)))
+        source = profile_path(self.input_path)
+        target = self.out/'timing_input/ascend_profile.json'
+        target.parent.mkdir()
+        shutil.copyfile(source, target)
+        result_dir = self.out/'r234_ours_timing'
+        self.record.update(profile_source=str(source), experiment_output=self.relative(result_dir),
+                           test_result=self.relative(self.out/'test_result.txt'))
+        try:
+            self.step('benchmark', '仅 Ours：default 实际执行；后台规划不设 CPU/评分期限，结果永不应用',
+                      ['--execution-scope', 'native', '--ours-timing', self.screen_group,
+                       '--timing-profile', self.container_path(target), '--out', self.container_path(result_dir)], native=False)
+        finally:
+            report = result_dir/'test_result.txt'
+            if report.is_file():
+                shutil.copyfile(report, self.out/'test_result.txt')
+            else:
+                (self.out/'test_result.txt').write_text(
+                    'Ours 实时无预算计时未完成；子实验未生成报告。详见 SUMMARY.txt 和 copy_logs/COPY.txt。\n', encoding='utf-8')
+        self.record['next_commands'] = ['bash run_native.sh logs']
 
     def refit(self):
         self.step('native-refit', '从原始事件比较旧模型与启动项模型（不发推理）', ['--input', str(self.input_path)])
@@ -414,8 +439,8 @@ class Workflow:
         emit(self.out, 'START', mode=self.mode, output=self.relative(self.out))
         print('本次结果: ' + str(self.out), flush=True)
         try:
-            getattr(self, self.mode)()
-            self.record['status'] = 'completed' if self.mode == 'screen' else 'passed'
+            getattr(self, self.mode.replace('-', '_'))()
+            self.record['status'] = 'completed' if self.mode in ('screen', 'ours-timing') else 'passed'
             if self.mode == 'test':
                 self.record['next_commands'] = ['bash run_native.sh experiment']
             code = 0
@@ -430,6 +455,11 @@ class Workflow:
             if step['status'] == 'running':
                 step.update(status=self.record['status'], finished_utc=utc())
         self.record['finished_utc'] = utc()
+        if self.mode == 'ours-timing' and not (self.out/'test_result.txt').exists():
+            self.record['test_result'] = self.relative(self.out/'test_result.txt')
+            (self.out/'test_result.txt').write_text(
+                'Ours 无预算后台规划计时未完成。\n状态: ' + self.record['status'] + '\n原因: ' +
+                str(self.record.get('reason', 'unknown')) + '\n原始错误见 SUMMARY.txt 与 copy_logs/COPY.txt。\n', encoding='utf-8')
         self.save()
         emit(self.out, 'END', status=self.record['status'], reason=self.record.get('reason'),
              screening_completed=self.record.get('screening_completed'), planning_pass=self.record.get('planning_pass'),
@@ -440,17 +470,17 @@ class Workflow:
 
 def main():
     parser = argparse.ArgumentParser(description='现场入口：screen 三组诊断筛查；verify 前8条规划验证；experiment 全部96条/续跑；logs 打印复制摘要。')
-    parser.add_argument('mode', choices=('install', 'smoke', 'calibrate', 'audit', 'refit', 'explore', 'test', 'verify', 'screen', 'experiment', 'logs'))
-    parser.add_argument('--group', choices=('all', 'r3-l8', 'r4-l4', 'r3-l4'), help='screen only; default all (12 conditions); each named group has 4 conditions')
+    parser.add_argument('mode', choices=('install', 'smoke', 'calibrate', 'audit', 'refit', 'ours-timing', 'explore', 'test', 'verify', 'screen', 'experiment', 'logs'))
+    parser.add_argument('--group', choices=('all', 'r3-l8', 'r4-l4', 'r3-l4'), help='screen: 4 methods/group; ours-timing: only Ours/group; default all')
     parser.add_argument('--replica', type=int, choices=range(4), help='install/smoke/calibrate: select one existing service')
-    parser.add_argument('--input', type=Path, help='audit/refit/explore: calibration directory; verify/experiment: prior native_test; screen: native_test or native_verify raw evidence (read-only)')
+    parser.add_argument('--input', type=Path, help='ours-timing: prior screen/verify/experiment or predictor JSON; audit/refit/explore: calibration; verify/experiment: native_test; screen: native_test/native_verify')
     parser.add_argument('--invalidate-cache', action='store_true', help='仅 test：明确执行副本 0 缓存清空/失效测试；默认不执行')
     parser.add_argument('--verify-restart', action='store_true', help='仅 install：明确额外重启副本 0 并验证旧身份失效')
     parser.add_argument('--ready-timeout', type=int, default=900, help='install 每个服务加载等待秒数，默认 900')
     parser.add_argument('--max-conditions', type=int, help='explore: 1..96 default 4; verify: 4..92, multiple of 4, default 8')
     args = parser.parse_args()
-    if args.group is not None and args.mode != 'screen':
-        parser.error('--group 仅用于 screen')
+    if args.group is not None and args.mode not in ('screen', 'ours-timing'):
+        parser.error('--group 仅用于 screen / ours-timing')
     if args.mode == 'logs':
         pointer = ROOT / 'outputs/native-entry-last-copy.json'
         if not pointer.exists():
@@ -469,8 +499,8 @@ def main():
             parser.error('--max-conditions 用于 explore 或 verify')
     if args.replica is not None and args.mode not in ('install', 'smoke', 'calibrate'):
         parser.error('--replica 仅用于 install/smoke/calibrate')
-    if (args.mode in ('audit', 'refit') and not args.input) or (args.input and args.mode not in ('audit', 'refit', 'explore', 'verify', 'screen', 'experiment')):
-        parser.error('audit/refit 必须提供 --input；explore 可指定已有标定目录；experiment 可指定旧 native_test 结果目录')
+    if (args.mode in ('audit', 'refit', 'ours-timing') and not args.input) or (args.input and args.mode not in ('audit', 'refit', 'ours-timing', 'explore', 'verify', 'screen', 'experiment')):
+        parser.error('audit/refit/ours-timing 必须提供 --input；ours-timing 读取已有预测模型，不重新标定')
     if args.verify_restart and args.replica not in (None, 0):
         parser.error('--verify-restart 仅支持副本 0')
     if args.invalidate_cache and args.mode != 'test':

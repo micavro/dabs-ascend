@@ -40,6 +40,14 @@ def paired_rows(summaries):
 
 
 def procedure(out, record):
+    if record['arguments'].get('ours_timing'):
+        (out/'REPRODUCE.md').write_text(
+            '# Ours default 实时负载 + 无预算后台规划计时\n\n'
+            '复用指定预测模型；不运行探针、canary、重标定或规则自检。实际请求仅执行 Ours default。\n'
+            '后台规划与评分无 CPU 截止；过期或提前返回的规划动作均不应用；只保留一个后台任务，不排队。\n'
+            '完整记录 conditions/*/decisions.jsonl；汇总 shadow_timing_summary.json 与 COPY.txt。\n'
+            '命令：' + (record['host_command'] or ' '.join(record['argv'])) + '\n', encoding='utf-8')
+        return
     lines = ['# 本次复现过程', '', '本文件和 process.jsonl 自动生成；运行结束后保留整个输出目录。', '',
              f"- 本次调用开始（UTC）：{record['utc']}",
              f"- 主机项目目录：`{record['host_project'] or record['cwd']}`",
@@ -122,6 +130,9 @@ def chart(summaries, metric, title):
 def make_report(out, plan, summaries, status, error=None, *, source_out=None):
     source_out = source_out or out
     protocol = read_json(source_out / 'protocol.json') if (source_out / 'protocol.json').exists() else {}
+    if protocol.get('ours_timing'):
+        from .native_shadow_timing import make_report as timing_report
+        return timing_report(out, plan, summaries, status, error)
     screening = protocol.get('screening')
     from .r234 import screening_plan
     expected = len(screening_plan(screening)) if screening else 96

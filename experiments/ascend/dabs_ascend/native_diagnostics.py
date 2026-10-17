@@ -69,7 +69,7 @@ def opportunity(state, base, cfg, cache_index):
 def evaluation_sample(result, started, stop, deadline, elapsed_ms):
     finished = time.monotonic()
     return {'slice_budget_ms': None if stop is None else (stop - started) * 1000,
-            'planner_remaining_at_score_ms': (deadline - started) * 1000,
+            'planner_remaining_at_score_ms': None if deadline is None else (deadline - started) * 1000,
             'evaluator_elapsed_ms': elapsed_ms,
             'slice_overrun_ms': None if stop is None else max(0., finished - stop) * 1000,
             'stages_ms': result.get('diagnostic_stage_ms', {}),

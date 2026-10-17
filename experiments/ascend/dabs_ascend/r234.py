@@ -114,6 +114,11 @@ def screening_plan(group='all'):
             if (s['replicas'], s['rate'], s['repeat']) == (replicas, rate, 1)]
 
 
+def ours_timing_plan(group='all'):
+    """Only the Ours condition of each predetermined screening group."""
+    return [s for s in screening_plan(group) if s['method'] == 'Ours']
+
+
 def planner_ready(native=False):
     frozen('v5_selector')
     frozen('ayo_topology')

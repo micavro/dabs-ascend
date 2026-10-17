@@ -1,5 +1,42 @@
 # DABS 昇腾复现
 
+## 新入口：只跑 Ours，测后台规划完整运行时间
+
+这次**不验证现有时间分配规则，也不做离线样例回放**。运行真实负载，实际始终按 **Ours default/reference** 派发；旁路启动同一份真实快照上的 Ours 规划器，**取消规划总 CPU 截止和单次评分分片截止**，让它自然返回。超过原窗口只标记过期，**不取消、不 kill、不应用结果**；即使提前返回也不应用。候选生成、资源约束、评分公式、模型覆盖检查以及推演事件/时域边界不变。
+
+先确认没有另一个控制器使用这些服务。进入新版项目，复用已有 verify/screen 结果里的预测模型：
+
+```bash
+bash run_native.sh ours-timing --input ../dabs-ascend-main-2026101611/outputs/native_verify_20261016T135710Z_5f1e88ab
+```
+
+默认只跑之前三组中的 **R3_L8、R4_L4、R3_L4 的 Ours**，总共 3 条，不跑 RR/SLL/Ayo。每条仍为 64 工作流、216 请求、13184 输出 token，原配置/种子/到达与数据不变。想先只测一条：
+
+```bash
+bash run_native.sh ours-timing --group r3-l8 --input <已有的具体 native_screen 或 native_verify 结果目录>
+```
+
+`--input` 也接受 `r234_native`、`r234_screening` 或具体 `ascend_profile.json` / `native_profile.json`。只复制预测模型到新目录，不修改旧结果。**不运行规则自检、探针、canary、重新标定或完整评分验收，不安装/重启。** 运行必需的服务连接、输入/资源检查，以及实际 default 动作的快照期限、原子准入、DAG 和回执安全约束仍保留；本次不是新的模型或机制验收。
+
+实际循环暂时仍是 200 ms，快照期限仍是 120 ms。旧的 80 ms 搜索预算和 25 ms 提交预留只作为对照记录；**后台计时不受这些 deadline 或二等分/四等分分片截断**。同一时刻最多一个后台规划，忙时继续 default 执行并记录跳过数，不积压快照。条件结束或工作量报错后也等待最后一个后台任务自然返回，正常流程不设置强杀计时；任务很久没返回时每约 30 秒显示 `SHADOW_WAIT`，可人工中断，不能把中断样本当完整耗时。
+
+运行中或结束后复制：
+
+```bash
+bash run_native.sh logs
+```
+
+`outputs/native_ours-timing_*/copy_logs/COPY.txt` 新增：
+
+- `SHADOW`：少量具体样例，含原预算、实际完整规划时间、候选生成、reference/候选评分、保护检查、评分完成状态与原因。
+- `SHADOW_SUMMARY`：启动/返回/超原 deadline/忙时跳过/完整评分/错误数量。
+- `SHADOW_TIMING`：按 **all、with_candidates、all_scores_complete** 分组的 n、p50、p95、p99、max。分析预算优先看后两组，不能让快速无候选调用稀释统计。
+- `SHADOW_SLOW`：最慢 3 个有候选调用的有限详情。样例限量，汇总保留全部观测。
+
+`cycle_need_estimate_ms` = 本轮观测与准备 + 分派等待 + 完整规划 + 返回通信/事件循环延迟 + 原提交预留；`snapshot_need_estimate_ms` = 最早快照采集至结果回到控制器 + 原提交预留。返回延迟单独记录为 `return_delay_ms`。它们帮助后续决定试哪个周期/有效期，**不是已测试的新参数，也不保证状态仍有效或新周期的 JCT 不变**。本次实际是 default 轨迹，不能当 Ours 优化后的性能结果。
+
+另生成新的 `outputs/native_ours-timing_*/test_result.txt`；每条件全部计时保存在 `r234_ours_timing/conditions/*/decisions.jsonl` 和 `shadow_timing_summary.json`。本次只带出 COPY.txt 即可。没有候选或被模型/推演边界中止会明确记录，不伪称评分跑完整。此前未提交的离线预算/规则自检脚本已撤掉，旧输出文件保留。
+
 ## 当前版本：只补诊断与三组筛查，不优化调度机制
 
 本次只增加诊断字段、受限复制摘要和预定筛查入口。**不修改候选生成次序/上限、`seen` 去重位置、准入与资源约束、查询优先级、观测前处理算法、评分时间分配、评分公式或模型门槛。** 固定周期、快照期限、提交预留、搜索上限与客户端并发保持原值。计时插桩本身有小额开销，不能将本版速度变化直接归因于算法优化。

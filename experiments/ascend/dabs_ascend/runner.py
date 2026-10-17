@@ -96,9 +96,21 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
     decisions, history, errors = [], {}, []
     fixed = spec.get('measurement_mode') == 'fixed_token_replay'
     native = cfg.get('execution_scope') == 'native'
+    shadow_mode = cfg.get('ours_shadow_timing', False)
+    if shadow_mode and (not native or not fixed or spec['method'] != 'Ours'):
+        raise ValueError('Unbounded shadow timing requires native fixed-work Ours; never another execution mode')
     from .copy_log import ConditionLog, emit
     copy_root = out.parent.parent if out.parent.name == 'conditions' else out.parent
     compact = ConditionLog(copy_root, spec.get('label', spec['method']))
+    shadow, shadow_summary, pending_since = None, None, None
+    if shadow_mode:
+        from .native_shadow_timing import ShadowLog
+        shadow = ShadowLog(copy_root, out, spec['label'])
+        write_json(out/'config.json', cfg)
+        write_json(out/'spec.json', spec)
+        emit(copy_root, 'SHADOW_MODE', condition=spec['label'], actual_policy='Ours default reference',
+             cpu_deadline='none', score_deadline='none', late_actions='never applied', max_pending=1,
+             period_ms=cfg['epoch_s']*1000, snapshot_ms=cfg['snapshot_max_age_s']*1000)
     if native:
         import uuid
         backend.native.salt = 'dabs-condition-' + uuid.uuid4().hex
@@ -195,7 +207,25 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
         write_json(out / "status.json", {"status": "running", "spec": spec})
 
         async def consume_late_plan():
-            nonlocal pending, pending_origin
+            nonlocal pending, pending_origin, pending_since
+            if shadow_mode:
+                from .native_shadow_timing import await_natural_completion, record_return
+                def waiting():
+                    elapsed = (time.monotonic()-pending_since)*1000
+                    print('SHADOW_WAIT ' + spec['label'] + ' i=' + str(pending_origin) +
+                          ' elapsed_ms=' + str(round(elapsed, 1)) + ' no cancellation; default work finished/stopped', flush=True)
+                    emit(copy_root, 'SHADOW_WAIT', condition=spec['label'], i=pending_origin,
+                         elapsed_ms=round(elapsed, 1), deadline='none')
+                late = await await_natural_completion(pending, waiting)
+                record_return(pending)  # Idempotent fallback if the callback is not yet dispatched.
+                timing = late['shadow_timing']
+                record = {'event': 'unbounded_planner_timing', 'index': pending_origin,
+                          'discarded_expired': timing['exceeded_original_deadline'], 'diagnostic_only': True,
+                          'client_applied_nonreference': False, 'engine_applied': False, 'result': late}
+                append_json(out/'decisions.jsonl', record)
+                shadow.add(record)
+                pending, pending_origin, pending_since = None, None, None
+                return
             # Preserve diagnostics from expired searches, never apply their action.
             late = await pending
             record = {'event': 'expired_plan_diagnostic', 'index': pending_origin,
@@ -253,7 +283,7 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
             compact.progress(row)
 
         async def loop():
-            nonlocal pending, pending_origin
+            nonlocal pending, pending_origin, pending_since
             index = 0
             next_tick = start
             progress_at, activity_at = start, start
@@ -301,6 +331,10 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                             'expired_decisions': sum(bool(d.get('discarded_expired')) for d in decisions),
                             'atomic_fallbacks': sum(bool(d.get('native_fallback_reason')) for d in decisions),
                             'deferred_admissions': sum(bool(d.get('native_deferred_reason')) for d in decisions)}
+                        if shadow_mode:
+                            progress.update(shadow_started=shadow.counts['started'], shadow_returned=shadow.counts['returned'],
+                                            shadow_busy=pending is not None,
+                                            shadow_pending_ms=None if pending_since is None else (measured_at-pending_since)*1000)
                         progress_at = measured_at + 5
                         progress_row = progress
                     if state['ready'] and not active and measured_at - activity_at >= cfg.get('native_idle_stall_s', 60):
@@ -324,7 +358,29 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                     # neither the fixed tick nor the snapshot lease is extended.
                     window = planning_window(state, cfg, next_tick)
                     decision['planning_window'] = window
-                if wants_planner and time.monotonic() < next_tick - cfg['commit_reserve_s'] and (not native or window['budget_ms'] >= 9):
+                if shadow_mode:
+                    # Never wait for this diagnostic planner before dispatching
+                    # the default action. Even an already exhausted old budget
+                    # does not suppress measurement. Do not queue busy windows.
+                    result['v5_stop_reason'] = 'shadow_default_only'
+                    decision['ours_shadow_timing'] = True
+                    if pending is None:
+                        from .native_shadow_timing import run_unbounded, record_return
+                        captured = [s['captured_ns']/1e9 for s in state.get('native_snapshots', [])
+                                    if isinstance(s.get('captured_ns'), (int, float))]
+                        context = {'window': window,
+                                   'front_ms': (window['prepared_at']-(next_tick-cfg['epoch_s']))*1000,
+                                   'earliest_snapshot_at': min(captured) if captured else None}
+                        pending_origin, pending_since = index, time.monotonic()
+                        pending = asyncio.get_running_loop().run_in_executor(executor, run_unbounded,
+                            copy.deepcopy(scorer_view(state)), model, cfg, context)
+                        pending.add_done_callback(record_return)
+                        shadow.started()
+                        decision['shadow_started'] = True
+                    else:
+                        shadow.busy()
+                        decision.update(planner_busy=True, shadow_skipped_busy=True)
+                elif wants_planner and time.monotonic() < next_tick - cfg['commit_reserve_s'] and (not native or window['budget_ms'] >= 9):
                     if pending is None:
                         deadline = (window['deadline'] if native else
                                     min(now + cfg["planning_soft_limit_s"], next_tick - cfg["commit_reserve_s"]))
@@ -440,13 +496,20 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
         if errors:
             raise errors[0]
         finish = time.monotonic()
+        tail_started = time.perf_counter()
         if pending is not None:
             await consume_late_plan()
+        if shadow_mode:
+            shadow.counts['tail_wait_ms'] = round((time.perf_counter()-tail_started)*1000, 3)
+            shadow_summary = shadow.finish()
         # Gold is read only after all actual requests, including refusals, finish.
         quality = ({'semantic_quality': {'final_em': None, 'final_f1': None,
                     'quality_scope': 'nonsemantic_fixed_token_replay', 'applicable': False}}
                    if fixed else evaluate(nodes, DATASET, finish - start))
         summary = {"spec": spec, **summarize(nodes, start, finish, decisions, quality, fixed=fixed)}
+        if shadow_mode:
+            summary.update(ours_shadow_timing=True, default_only_execution=True, formal_acceptance=False,
+                           shadow_timing=shadow_summary)
         if native:
             await backend.native.drain(cfg['replicas'])
             while await backend.native.harvest(cfg['replicas'], wait_complete=True):
@@ -522,11 +585,14 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
         if tasks:
             await asyncio.gather(*list(tasks), return_exceptions=True)
         if pending is not None:
-            # Child search is time bounded; consume any exception and preserve its trace.
+            # Normal searches are bounded. Shadow searches deliberately drain
+            # without a deadline, even if the workload stopped with an error.
             try:
                 await consume_late_plan()
             except BaseException as exc:
                 append_json(out / "decisions.jsonl", {"event": "pending_plan_failed", "error": repr(exc)})
+        if shadow_mode and shadow_summary is None:
+            shadow.finish()
         if nodes:
             write_json(out / "nodes.json", nodes)
             if "proof" in locals():

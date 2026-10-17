@@ -50,7 +50,7 @@ def arguments(args):
 def stable_arguments(args):
     return {k: v for k, v in arguments(args).items()
             if k not in ('out', 'resume', 'max_conditions', 'deployment_manifest', 'mode', 'native_evidence', 'model')
-            and not (k == 'screening' and not v)}
+            and not (k in ('screening', 'ours_timing', 'timing_profile') and not v)}
 
 
 def native_paths(args):
@@ -135,6 +135,7 @@ async def execute(args, out, plan, summaries, identity):
         from .runtime import Servers
         servers = Servers(args, out)
     pool = None
+    shadow = bool(getattr(args, 'ours_timing', None))
     async with httpx.AsyncClient(timeout=httpx.Timeout(args.request_timeout, connect=10), trust_env=False,
                                  limits=httpx.Limits(max_connections=256, max_keepalive_connections=args.http_keepalive)) as client:
         try:
@@ -149,7 +150,14 @@ async def execute(args, out, plan, summaries, identity):
                 write_json(out / 'native_transformations.json', transformation_manifest())
                 backend.native = NativeClient(client, servers.endpoints, out / 'native_preflight.jsonl')
                 caps = await backend.native.inspect()
-                if getattr(args, 'exploratory_calibration', False):
+                if shadow:
+                    # Measurement run only: reuse the supplied predictor. No
+                    # verification suite, acceptance gate or calibration traffic.
+                    model = read_json(args.timing_profile)
+                    gate = {'pass': False, 'live_verified': False, 'diagnostic_only': True,
+                            'paths': {'timing_profile': str(args.timing_profile)}, 'artifacts': {},
+                            'scope': 'unbounded shadow timing; no mechanism/calibration acceptance performed'}
+                elif getattr(args, 'exploratory_calibration', False):
                     from .native_explore import verify
                     gate, model = await verify(backend.native, native_paths(args))
                 else:
@@ -157,14 +165,17 @@ async def execute(args, out, plan, summaries, identity):
                     if not gate['pass']:
                         raise ValueError('native evidence gate failed: ' + str(gate['missing']))
                     model = read_json(Path(native_paths(args)['native-calibrate']) / 'native_profile.json')
-                preserve_native_freeze(out, gate, model, args.resume)
+                if not shadow:
+                    preserve_native_freeze(out, gate, model, args.resume)
                 write_json(out / 'native_gate.json', gate)
-                emit(out, 'GATE', passed=gate['pass'], timing=model['timing_target'], predictor=model.get('predictor'),
+                emit(out, 'SHADOW_PROFILE' if shadow else 'GATE', passed=None if shadow else gate['pass'],
+                     acceptance='not_run' if shadow else None, timing=model.get('timing_target'), predictor=model.get('predictor'),
                      resources=[c['resources'] for c in caps], client_inflight=args.max_inflight)
                 await backend.native.drain(4)
                 write_json(out / 'native_capabilities.json', caps)
-            append_json(out / 'process.jsonl', {'event': 'canaries_start', 'utc': utc(), 'resumed': bool(args.resume)})
-            write_json(out / 'canary_summary.json', await backend.fixed_canaries(out))
+            if not shadow:
+                append_json(out / 'process.jsonl', {'event': 'canaries_start', 'utc': utc(), 'resumed': bool(args.resume)})
+                write_json(out / 'canary_summary.json', await backend.fixed_canaries(out))
             if native:
                 await backend.native.drain(4)
                 while await backend.native.harvest(4, wait_complete=True):
@@ -191,7 +202,11 @@ async def execute(args, out, plan, summaries, identity):
                     original_gpu_timing_equivalent=model.get('original_gpu_timing_equivalent', False),
                     effective_resources=[c['resources'] for c in caps], client_max_inflight=args.max_inflight,
                     exploratory=bool(gate.get('exploratory')),
-                    formal_acceptance=gate['pass'] and not bool(getattr(args, 'screening', None)))
+                    formal_acceptance=gate['pass'] and not bool(getattr(args, 'screening', None)) and not shadow)
+                if shadow:
+                    protocol['limits'][0] = 'Only default actions execute; unbounded planner results never execute. No extra acceptance/validation run.'
+                    protocol.update(ours_shadow_timing=True, timing_profile=str(args.timing_profile),
+                                    cpu_budget_limit_ms=None, score_slice_limit_ms=None)
                 protocol['planning_contract'] = PLANNING_CONTRACT
                 write_json(out / 'protocol.json', protocol)
                 repair = read_json(out / 'repair_protocol.json')
@@ -205,6 +220,8 @@ async def execute(args, out, plan, summaries, identity):
                        wf_router_seed=190500, input_profile='fixed_3584_balanced_DAG',
                        output_contract='fixed_by_graph_shape', guided_decoding=None,
                        parent_binding='dependency_order_only', mode='nonsemantic_fixed_token_replay')
+            if shadow:
+                cfg['ours_shadow_timing'] = True
             rows, manifest = load_public(DATASET, 'pilot')
             packets, info = await compile_packets(rows, tok, cfg)
             packets, workload = r234.frozen('heterogeneous').select_packets(packets, 'balanced')
@@ -253,7 +270,7 @@ async def execute(args, out, plan, summaries, identity):
                 write_json(directory / 'artifacts.json', {name: sha(directory / name) for name in names})
                 summaries.append(summary)
                 write_json(out / 'index.json', summaries)
-                if len(summaries) % 4 == 0:
+                if not shadow and len(summaries) % 4 == 0:
                     group = summaries[-4:]
                     audit = {'last_condition': spec['label'], 'methods': [s['spec']['method'] for s in group],
                              'workload_pass': all(s['functional_pass'] for s in group),
@@ -270,7 +287,7 @@ async def execute(args, out, plan, summaries, identity):
             servers.check_alive()
         finally:
             if pool is not None:
-                pool.shutdown(wait=True, cancel_futures=True)
+                pool.shutdown(wait=True, cancel_futures=not shadow)
             if args.service_mode == 'existing':
                 await servers.aclose()
             else:
@@ -279,15 +296,17 @@ async def execute(args, out, plan, summaries, identity):
 
 def main(args):
     screening = getattr(args, 'screening', None)
-    plan = r234.screening_plan(screening) if screening else r234.plan()
+    shadow = getattr(args, 'ours_timing', None)
+    plan = r234.ours_timing_plan(shadow) if shadow else r234.screening_plan(screening) if screening else r234.plan()
     if args.mode == 'plan':
         print(json.dumps({'suite': r234.SUITE, 'conditions': len(plan), 'plan': plan,
-                          'screening': screening, 'formal_acceptance': False,
-                          'limits': ['Predetermined diagnostic subset, not the full 96-condition experiment.'] if screening else r234.LIMITS,
+                          'screening': screening, 'ours_timing': shadow, 'formal_acceptance': False,
+                          'limits': ['Ours default-only live workload; unbounded non-executable planner.'] if shadow else
+                                    ['Predetermined diagnostic subset, not the full 96-condition experiment.'] if screening else r234.LIMITS,
                           'requests_per_condition': 216, 'output_tokens_per_condition': 13184,
                           'inference_executed': False}, ensure_ascii=False, indent=2))
         return 0
-    if args.mode == 'benchmark' and args.execution_scope != 'http-limited':
+    if args.mode == 'benchmark' and args.execution_scope != 'http-limited' and not shadow:
         from .repair import mechanism_gate
         if getattr(args, 'exploratory_calibration', False):
             from .native_explore import evaluate
@@ -301,7 +320,7 @@ def main(args):
         if args.service_mode != 'existing' or not (gate['pass'] or gate.get('exploratory_allowed')):
             print('R234_NATIVE_GATE=' + json.dumps(gate, ensure_ascii=False), file=sys.stderr)
             return 2
-    prefix = 'r234_screening_' if screening else 'r234_native_' if args.execution_scope == 'native' else 'r234_ascend_'
+    prefix = 'r234_ours_timing_' if shadow else 'r234_screening_' if screening else 'r234_native_' if args.execution_scope == 'native' else 'r234_ascend_'
     out = args.resume or args.out or ROOT / 'outputs' / (prefix + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ_') + uuid.uuid4().hex[:8])
     out = out.expanduser().resolve()
     identity = source_identity()
@@ -322,8 +341,9 @@ def main(args):
             out.mkdir(parents=True, exist_ok=False)
             summaries = []
             write_json(out / 'protocol.json', {'suite': r234.SUITE, 'plan': plan, 'source_sha256': identity,
+                       'ours_timing': shadow,
                        'screening': screening, 'screening_revision': r234.SCREENING_REVISION if screening else None,
-                       'diagnostic_only': bool(screening),
+                       'diagnostic_only': bool(screening or shadow),
                        'stable_arguments': stable_arguments(args),
                        'limits': ['Diagnostic subset only; original condition specs unchanged; native gate pending.'] if screening else r234.LIMITS,
                        'workflows_per_condition': 64, 'requests_per_condition': 216,
@@ -332,10 +352,10 @@ def main(args):
                        'planning_contract': PLANNING_CONTRACT if args.execution_scope == 'native' else None})
             write_json(out / 'repair_protocol.json', {
                 'revision': '20261016-native-v023-v1', 'execution_scope': args.execution_scope,
-                'plan_revision': r234.SCREENING_REVISION if screening else 'R4-L8_then_R2-L16_rotating_methods_mirrored_round2',
+                'plan_revision': 'ours-default-live-unbounded-shadow-v1' if shadow else r234.SCREENING_REVISION if screening else 'R4-L8_then_R2-L16_rotating_methods_mirrored_round2',
                 'http_keepalive': args.http_keepalive, 'native_mechanism_test_pass': False,
                 'calibration_scope': 'pending native preflight' if args.execution_scope == 'native' else 'HTTP TTFT/TPOT proxy; not native batch-step validation',
-                'group_audit_conditions': 4, 'first_checkpoint_conditions': 4 if screening else 8,
+                'group_audit_conditions': 0 if shadow else 4, 'first_checkpoint_conditions': len(plan) if shadow else 4 if screening else 8,
                 'previous_results_combinable': False})
             write_json(out / 'index.json', [])
     except Exception as exc:
@@ -381,8 +401,9 @@ def run_recorded(args, out, plan, summaries, identity):
     signal.signal(signal.SIGTERM, interrupt)
     try:
         write_json(out / 'status.json', {'status': 'preflight', 'started_utc': record['utc']})
-        write_json(out / 'import_integrity.json', r234.verify_import())
-        write_json(out / 'original_integrity.json', verify_original_assets())
+        if not getattr(args, 'ours_timing', None):
+            write_json(out / 'import_integrity.json', r234.verify_import())
+            write_json(out / 'original_integrity.json', verify_original_assets())
         if args.service_mode == 'existing':
             from .existing import preflight
         else:

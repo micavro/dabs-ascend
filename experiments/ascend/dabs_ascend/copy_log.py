@@ -206,7 +206,8 @@ class ConditionLog:
         self.detail('P', completed=row['completed_requests'], submitted=row['submitted_requests'],
              inflight=row['client_inflight'], ready=row['ready_requests'], observe_ms=round(row.get('observe_ms') or 0, 2),
              expired=row['expired_decisions'], fallback=row['atomic_fallbacks'], deferred=row['deferred_admissions'],
-             planner={k: self.counts[k] for k in ('generated', 'on_time_ref_ok', 'on_time_candidate_ok', 'selected', 'late')})
+             planner={k: self.counts[k] for k in ('generated', 'on_time_ref_ok', 'on_time_candidate_ok', 'selected', 'late')},
+             **{k: row[k] for k in ('shadow_started', 'shadow_returned', 'shadow_busy', 'shadow_pending_ms') if k in row})
 
     def complete(self, summary):
         from .common import percentile
