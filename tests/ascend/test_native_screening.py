@@ -154,7 +154,7 @@ class ScreeningWorkflowTests(unittest.TestCase):
         self.assertEqual(len(coverage['conditions']), 3)
         self.assertEqual((verified/'run.json').read_bytes(), before)
         self.assertFalse((run.root/'outputs/native-entry-last-verify.json').exists())
-        text = (run.out/'copy_logs/COPY.txt').read_text(encoding='utf-8')
+        text = ''.join(p.read_text(encoding='utf-8') for p in sorted((run.out/'copy_logs').glob('COPY_00_overview_*.txt')))
         self.assertIn('planning_pass=False', text)
         self.assertIn('SCREEN_PLAN', text)
 

@@ -1,4 +1,158 @@
-# DABS 昇腾复现
+# DABS 昇腾实验
+
+## 当前版本：1500ms 周期与快照，1200ms 规划
+
+本仓库的 Ascend 运行默认已统一更新，不保留旧时限的可选对照配置。候选生成顺序/上限、评分公式与分片规则、去重机制、准入约束和客户端并发不变。此次同时修复 mapping 串行等待延长完成状态窗口的问题，并对跨快照的生命周期变化作最多一次有界重取。
+
+| 时间项 | 当前值 | 生效范围 |
+| --- | --- | --- |
+| 固定调度周期 | 1500ms | 所有 Ascend 实验方法的控制循环 |
+| 快照有效期 | 1500ms | EngineCore 发出的 TTL、客户端新鲜度与缓存证据 |
+| 正常规划软上限 | 1200ms | 控制器分派至返回，进程通信占用同一截止时间 |
+| 提交预留 | 25ms | 保留；不额外延长周期或快照 |
+| 优先级动作窗口最大值 | 1500ms | 服务端校验；实际结束仍是本轮固定边界 |
+| 评分推演后续准入周期 | 1500ms | 与实际循环一致；评分算法不变 |
+
+共同配置位于 `experiments/ascend/dabs_native/timing_policy.py`；`profiles/reference/configuration.json` 同步。规划实际截止为：
+
+```text
+min(规划准备完成时间 + 1200ms,
+    本轮固定结束时间 - 25ms,
+    最早快照过期时间 - 25ms)
+```
+
+因此 1200ms 是上限，不是每次保证获得的预算；观测/重取较慢时仍会缩短。结果返回后再次核对同一个截止时间。快照未过期也不代表状态未变化：队列、目标状态、缓存、资源、引擎实例和 DAG 检查继续生效。原来的 2000ms 准入许可交付期限、5s 防饥饿保护、请求/条件的秒级超时、推演事件/时域上限与模型范围不是调度预算，本次不改。
+
+### 下载后先更新并重启服务端
+
+**本次必须更新旧服务端。只下载客户端或手动重启旧代码都不够。** 在新下载项目根目录、确认此前实验和其它占用这四个服务的任务均已结束后：
+
+```bash
+bash run_native.sh install
+bash run_native.sh test
+```
+
+`install` 已包含安装/更新和重启：先检查四副本，备份后逐个处理 `wushibo-qwen-small-npu0`、`1`、`2`、`3`，每个重启后等待健康和新能力就绪。保留现有容器、模型、端口 8001..8004 和资源参数，不新建模型服务；**不要预先 stop 四个容器，也不需要额外执行 docker restart**。旧适配器即使 HTTP 正常，缺少新时限/绑定能力也会更新；已具备这些能力的副本跳过。安装失败时查看本次 `SUMMARY.txt` 和 `ROLLBACK.txt`，不会继续后续实验。需要更长加载时间可加 `--ready-timeout 1800`。
+
+服务重启后实例身份变化，随后必须用本次 `test` 的新原生探针/独立标定证据；不能用重启前的旧测试 PASS 放行正常实验。测试不再安装/重启，不主动清缓存。没有新增源码哈希门禁。
+
+### 推荐顺序：test → ours-12 → 全量
+
+本次建议先跑以下一行，完成服务更新、新测试与 **前12条正常 Ours**，不自动启动全量：
+
+```bash
+bash run_native.sh install && bash run_native.sh test && bash run_native.sh ours-12
+```
+
+如果前两步已完成，直接 `bash run_native.sh ours-12`。它固定等价于正常 Ours 的前12条，只采集并汇总日志；不接受 `-n` 覆盖，不改变这12条的种子、输入、到达或调度算法。跨目录可加 `--input /实际路径/outputs/native_test_本次目录`。
+
+结果写入 `outputs/native_ours-12_*/test_result.txt`；子目录 `r234_ours/ours_run_summary.json` 保存结构化汇总，`conditions/*/*.jsonl` 保存完整事件。COPY 总览含12条 `OURS_BRIEF`；条件明细保留评分、选择、动作 ID、回执和请求绑定的限量样例，供事后关联原始事件。
+
+**不在代码中给出“调度有效性 PASS/FAIL/INCONCLUSIVE”，不设置必须有几次候选或非参考动作的成功门槛。** 无候选、零收益、返回晚、动作拒绝均照实记录；没有非参考动作本身不会阻止这12条实验完成。原有请求正确性、工作量、环境门禁与过期动作拒绝仍保留。运行状态 `completed` 只表示所选工作负载跑完，不表示机制有效或性能胜出。
+
+先把 COPY 总览和需要的条件明细复制回来，由我们事后结合实际日志判断，再决定是否跑全量。`test` 成功后的下一条提示为 `ours-12`，`ours-12` 完成后的提示仅为读取日志。
+
+确认后，全24条 Ours 用 `bash run_native.sh ours`；完整96条四方法比较用 `bash run_native.sh experiment`。均新开结果，不把这12条拼接进全量。
+
+### 正常限时 Ours：24 条，支持前 n 条
+
+默认沿用原 96 条计划中过滤出的全部 24 条 Ours：R=2/3/4 × L=4/8/12/16 × 2 轮，即 12 种配置各两轮；不是另造 24 种配置。顺序、种子、到达、固定工作量保持原样。每条为 64 工作流、216 请求、每请求 3584 输入 token、总计 13184 输出 token。
+
+```bash
+# 已决定直接跑全24条时：更新服务、重新测试，再跑全部正常 Ours
+bash run_native.sh install && bash run_native.sh test && bash run_native.sh ours
+
+# 若已在当前目录完成上面两步，直接跑前 6 条
+bash run_native.sh ours -n 6
+
+# 全部 24 条，两种写法等价；选一条即可
+bash run_native.sh ours
+bash run_native.sh ours -n 24
+```
+
+`-n` 范围 1..24，`--timing-count` 为同义参数。**每次调用是新实验，不是续跑**；先跑 `-n 6` 再跑全套会重新运行前 6 条。仅正常 `ours` 会提交按时返回且通过引擎检查的优化动作，超时结果作废。无候选/无收益照实统计，不要求强制出现非参考动作；工作量、依赖、环境或门禁失败仍停止。Ours-only 不冒充四方法比较或性能胜出。
+
+需要跨下载目录使用的是**本次重启以后**产生的测试目录：
+
+```bash
+bash run_native.sh ours -n 6 --input /实际路径/outputs/native_test_本次目录
+```
+
+只查看固定顺序、不发推理：
+
+```bash
+python3 tools/run_dabs_existing.py plan --suite r234 --devices 0,1,2,3 --ours -n 24
+```
+
+### 保留 ours-timing：自然跑完、永不应用
+
+`ours-timing` 仍只用 default 执行真实负载，后台同一规划器无 CPU/评分截止，超时也不取消、不 kill，等自然返回；即使按时返回也不应用。每次最多一个后台任务，忙时跳过、不积压。default 循环与快照使用本版 1500ms；记录的正常预算为 1200ms。候选、评分、去重、资源、模型范围和推演安全边界不变。
+
+```bash
+# 输入可为旧计时结果、正常 ours 结果，或具体预测模型文件
+bash run_native.sh ours-timing -n 12 --input /实际路径/outputs/native_ours_某次目录
+bash run_native.sh ours-timing -n 24 --input /实际路径/outputs/native_ours-timing_某次目录
+```
+
+只选择需要的一条运行。`--group screening` 保留原三条 Ours，`--group r3-l8/r4-l4/r3-l4` 可选单条，默认 24 条。`--input` 只复用预测模型，不继承旧 PASS；计时入口不做探针、canary 或重标定，也不自动安装/重启，仍要求已加载本版服务能力。计时轨迹不能当作 Ours 优化后的性能。
+
+### 完整四方法实验入口
+
+在新下载目录运行全部 RR/SLL/Ayo/Ours，原 96 条矩阵、每种方法都使用本版统一时间配置：
+
+```bash
+bash run_native.sh install && bash run_native.sh test && bash run_native.sh experiment
+```
+
+若刚刚完成当前服务实例的 `test`，直接 `bash run_native.sh experiment` 即可。若复用旧项目目录且其中留有旧 `verify` 指针，应显式选本次测试避免续接旧实验：
+
+```bash
+bash run_native.sh experiment --input /实际路径/outputs/native_test_本次目录
+```
+
+三组四方法筛查仍保留：
+
+```bash
+bash run_native.sh screen --group all --input /实际路径/outputs/native_test_本次目录
+```
+
+原 `verify` → `experiment` 的干净暂停续跑仍可用于同一新协议；不能把旧 200/120ms 实验拼进新结果。
+
+### 输出：64KiB 分片与新的 test_result.txt
+
+`outputs/native_ours_*/test_result.txt` 和 `outputs/native_ours-12_*/test_result.txt` 是正常 Ours 汇总；子目录 `r234_ours/test_result.txt`、`ours_run_summary.json` 保存同一结果的详细文本/结构化数据。`ours-timing` 仍生成自己的 `test_result.txt`。失败/中断也保留状态和错误，不伪称全部完成。
+
+所有新工作流的 `copy_logs/COPY.txt` 是分片目录，`COPY_00_overview_*.txt` 是总览，其余按条件分组。每片 UTF-8 字节数不超过 **64KiB**，超出自动续片；样例限量，但统计不截断。
+
+```bash
+bash run_native.sh logs
+bash run_native.sh logs --part COPY_00_overview_01.txt
+```
+
+先复制总览；有多个总览片则逐片复制。再按目录中的实际文件名复制需要的条件明细，不必一次带出全部 24 条。
+
+`ours-12` 不另作有效性判定，使用与正常 Ours 相同的日志。正常 Ours 总览的 `OURS_BRIEF` 记录决策机会、规划启动、忙跳过、有候选、完整评分、按时完整评分、非参考选择与实际应用；`RUN_DIAG` / `TIMING` 保留观测错误、最多一次重取/恢复、提交拒绝、HTTP 完成→客户端完成延迟，以及观测、规划预算、工作进程、完整评分调用、分派→返回、返回延迟、提交和最早快照→提交时间。总览时间数组为 `[n,p50,p95,p99,max]`，单位 ms。**晚返回只计一次规划结果，不再算一次新决策；评分完成不等于选中，更不等于引擎实际应用。**
+
+`SHADOW_BRIEF/SHADOW_TIMING` 仍分 all / with_candidates / all_scores_complete 统计无预算计时；不能把各条件的分位数平均成总体分位数。原始 JSONL 和旧结果不改写。
+
+### 本次生命周期修复的边界
+
+- SSE 第一个响应 ID 到达时提前查询/校验 node、client、server、engine、action 绑定，与剩余生成重叠；常规快照可带回被跟踪请求的明确绑定，包括引擎已完成的记录，避免依赖末尾额外 mapping RPC。
+- 只有完整 SSE、token 工作量和绑定全部通过，才发布客户端 done 并同步释放后继。HTTP 已结束但绑定未知仍不可放行；不通过“队列里消失了”推断完成。
+- 观测请求期间生命周期改变或出现已知瞬态状态时，让回调发布后最多重取一次；剩余本轮预算不足则不重取，重取仍不一致则保留观测不可用。不会持锁跨 RPC，不无限重试，不使用过期快照硬评分。
+- 无候选的生成/排序/去重逻辑本次不改。新的数据用来判断剩余 观测不可用/无候选/评分超时 是否还有实现问题。
+
+### 本地开发回归
+
+```bash
+python -B tools/run_ascend.py test
+```
+
+CPU 回归覆盖时间配置、旧服务能力识别、1200ms 截止、超时动作拒绝、提前绑定与缺失绑定、一次重取及预算不足、24 条/-n、Ours-12固定12条且不设机制成功门槛、可关联的选择/回执日志、正常入口门禁、旁路不应用、64KiB 分片及计数。CPU 结果不是 Ascend 性能或服务器机制验收；服务器结论以安装后的新现场结果为准。
+
+<details>
+<summary>历史版本记录（仅存档；以下旧时限和“不需重启”操作不适用于当前版本）</summary>
+
 
 ## 24 条 Ours 计时与旧日志限量提取
 
@@ -346,3 +500,5 @@ git clone -b main https://github.com/micavro/dabs-ascend.git dabs-native-current
 重启/主动清空缓存测试是可选的独立专项，未执行会在验收中标记 `not_run`，不伪报通过。普通验收仍检查快照过期、实例改变、应用时缓存重查、重复动作和安全队列边界。详见 [部署与专项命令](docs/native-operations.md)、[机制与验收说明](docs/native-v023.md)。
 
 本地 CPU 自检：`python tools/run_ascend.py test`。CPU 通过不代表 NPU 验收通过。新计时口径仍需满足样本数量、覆盖和留出误差；失败保留原始记录，不使用 HTTP 或 forward 时间替代。
+
+</details>

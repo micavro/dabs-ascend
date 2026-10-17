@@ -13,6 +13,7 @@ from types import MethodType
 import uuid
 
 from . import REVISION
+from .timing_policy import SNAPSHOT_TTL_NS, ACTION_WINDOW_NS, capabilities as timing_capabilities
 from .contracts import require_members, Receipts, check_action, digest, fresh, prefix_key, validate_resources, prefill_order
 
 
@@ -141,16 +142,22 @@ class EngineAdapter:
     def snapshot(self, payload):
         if len(payload.get('queries', [])) > 256:
             raise ValueError('too many prefix queries')
+        tracked = payload.get('client_request_ids', [])
+        if (not isinstance(tracked, list) or len(tracked) > 256 or
+                any(not isinstance(cid, str) or not 1 <= len(cid) <= 160 for cid in tracked)):
+            raise ValueError('invalid bounded snapshot binding query')
         now = time.monotonic_ns()
         self.serial += 1
         sid = self.identity['engine_instance'] + ':' + str(self.serial)
-        row = {'snapshot_id': sid, 'step': self.step, 'captured_ns': now, 'expires_ns': now + 120_000_000,
+        row = {'snapshot_id': sid, 'step': self.step, 'captured_ns': now, 'expires_ns': now + SNAPSHOT_TTL_NS,
                'resources': self.resources, 'physical': self.physical(),
                'running': [self.request_row(r) for r in self.s.running],
                'waiting': [self.request_row(r) for r in self.s.waiting],
                'skipped_waiting': [self.request_row(r) for r in self.s.skipped_waiting],
                'cache': [self.query_prefix(q) for q in payload.get('queries', [])],
-               'inflight_batches': list(self.pending.values())}
+               'inflight_batches': list(self.pending.values()),
+               'request_bindings': [self.mappings[self.engine_ids_by_client[cid]] for cid in tracked
+                                    if cid in self.engine_ids_by_client]}
         row['running_count'], row['waiting_count'] = self.s.get_request_counts()
         observed = self.observed(row)
         # Keep query tokens only in engine memory for apply-time revalidation.
@@ -248,7 +255,7 @@ class EngineAdapter:
             if not eligible and not admissions:
                 self.active_control = previous_control
         for spec in admissions:
-            # The action was validated/applied within the 120 ms snapshot TTL.
+            # The action was validated/applied within the declared snapshot TTL.
             # Its reserved resources get a separate bounded delivery lease;
             # this cannot refresh a stale queue action or start decode twice.
             self.permits[spec['client_request_id']] = {**spec, 'expires_ns': time.monotonic_ns() + 2_000_000_000,
@@ -442,7 +449,7 @@ class EngineAdapter:
             row = self.snapshot({})
             return self.apply({'action_id': uuid.uuid4().hex, 'identity': self.identity,
                 'snapshot_id': row['snapshot_id'], 'expires_ns': row['expires_ns'],
-                'not_before_ns': row['captured_ns'], 'action_expires_ns': row['captured_ns'] + 200_000_000,
+                'not_before_ns': row['captured_ns'], 'action_expires_ns': row['captured_ns'] + ACTION_WINDOW_NS,
                 'resource_digest': digest(row['resources']), 'order': [],
                 'admissions': payload['admissions'], 'fallback': 'atomic_admission_only'}, admission_only=True)
         if op == 'receipt':
@@ -453,6 +460,7 @@ class EngineAdapter:
         if op == 'capabilities':
             workers = self.core.collective_rpc('dabs_worker_info')
             return self.observed({'resources': self.resources, 'workers': workers,
+                'timing_policy': timing_capabilities(),
                 'adapter_sha256': self.installation.get('adapter_sha256', {}),
                 'vendor_patched_sha256': self.installation.get('patched_sha256', {}),
                 'host_step_boundary': 'EngineCore.step_with_batch_queue' if self.core.batch_queue_size > 1 else 'EngineCore.step',

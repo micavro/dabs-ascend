@@ -117,7 +117,7 @@ class NativeRunnerIntegration(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(deadlines)
         deadline, dispatched, nodes = deadlines[0]
         self.assertGreater(deadline, dispatched)  # old runner never reaches this
-        self.assertLessEqual(deadline - dispatched, .08)
+        self.assertLessEqual(deadline - dispatched, cfg['planning_soft_limit_s'] + 1e-8)
         self.assertEqual(nodes, 216)
 
     async def test_rejected_admission_cannot_silently_idle_until_condition_timeout(self):

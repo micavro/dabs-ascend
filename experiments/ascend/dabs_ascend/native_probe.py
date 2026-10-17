@@ -10,11 +10,28 @@ def near_release(snapshot):
     """Site probe: wait for a short decode to free a slot within this window.
 
     Output progress comes from EngineCore, never from client submission order.
-    This changes probe timing only; the engine still enforces its 200 ms window.
+    This changes probe timing only; the engine still enforces its declared 1500 ms window.
     """
     return any(r.get('max_output_tokens') == 16 and r.get('phase') == 'decode'
                and isinstance(r.get('output_tokens'), int) and r['output_tokens'] >= 14
                for r in snapshot['running'])
+
+
+async def completed_bindings(native, requests):
+    """Collect terminal probe evidence after drain, never on the DAG hot path."""
+    fields = ('node_id', 'client_request_id', 'server_request_id', 'engine_request_id', 'action_id')
+    for replica in sorted({r['replica'] for r in requests}):
+        selected = [r for r in requests if r['replica'] == replica]
+        row = await native.call(replica, 'mapping',
+                                client_request_ids=[r['mapping']['client_request_id'] for r in selected])
+        by_client = {m['client_request_id']: m for m in row['mappings']}
+        for request in selected:
+            old = request['mapping']
+            bound = by_client.get(old['client_request_id'], {})
+            if (any(bound.get(k) != old.get(k) for k in fields) or bound.get('rejected') or
+                    type(bound.get('engine_finished_ns')) is not int):
+                raise ValueError('probe missing matching terminal engine binding after drain')
+            request['mapping'] = bound
 
 
 async def probe(backend, tokenizer, out, replicas):
@@ -40,7 +57,7 @@ async def probe(backend, tokenizer, out, replicas):
         if prepared is None:
             await native.reserve(replica, node)
         result = await backend.generate(replica, node, 341100, out / 'requests.jsonl', schema=None)
-        return {'node_id': name, 'start': result['start'], 'finish': result['finish'],
+        return {'node_id': name, 'replica': replica, 'start': result['start'], 'finish': result['finish'],
                 'mapping': result['native_mapping']['mappings'][0]}
     await request(0, 'warm-' + uuid.uuid4().hex)
     warm = await snap('warm', 0, [query(1025)])
@@ -53,7 +70,7 @@ async def probe(backend, tokenizer, out, replicas):
             await snap('cross-hot-' + str(r), r, [query(1025)])
     # Expiry and duplicate actions exercise actual engine receipts, not status 200.
     action = native.action(warm)
-    await asyncio.sleep(.15)
+    await asyncio.sleep(max(0., action['expires_ns'] / 1e9 - time.monotonic()) + .01)
     expired = await native.call(0, 'apply', action=action)
     roles['expired'] = {'replica': 0, 'action_id': expired['action_id']}
     row = await snap('duplicate-base', 0)
@@ -110,6 +127,7 @@ async def probe(backend, tokenizer, out, replicas):
     await native.drain(len(backend.endpoints))
     while await native.harvest(len(backend.endpoints), wait_complete=True):
         pass
+    await completed_bindings(native, [root, *branches, join])
     write_json(out / 'probe.json', manifest)
     # Evaluation is centralized in the gate; this file contains no editable PASS.
     return manifest

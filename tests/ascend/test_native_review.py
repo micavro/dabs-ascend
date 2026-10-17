@@ -69,7 +69,7 @@ class NativeBindingReview(unittest.IsolatedAsyncioTestCase):
             return httpx.Response(200, text='data: ' + json.dumps(response) + '\n\ndata: [DONE]\n\n')
         async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
             backend = Backend(client, ['http://test'])
-            backend.native = SimpleNamespace(call=AsyncMock(), capabilities=[{'resources': {'context_tokens': 4096}}])
+            backend.native = SimpleNamespace(binding=AsyncMock(), capabilities=[{'resources': {'context_tokens': 4096}}])
             with tempfile.TemporaryDirectory() as directory:
                 for field in ('node_id', 'client_request_id', 'server_request_id', 'action_id', 'engine_request_id', None):
                     node = {'id': 'node', 'client_request_id': 'client', 'native_action_id': 'permit-action',
@@ -78,7 +78,7 @@ class NativeBindingReview(unittest.IsolatedAsyncioTestCase):
                     row = dict(expected)
                     if field:
                         row[field] = '' if field == 'engine_request_id' else 'wrong'
-                    backend.native.call.return_value = {'mappings': [row]}
+                    backend.native.binding.return_value = {'mappings': [row]}
                     if field:
                         with self.subTest(field=field), self.assertRaisesRegex(ValueError, 'binding'):
                             await backend.generate(0, node, 1, Path(directory) / 'requests.jsonl', schema=None)

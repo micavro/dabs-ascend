@@ -64,7 +64,7 @@ class Workflow:
 
     def save(self):
         write_json(self.out / 'run.json', self.record)
-        lines = ['DABS 原生' + {'test': '测试', 'verify': '规划验证（原计划前若干条件）', 'screen': '三组诊断筛查（非正式矩阵）', 'experiment': '实验', 'install': '安装',
+        lines = ['DABS 原生' + {'test': '测试', 'ours': 'Ours 正常限时实际调度（24条，可取前n条）', 'ours-12': 'Ours 前12条正常限时实验与日志汇总', 'verify': '规划验证（原计划前若干条件）', 'screen': '三组诊断筛查（非正式矩阵）', 'experiment': '实验', 'install': '安装',
                  'smoke': '计时关联短诊断', 'calibrate': '单副本完整标定', 'audit': '旧事件离线审计',
                  'refit': '旧数据离线重拟合（诊断，不作新验收）', 'ours-timing': 'Ours default 实时负载＋无预算后台规划计时',
                  'explore': '带预测偏差的实验（非正式验收）'}[self.mode],
@@ -191,6 +191,37 @@ class Workflow:
                 (self.out/'test_result.txt').write_text(
                     'Ours 实时无预算计时未完成；子实验未生成报告。详见 SUMMARY.txt 和 copy_logs/COPY.txt。\n', encoding='utf-8')
         self.record['next_commands'] = ['bash run_native.sh logs']
+
+    def ours(self):
+        from dabs_ascend.r234 import ours_timing_plan
+        plan = ours_timing_plan(limit=self.timing_count)
+        self.record.update(ours_only=True, formal_acceptance=False, default_only_execution=False,
+                           requested_conditions=len(plan), test_result=self.relative(self.out/'test_result.txt'))
+        evidence = self.planning_evidence()
+        result_dir = self.out/'r234_ours'
+        self.record.update(acceptance=self.relative(evidence), experiment_output=self.relative(result_dir))
+        try:
+            self.step('benchmark', '仅 Ours：1500ms 周期/快照、1200ms 限时规划；有效优化动作实际提交',
+                      ['--execution-scope', 'native', '--ours',
+                       '--native-evidence', self.container_path(evidence),
+                       '--out', self.container_path(result_dir),
+                       *(['-n', str(self.timing_count)] if self.timing_count is not None else [])], native=False)
+            result = read_json(result_dir/'status.json')
+            summaries = read_json(result_dir/'index.json')
+            if (result.get('status') != 'complete' or result.get('functional_test_pass') is not True
+                    or [s['spec'] for s in summaries] != plan):
+                raise Stopped('Ours 所选条件未完整完成；保留日志，不把评分成功等同于实际应用。')
+            self.record.update(completed_conditions=len(summaries), workload_complete=True)
+        finally:
+            report = result_dir/'test_result.txt'
+            if report.is_file():
+                shutil.copyfile(report, self.out/'test_result.txt')
+        self.record['next_commands'] = ['bash run_native.sh logs']
+
+    def ours_12(self):
+        """Fixed first 12 bounded Ours runs; collect facts, leave interpretation offline."""
+        self.timing_count = 12
+        self.ours()
 
     def refit(self):
         self.step('native-refit', '从原始事件比较旧模型与启动项模型（不发推理）', ['--input', str(self.input_path)])
@@ -438,13 +469,15 @@ class Workflow:
         write_json(self.root / ('outputs/native-entry-last-' + self.mode + '.json'),
                    {'output': self.relative(self.out)})
         self.save()
+        from dabs_ascend.copy_log import enable_parts
+        enable_parts(self.out, [])
         emit(self.out, 'START', mode=self.mode, output=self.relative(self.out))
         print('本次结果: ' + str(self.out), flush=True)
         try:
             getattr(self, self.mode.replace('-', '_'))()
-            self.record['status'] = 'completed' if self.mode in ('screen', 'ours-timing') else 'passed'
+            self.record['status'] = 'completed' if self.mode in ('screen', 'ours', 'ours-12', 'ours-timing') else 'passed'
             if self.mode == 'test':
-                self.record['next_commands'] = ['bash run_native.sh experiment']
+                self.record['next_commands'] = ['bash run_native.sh ours-12']
             code = 0
         except Stopped as exc:
             self.record.update(status='blocked', reason=str(exc), next_commands=exc.commands)
@@ -457,10 +490,10 @@ class Workflow:
             if step['status'] == 'running':
                 step.update(status=self.record['status'], finished_utc=utc())
         self.record['finished_utc'] = utc()
-        if self.mode == 'ours-timing' and not (self.out/'test_result.txt').exists():
+        if self.mode in ('ours', 'ours-12', 'ours-timing') and not (self.out/'test_result.txt').exists():
             self.record['test_result'] = self.relative(self.out/'test_result.txt')
             (self.out/'test_result.txt').write_text(
-                'Ours 无预算后台规划计时未完成。\n状态: ' + self.record['status'] + '\n原因: ' +
+                'Ours 运行未完成（模式 ' + self.mode + '）。\n状态: ' + self.record['status'] + '\n原因: ' +
                 str(self.record.get('reason', 'unknown')) + '\n原始错误见 SUMMARY.txt 与 copy_logs/COPY.txt。\n', encoding='utf-8')
         self.save()
         emit(self.out, 'END', status=self.record['status'], reason=self.record.get('reason'),
@@ -471,13 +504,13 @@ class Workflow:
 
 
 def main():
-    parser = argparse.ArgumentParser(description='现场入口：screen 三组诊断筛查；verify 前8条规划验证；experiment 全部96条/续跑；logs 打印复制摘要。')
-    parser.add_argument('mode', choices=('install', 'smoke', 'calibrate', 'audit', 'refit', 'ours-timing', 'explore', 'test', 'verify', 'screen', 'experiment', 'logs'))
+    parser = argparse.ArgumentParser(description='现场入口：ours-12 前12条及日志汇总（不判断调度有效性）；ours 正常限时24条/-n；ours-timing 无预算旁路计时；screen 三组筛查；experiment 全部96条；logs 复制分片。')
+    parser.add_argument('mode', choices=('install', 'smoke', 'calibrate', 'audit', 'refit', 'ours', 'ours-12', 'ours-timing', 'explore', 'test', 'verify', 'screen', 'experiment', 'logs'))
     parser.add_argument('--group', choices=('all', 'screening', 'r3-l8', 'r4-l4', 'r3-l4'), help='ours-timing: all=24 Ours, screening=old 3; screen: 4 methods/group')
-    parser.add_argument('-n', '--timing-count', type=int, help='ours-timing only: run first n conditions of the fixed plan (default all 24)')
+    parser.add_argument('-n', '--timing-count', type=int, help='ours / ours-timing: run first n conditions of the fixed plan (default all 24)')
     parser.add_argument('--part', help='logs only: print one COPY_*.txt file listed in COPY.txt')
     parser.add_argument('--replica', type=int, choices=range(4), help='install/smoke/calibrate: select one existing service')
-    parser.add_argument('--input', type=Path, help='ours-timing: prior screen/verify/experiment or predictor JSON; audit/refit/explore: calibration; verify/experiment: native_test; screen: native_test/native_verify')
+    parser.add_argument('--input', type=Path, help='ours/ours-12: current-engine native_test; ours-timing: previous predictor/run; audit/refit/explore: calibration; verify/experiment: native_test; screen: native_test/native_verify')
     parser.add_argument('--invalidate-cache', action='store_true', help='仅 test：明确执行副本 0 缓存清空/失效测试；默认不执行')
     parser.add_argument('--verify-restart', action='store_true', help='仅 install：明确额外重启副本 0 并验证旧身份失效')
     parser.add_argument('--ready-timeout', type=int, default=900, help='install 每个服务加载等待秒数，默认 900')
@@ -490,8 +523,8 @@ def main():
     if args.group == 'screening' and args.mode != 'ours-timing':
         parser.error('--group screening 仅用于 ours-timing；screen 的三组使用 --group all')
     if args.timing_count is not None:
-        if args.mode != 'ours-timing':
-            parser.error('-n / --timing-count 仅用于 ours-timing')
+        if args.mode not in ('ours', 'ours-timing'):
+            parser.error('-n / --timing-count 仅用于 ours / ours-timing')
         from dabs_ascend.r234 import ours_timing_plan
         try:
             ours_timing_plan(args.group or 'all', args.timing_count)
@@ -522,8 +555,8 @@ def main():
             parser.error('--max-conditions 用于 explore 或 verify')
     if args.replica is not None and args.mode not in ('install', 'smoke', 'calibrate'):
         parser.error('--replica 仅用于 install/smoke/calibrate')
-    if (args.mode in ('audit', 'refit', 'ours-timing') and not args.input) or (args.input and args.mode not in ('audit', 'refit', 'ours-timing', 'explore', 'verify', 'screen', 'experiment')):
-        parser.error('audit/refit/ours-timing 必须提供 --input；ours-timing 读取已有预测模型，不重新标定')
+    if (args.mode in ('audit', 'refit', 'ours-timing') and not args.input) or (args.input and args.mode not in ('audit', 'refit', 'ours', 'ours-12', 'ours-timing', 'explore', 'verify', 'screen', 'experiment')):
+        parser.error('audit/refit/ours-timing 必须提供 --input；ours-timing 只读取预测模型')
     if args.verify_restart and args.replica not in (None, 0):
         parser.error('--verify-restart 仅支持副本 0')
     if args.invalidate_cache and args.mode != 'test':

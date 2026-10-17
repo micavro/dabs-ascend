@@ -47,16 +47,16 @@ def folder(run):
     return path
 
 
-PART_HEADER = ('DABS分片摘要 v4；每片最多12KiB，统计不因分片截断；原始JSONL保留。\n'
-               'SHADOW_TIMING: ms 的 n/p50/p95/p99/max；SHADOW_BRIEF 数组=[n,p50,p95,p99,max]。\n'
+PART_HEADER = ('DABS分片摘要 v5；每片最多64KiB，统计不因分片截断；原始JSONL保留。\n'
+               'TIMING/SHADOW_TIMING: ms 的 n/p50/p95/p99/max；OURS_BRIEF/SHADOW_BRIEF 数组同序。\n'
                '00_overview是总览；其余按条件分组。超长记录可能跨片续行。\n')
 
 
 def _parts_index(directory, manifest):
-    lines = ['DABS Ours 计时复制目录；先复制总览，再按需复制条件明细，不必一次带出全部。',
-             '每个 COPY_* 分片 <=12KiB；计数/分位数覆盖全部已记录调用，不只统计样例。',
+    lines = ['DABS 实验复制目录；先复制总览，再按需复制条件明细，不必一次带出全部。',
+             '每个 COPY_* 分片 <=64KiB；计数/分位数覆盖全部已记录调用，不只统计样例。',
              '读取单片：bash run_native.sh logs --part <下面的文件名>',
-             '实际始终 default；后台结果永不应用；这是预算测量，不是性能对比。']
+             '执行模式见 START / BUDGET / SHADOW_MODE：ours 为限时实际调度；ours-timing 为 default-only 旁路计时。']
     for entry in sorted(manifest['files'], key=lambda x: x['name']):
         lines.append(entry['name'] + ' bytes=' + str(entry['bytes']))
     (directory/'COPY.txt').write_text('\n'.join(lines)+'\n', encoding='utf-8')
@@ -87,16 +87,21 @@ def _append_parts(directory, manifest, stream, line):
 
 
 def enable_parts(run, labels):
-    """Only the new Ours timing entry opts in; ordinary copy logs stay unchanged."""
+    """Bound every opted-in run to UTF-8-safe 64 KiB parts."""
     directory = folder(run)
     manifest_path = directory/'parts.json'
     if manifest_path.exists():
+        manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+        if labels and not manifest['labels']:
+            manifest['labels'] = {label: '%02d_%s' % (i+1, label) for i, label in enumerate(labels)}
+            from .common import write_json
+            write_json(manifest_path, manifest)
         return
     if len(set(labels)) != len(labels) or any(not label or any(not (c.isalnum() or c in '_-') for c in label) for label in labels):
         raise ValueError('Copy part labels must be unique safe filenames')
-    manifest = {'max_bytes': 12*1024, 'labels': {label: '%02d_%s' % (i+1, label) for i, label in enumerate(labels)}, 'files': []}
+    manifest = {'max_bytes': 64*1024, 'labels': {label: '%02d_%s' % (i+1, label) for i, label in enumerate(labels)}, 'files': []}
     prior = (directory/'COPY.txt').read_text(encoding='utf-8') if (directory/'COPY.txt').exists() else ''
-    _append_parts(directory, manifest, '00_overview', prior or 'Ours timing started; condition details use separate parts.\n')
+    _append_parts(directory, manifest, '00_overview', prior or 'Run started; condition details use separate parts.\n')
 
 
 def emit(run, event, **fields):
@@ -133,6 +138,9 @@ class ConditionLog:
         self.timings = {}
         self.funnel, self.limits = Counter(), Counter()
         self.query_totals, self.opportunities = Counter(), Counter()
+        self.observation_errors, self.commit_reasons = Counter(), Counter()
+        self.retry_counts, self.stages = Counter(), Counter()
+        self.stop_reasons, self.incomplete_scores, self.retry_errors = Counter(), Counter(), Counter()
         self.detail_bytes = 0
         self.emitted = Counter()
 
@@ -143,7 +151,8 @@ class ConditionLog:
     def detail(self, event, **fields):
         fields = compact(fields)
         size = len(json.dumps(fields, ensure_ascii=False).encode('utf-8')) + len(self.label) + 80
-        allowance = 12 * 1024 if event in ('S', 'SELECT') else 6 * 1024
+        # Leave a final 4KiB for terminal receipts even after scoring samples.
+        allowance = 16 * 1024 if event == 'RECEIPT' else 12 * 1024 if event in ('S', 'SELECT') else 6 * 1024
         if self.detail_bytes + size > allowance:
             self.counts['copy_byte_budget_suppressed'] += 1
             return
@@ -154,16 +163,53 @@ class ConditionLog:
     def decision(self, row):
         result = row.get('result', {})
         state = row.get('snapshot', {})
-        measured = {k: state[k] for k in ('native_prepare_ms', 'native_rpc_ms', 'native_projection_ms') if k in state}
+        measured = {k: state[k] for k in ('native_observe_ms', 'native_prepare_ms', 'native_rpc_ms', 'native_projection_ms') if k in state}
         measured.update(state.get('native_prepare_parts_ms', {}))
         measured.update({k: result[k] for k in ('planning_dispatch_delay_ms', 'planning_worker_budget_ms', 'wall_ms',
-                                               'proposal_elapsed_ms', 'post_selection_diagnostics_ms') if k in result})
+                                               'proposal_elapsed_ms', 'post_selection_diagnostics_ms', 'planning_from_ready_ms', 'planning_return_delay_ms') if k in result})
         for key, value in measured.items():
             self.timing(key, value)
+        for key in ('native_commit_ms', 'snapshot_to_commit_ms'):
+            self.timing(key, row.get(key))
+        if not row.get('event'):
+            retry = state.get('native_observation_retry', {})
+            self.retry_counts['retried'] += retry.get('attempts', 1) > 1
+            if retry.get('attempts', 1) > 1:
+                self.retry_errors.update(set(retry.get('initial_errors', [])))
+            self.retry_counts['recovered'] += bool(retry.get('recovered'))
+            self.retry_counts['skipped_budget'] += bool(retry.get('retry_skipped_budget'))
+            self.observation_errors.update(set(state.get('native_observation_errors', [])))
+            self.stages['decision_opportunities'] += 1
+            self.stages['planner_dispatched'] += bool(row.get('planner_dispatched'))
+            self.stages['busy_skipped'] += bool(row.get('planner_busy'))
+            self.stages['observation_unusable'] += bool(state.get('native_observation_errors'))
+        self.commit_reasons.update(r['receipt'].get('reason') for r in row.get('native_receipts', [])
+                                   if r['receipt'].get('reason'))
+        returned = 'planning_finished_at' in result
+        self.stages['planner_returned'] += returned
+        self.stages['returned_no_candidates'] += bool(returned and not result.get('v5_candidate_generated'))
+        if returned:
+            self.stop_reasons[result.get('v5_stop_reason', 'unknown')] += 1
+        evaluations = result.get('evaluations', [])
+        self.incomplete_scores.update(str(e.get('reason', 'unknown')) for e in evaluations if not e.get('complete'))
+        ref_ok = any(e.get('cell') == '00' and e.get('complete') for e in evaluations)
+        candidates = [e for e in evaluations if e.get('cell') != '00']
+        full = bool(ref_ok and candidates and len(candidates) == result.get('v5_candidate_generated')
+                    and all(e.get('complete') for e in candidates))
+        self.stages['with_candidates'] += bool(result.get('v5_candidate_generated'))
+        self.stages['reference_complete'] += ref_ok
+        self.stages['all_scores_complete'] += full
+        self.stages['nonreference_selected'] += result.get('selected_cell', '00') != '00'
+        self.stages['nonreference_selected_on_time'] += bool(result.get('selected_cell', '00') != '00'
+                                                            and not row.get('event') and not row.get('discarded_expired'))
+        self.stages['all_scores_complete_on_time'] += bool(full and not row.get('event') and not row.get('discarded_expired'))
+        if full:
+            self.timing('complete_planner_ms', result.get('wall_ms'))
         self.funnel.update(result.get('candidate_diagnostics', {}))
         query = state.get('native_query_budget', {})
+        initial_query = state.get('native_observation_retry', {}).get('initial_query_budget') or {}
         for key in ('ready_requests', 'covered_requests', 'ready_at_snapshot', 'covered_at_snapshot', 'new_ready_after_query'):
-            self.query_totals[key] += query.get(key, 0)
+            self.query_totals[key] += query.get(key, 0) + initial_query.get(key, 0)
         for key in ('ready', 'reference_admitted', 'reference_held', 'mutable', 'source_known_ready', 'source_known_admitted', 'source_known_held'):
             self.opportunities[key] += result.get('opportunity_diagnostics', {}).get(key, 0)
         window = row.get('planning_window', {})
@@ -221,7 +267,12 @@ class ConditionLog:
                         expired=bool(row.get('discarded_expired')), fallback=fallback,
                         gain_ms=result.get('v5_gain_model_ms'), threshold_ms=result.get('v5_required_gain_ms'),
                         proposal=result.get('action', {}).get('proposal'),
-                        receipts=[r['receipt'].get('status') for r in row.get('native_receipts', [])])
+                        timing={k: result.get(k) for k in ('planning_prepared_at', 'planning_finished_at', 'planning_received_at')},
+                        deadline=window.get('deadline'),
+                        reference={k: row.get('reference_action', {}).get(k) for k in ('admit', 'order', 'placement')},
+                        chosen={k: result.get('action', {}).get(k) for k in ('admit', 'order', 'placement')},
+                        receipts=[{'replica': r['replica'], **{k: r['receipt'].get(k) for k in
+                                   ('action_id', 'status', 'reason')}} for r in row.get('native_receipts', [])])
         key = (reason, bool(row.get('event')), selected, fallback, row.get('native_deferred_reason'))
         self.examples[key] += 1
         if self.examples[key] > 3 or self.emitted['D'] >= 6 or (reason == 'baseline' and not selected):
@@ -252,7 +303,12 @@ class ConditionLog:
         self.counts['final_receipt:' + str(receipt.get('status'))] += 1
         if self.emitted['RECEIPT'] < 2:
             self.detail('RECEIPT', i=index, replica=replica,
-                 **{k: receipt[k] for k in ('status', 'applied_step', 'scheduled_step', 'reason', 'rejected') if k in receipt})
+                 admissions_count=len(receipt.get('engine_admissions', [])),
+                 applied_count=len(receipt.get('applied', [])),
+                 priority_scheduled_count=len(receipt.get('priority_scheduled_order', [])),
+                 **{k: receipt[k] for k in ('action_id', 'status', 'applied_step', 'scheduled_step', 'reason',
+                     'mutation_at_ns', 'not_before_ns', 'action_expires_ns', 'requested',
+                     'rejected', 'applied', 'priority_scheduled_order', 'engine_admissions') if k in receipt})
         else:
             self.counts['receipt_suppressed'] += 1
 
@@ -267,10 +323,35 @@ class ConditionLog:
              planner={k: self.counts[k] for k in ('generated', 'on_time_ref_ok', 'on_time_candidate_ok', 'selected', 'late')},
              **{k: row[k] for k in ('shadow_started', 'shadow_returned', 'shadow_busy', 'shadow_pending_ms') if k in row})
 
-    def complete(self, summary):
+    def summary(self):
         from .common import percentile
-        timing = {k: {'n': len(v), 'p50': round(percentile(v, .5), 2), 'p95': round(percentile(v, .95), 2)}
-                  for k, v in self.timings.items()}
+        return {'stages': dict(self.stages), 'planner_stop_reasons': dict(self.stop_reasons),
+                'score_incomplete_reasons': dict(self.incomplete_scores),
+                'observation_errors': dict(self.observation_errors),
+                'observation_retries': dict(self.retry_counts), 'retry_initial_errors': dict(self.retry_errors),
+                'commit_reasons': dict(self.commit_reasons),
+                'ms': {k: {'n': len(v), 'p50': round(percentile(v, .5), 3),
+                           'p95': round(percentile(v, .95), 3), 'p99': round(percentile(v, .99), 3),
+                           'max': round(max(v), 3)} for k, v in self.timings.items()}}
+
+    def complete(self, summary):
+        runtime = self.summary()
+        timing = runtime['ms']
+        if not summary.get('shadow_timing'):
+            # No condition= here: this small record belongs in the overview.
+            emit(self.run, 'OURS_BRIEF' if summary.get('spec', {}).get('method') == 'Ours' else 'CONDITION_BRIEF',
+                 label=self.label, counts=runtime['stages'], stops=runtime['planner_stop_reasons'],
+                 incomplete_scores=runtime['score_incomplete_reasons'], observation=runtime['observation_errors'],
+                 retries=runtime['observation_retries'], retry_errors=runtime['retry_initial_errors'],
+                 applied=summary.get('engine_applied_nonreference_actions'),
+                 ms={k: [v['n'], v['p50'], v['p95'], v['p99'], v['max']] for k, v in timing.items()
+                     if k in ('native_observe_ms', 'planning_budget_ms', 'wall_ms', 'complete_planner_ms',
+                              'planning_from_ready_ms', 'native_commit_ms', 'snapshot_to_commit_ms')},
+                 completion=summary.get('completion_diagnostics'))
+        emit(self.run, 'RUN_DIAG', condition=self.label, stages=runtime['stages'],
+             observation_errors=runtime['observation_errors'], retries=runtime['observation_retries'],
+             retry_initial_errors=runtime['retry_initial_errors'],
+             commit_reasons=runtime['commit_reasons'], completion=summary.get('completion_diagnostics'))
         emit(self.run, 'TIMING', condition=self.label, ms=timing)
         emit(self.run, 'DIAG', condition=self.label, limits=top_counts(self.limits),
              funnel=compact(top_counts(self.funnel, 22)), query_observation_totals=dict(self.query_totals),

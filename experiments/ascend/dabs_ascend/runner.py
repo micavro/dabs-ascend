@@ -9,7 +9,7 @@ import time
 from .common import DATASET, append_json, percentile, write_json
 from .scheduler import baseline, plan_dag, snapshot
 from .repair import admission_check, aggregate_diagnostics, effect_signature, with_budget
-from .native_planning import planning_window, run_planner, scorer_view, decision_record, aligned_start
+from .native_planning import planning_window, run_planner, scorer_view, decision_record, aligned_start, record_planner_return, record_planner_completion
 
 
 def summarize(nodes, start, finish, decisions, quality, *, fixed=False):
@@ -176,23 +176,32 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                 nodes[key].update(arrival=now, scheduled_arrival=at)
             release(keys)
 
+        def publish_completion(node, result, replica):
+            # No await between publication and successor release. Backend has
+            # checked the entire SSE and native binding before returning.
+            if node['state'] == 'done':
+                return False
+            completed_at = time.monotonic()
+            node.update(state="done", finish=completed_at, client_done_at=completed_at, phase="done",
+                        output=result["usage"]["completion_tokens"], output_is_estimate=False,
+                        output_done=result["usage"]["completion_tokens"])
+            locations = history.setdefault(node["prefix_hash"], [])
+            if replica not in locations:
+                locations.append(replica)
+            release(successors[node['id']])
+            return True
+
         async def execute(key, replica):
             node = nodes[key]
             if fixed:
                 result = await backend.generate(replica, node, spec['seed'], out / 'requests.jsonl', schema=None)
             else:
                 result = await backend.generate(replica, node, spec["seed"], out / "requests.jsonl")
-            node.update(state="done", finish=time.monotonic(), phase="done",
-                        output=result["usage"]["completion_tokens"], output_is_estimate=False,
-                        output_done=result["usage"]["completion_tokens"])
-            locations = history.setdefault(node["prefix_hash"], [])
-            if replica not in locations:
-                locations.append(replica)
-            release(successors[key])
+            publish_completion(node, result, replica)
 
         if native and fixed and spec['method'] in ('RR', 'SLL', 'Ayo'):
             # Loading/transformation/provenance I/O is preparation, not part of
-            # the first 120 ms observation or the measured arrival schedule.
+            # the first observation or the measured arrival schedule.
             from .native_algorithms import adapted
             adapted('ayo_topology' if spec['method'] == 'Ayo' else 'routing')
         if native:
@@ -227,7 +236,7 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                 pending, pending_origin, pending_since = None, None, None
                 return
             # Preserve diagnostics from expired searches, never apply their action.
-            late = await pending
+            late = record_planner_return(await pending)
             record = {'event': 'expired_plan_diagnostic', 'index': pending_origin,
                       'discarded_expired': True, 'client_applied_nonreference': False,
                       'engine_applied': None, 'result': late}
@@ -310,7 +319,8 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                 next_tick = start + (math.floor((now - start) / cfg["epoch_s"]) + 1) * cfg["epoch_s"]
                 index += 1
                 if native:
-                    state = await backend.native.observe(nodes, cfg, index, model)
+                    observe_cfg = {**cfg, 'native_observation_deadline': next_tick - cfg['commit_reserve_s']}
+                    state = await backend.native.observe(nodes, observe_cfg, index, model)
                     state['action_deadline_ns'] = int(next_tick * 1e9)
                     state['action_horizon_ms'] = max(.001, (next_tick - state['now']) * 1000)
                 else:
@@ -345,6 +355,8 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                         await consume_late_plan()
                     publish_progress(progress_row)
                     continue
+                if pending is not None and pending.done():
+                    await consume_late_plan()  # Completed during sleep/observe is not CPU-busy.
                 base = r234.baseline(state, cfg, spec['method']) if fixed else baseline(state, cfg, spec["method"])
                 result = {"action": base, "evaluations": [], "model_selection": False}
                 decision = {"index": index, "at": now, "snapshot": state,
@@ -377,6 +389,7 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                         pending.add_done_callback(record_return)
                         shadow.started()
                         decision['shadow_started'] = True
+                        decision['planner_dispatched'] = True
                     else:
                         shadow.busy()
                         decision.update(planner_busy=True, shadow_skipped_busy=True)
@@ -386,14 +399,20 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                                     min(now + cfg["planning_soft_limit_s"], next_tick - cfg["commit_reserve_s"]))
                         planner = r234.plan_ours if fixed else plan_dag
                         pending_origin = index
+                        decision['planner_dispatched'] = True
                         if native:
                             pending = asyncio.get_running_loop().run_in_executor(executor, run_planner,
                                 planner, scorer_view(state), model, cfg, window)
+                            pending.add_done_callback(record_planner_completion)
                         else:
                             pending = asyncio.get_running_loop().run_in_executor(executor, with_budget, planner, state, model, cfg,
                                                                                 max(0., deadline - time.monotonic()))
                         try:
                             result = await asyncio.wait_for(asyncio.shield(pending), timeout=max(.001, deadline - time.monotonic()))
+                            if native:
+                                record_planner_return(result)
+                            decision['planning_received_at'] = time.monotonic()
+                            decision['planning_from_ready_ms'] = (decision['planning_received_at'] - window['prepared_at']) * 1000 if native else None
                             pending, pending_origin = None, None
                         except asyncio.TimeoutError:
                             decision["discarded_expired"] = True
@@ -425,6 +444,7 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                     # A stale selection can only fall back to fresh reference admission.
                     fallback = bool(reason or state.get('native_observation_errors'))
                     fallback_reason = reason or state.get('native_observation_errors')
+                    commit_started = time.monotonic()
                     if fallback:
                         action, order, receipts = await fresh_native_admission(decision, index, fallback_reason)
                     else:
@@ -446,6 +466,9 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                                         engine_accepted=any(x['receipt']['accepted'] for x in decision['native_receipts']))
                     decision['client_applied_nonreference'] = bool(order and not decision.get('native_fallback_reason')
                         and result.get('selected_cell', '00') != '00' and effect_signature(action, nodes) != effect_signature(base, nodes))
+                    decision['native_commit_ms'] = (time.monotonic() - commit_started) * 1000
+                    captured = [s['captured_ns'] / 1e9 for s in state.get('native_snapshots', []) if 'captured_ns' in s]
+                    decision['snapshot_to_commit_ms'] = (time.monotonic() - (min(captured) if captured else state['now'])) * 1000
                     for key in order:
                         node = nodes[key]
                         replica = action['placement'][key]
@@ -568,6 +591,15 @@ async def run_condition(backend, tokenizer, packets, model, cfg, spec, out, exec
                            planner_mean_wall_ms=(statistics.mean(values) if (values := [d['result']['wall_ms'] for d in decisions if 'wall_ms' in d['result']]) else None),
                            native_cache_observed=native)
             summary['functional_pass'] &= summary['fixed_work_pass']
+        completion_delays = [(n['client_done_at'] - n['http_done_at'])*1000 for n in nodes.values()
+                             if n.get('client_done_at') is not None and n.get('http_done_at') is not None]
+        summary['completion_diagnostics'] = {
+            'http_done_to_client_done_ms': {'n': len(completion_delays),
+                'p50': percentile(completion_delays, .5), 'p95': percentile(completion_delays, .95),
+                'max': max(completion_delays) if completion_delays else None},
+            'bindings_verified_before_http_done': sum(n.get('binding_verified_at') is not None
+                and n.get('http_done_at') is not None and n['binding_verified_at'] <= n['http_done_at'] for n in nodes.values())}
+        summary['runtime_diagnostics'] = compact.summary()
         write_json(out / "quality.json", quality)
         write_json(out / "summary.json", summary)
         compact.complete(summary)

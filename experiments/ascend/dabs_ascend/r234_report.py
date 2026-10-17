@@ -40,6 +40,12 @@ def paired_rows(summaries):
 
 
 def procedure(out, record):
+    if record['arguments'].get('ours'):
+        (out/'REPRODUCE.md').write_text(
+            '# Ours 正常限时运行\n\n1500ms 周期/快照，1200ms 规划；有效动作经引擎检查后实际执行。\n'
+            '仅运行原计划 Ours 子序列；不是四方法性能比较。详细汇总见 test_result.txt。\n'
+            '命令：' + (record['host_command'] or ' '.join(record['argv'])) + '\n', encoding='utf-8')
+        return
     if record['arguments'].get('ours_timing'):
         (out/'REPRODUCE.md').write_text(
             '# Ours default 实时负载 + 无预算后台规划计时\n\n'
@@ -133,6 +139,9 @@ def make_report(out, plan, summaries, status, error=None, *, source_out=None):
     if protocol.get('ours_timing'):
         from .native_shadow_timing import make_report as timing_report
         return timing_report(out, plan, summaries, status, error)
+    if protocol.get('ours_only'):
+        from .native_ours_report import make_report as ours_report
+        return ours_report(out, plan, summaries, status, error)
     screening = protocol.get('screening')
     from .r234 import screening_plan
     expected = len(screening_plan(screening)) if screening else 96

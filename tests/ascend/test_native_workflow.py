@@ -177,7 +177,7 @@ class NativeWorkflowTests(unittest.TestCase):
         run, code = self.run_workflow()
         self.assertEqual(code, 0)
         self.assertEqual(self.commands[0][2], 'native-check-four')
-        self.assertEqual(run.record['next_commands'], ['bash run_native.sh experiment'])
+        self.assertEqual(run.record['next_commands'], ['bash run_native.sh ours-12'])
         self.assertTrue((run.out / 'SUMMARY.txt').is_file())
 
     def test_missing_interface_reports_install_command_without_restart(self):
@@ -299,7 +299,7 @@ class NativeWorkflowTests(unittest.TestCase):
         self.assertIn('--resume', self.commands[-1])
         self.assertNotIn('--max-conditions', self.commands[-1])
         self.assertEqual(self.current.record['experiment_output'], verified.record['experiment_output'])
-        self.assertIn('status=passed', (verified.out / 'copy_logs/COPY.txt').read_text(encoding='utf-8'))
+        self.assertIn('status=passed', ''.join(p.read_text(encoding='utf-8') for p in sorted((verified.out/'copy_logs').glob('COPY_00_overview_*.txt'))))
 
     def test_failed_verify_cannot_default_to_older_passed_test(self):
         self.assertEqual(self.run_workflow()[1], 0)

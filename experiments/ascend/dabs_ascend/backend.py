@@ -1,6 +1,7 @@
 """Standard vLLM HTTP boundary, including version-specific JSON constraints."""
 from __future__ import annotations
 
+import asyncio
 import copy
 import json
 import time
@@ -107,6 +108,18 @@ class Backend:
             payload = {'client_request_id': request_id, 'node_id': node['id'], 'seed': seed,
                        'tokens': tokens, 'max_tokens': node['max_output_tokens'], 'cache_salt': node['cache_salt']}
         server_id = None
+        binding_task = None
+
+        async def lookup_binding():
+            mapping = await self.native.binding(replica, request_id)
+            if not mapping.get('mappings'):
+                return None  # Early lookup can precede EngineCore admission.
+            self.validate_binding(node, mapping, server_id)
+            node.update(binding_status='verified', binding_verified_at=time.monotonic())
+            return mapping
+
+        if self.native:
+            node['binding_status'] = 'pending'
         fragments, first, last, usage, finish, done = [], None, None, None, None, False
         node["request_started_at"] = started
         append_json(log, {"event": "request", "node": node["id"], "replica": replica,
@@ -130,6 +143,8 @@ class Backend:
                         if server_id is not None and value['id'] != server_id:
                             raise ValueError('SSE response ID changed within a request')
                         server_id = value['id']
+                        if self.native and binding_task is None:
+                            binding_task = asyncio.create_task(lookup_binding())
                     append_json(log, {"event": "stream", "node": node["id"], "at": now, "data": value})
                     if "error" in value:
                         raise RuntimeError("vLLM stream error: " + str(value["error"]))
@@ -168,16 +183,14 @@ class Backend:
                                              if usage["completion_tokens"] > 1 else None),
                       "timing_boundary": "client HTTP text chunks; not exact native token/kernel timing"}
             node["stream"] = result
+            node['http_done_at'] = ended
             if self.native:
-                mapping = await self.native.call(replica, 'mapping', client_request_ids=[request_id])
-                if len(mapping['mappings']) != 1 or mapping['mappings'][0].get('rejected'):
+                mapping = await binding_task if binding_task is not None else None
+                if mapping is None:
+                    mapping = await lookup_binding()  # One final bounded-by-request-timeout lookup.
+                if mapping is None:
                     raise ValueError('native engine request binding failed')
-                bound = mapping['mappings'][0]
-                expected = {'node_id': node['id'], 'client_request_id': request_id,
-                            'server_request_id': server_id, 'action_id': node['native_action_id']}
-                if (not server_id or not isinstance(bound.get('engine_request_id'), str) or
-                        not bound['engine_request_id'] or any(bound.get(k) != v for k, v in expected.items())):
-                    raise ValueError('native engine request binding differs from submitted node/client/server/action')
+                self.validate_binding(node, mapping, server_id)
                 result['native_mapping'] = mapping
                 result['engine_action_acknowledged'] = mapping['mappings'][0]['action_id']
             node["answer_contract"] = parse(result["text"], finish) if schema is not None else None
@@ -186,7 +199,28 @@ class Backend:
         except BaseException as exc:
             append_json(log, {"event": "request_failed", "node": node["id"], "error": repr(exc),
                               "partial_text": "".join(fragments), "usage": usage})
+            if self.native:
+                node['binding_status'] = 'failed'
             raise
+        finally:
+            if binding_task is not None:
+                if not binding_task.done():
+                    binding_task.cancel()
+                    await asyncio.gather(binding_task, return_exceptions=True)
+                elif not binding_task.cancelled():
+                    binding_task.exception()  # Consume errors; no await on the successful completion path.
+
+    @staticmethod
+    def validate_binding(node, mapping, server_id):
+        rows = mapping.get('mappings', [])
+        if len(rows) != 1 or rows[0].get('rejected'):
+            raise ValueError('native engine request binding failed')
+        bound = rows[0]
+        expected = {'node_id': node['id'], 'client_request_id': node['client_request_id'],
+                    'server_request_id': server_id, 'action_id': node['native_action_id']}
+        if (not server_id or not isinstance(bound.get('engine_request_id'), str) or
+                not bound['engine_request_id'] or any(bound.get(k) != v for k, v in expected.items())):
+            raise ValueError('native engine request binding differs from submitted node/client/server/action')
 
     async def fixed_canaries(self, out):
         reference, rows = None, []

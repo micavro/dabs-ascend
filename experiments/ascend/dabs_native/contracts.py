@@ -36,6 +36,7 @@ def fresh(snapshot, identity, now_ns=None):
 
 
 def check_action(action, snapshot, identity, now_ns, current_step):
+    from .timing_policy import ACTION_WINDOW_NS
     if not fresh(snapshot, identity, now_ns):
         return 'expired_snapshot'
     if action.get('snapshot_id') != snapshot['snapshot_id']:
@@ -48,7 +49,7 @@ def check_action(action, snapshot, identity, now_ns, current_step):
         return 'action_outlives_snapshot'
     begin, end = action.get('not_before_ns'), action.get('action_expires_ns')
     if (type(begin) is not int or type(end) is not int or
-            not snapshot['captured_ns'] <= begin < end <= snapshot['captured_ns'] + 200_000_000):
+            not snapshot['captured_ns'] <= begin < end <= snapshot['captured_ns'] + ACTION_WINDOW_NS):
         return 'invalid_fixed_action_window'
     if now_ns >= end:
         return 'expired_action_window'
@@ -189,6 +190,8 @@ def require_control_semantics(row):
     if missing:
         raise ValueError('missing native control semantics: ' + ', '.join(missing) +
                          '; run bash run_native.sh install to load the boundary fixes')
+    from .timing_policy import require_timing_policy
+    require_timing_policy(row)
 
 
 def validate_observation(row):

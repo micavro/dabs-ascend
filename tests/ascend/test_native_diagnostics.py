@@ -130,7 +130,7 @@ class DiagnosticsTests(unittest.TestCase):
                 row.update(captured_ns=now, expires_ns=now+120_000_000)
                 return row
             native.call = call
-            observed = await native.observe(nodes, cfg, 1, model())
+            observed = await native._observe_once(nodes, cfg, 1, model())
             query = observed['native_query_budget']
             self.assertEqual((query['ready_requests'], query['covered_requests']), (1, 1))
             self.assertEqual((query['ready_at_snapshot'], query['covered_at_snapshot'], query['new_ready_after_query']), (2, 1, 1))

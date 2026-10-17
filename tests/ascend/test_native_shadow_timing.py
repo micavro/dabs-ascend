@@ -143,7 +143,7 @@ class ShadowUnitTests(unittest.TestCase):
             write_json(root/'timing_input/ascend_profile.json', model())
             self.assertEqual(shadow.profile_path(root), root/'timing_input/ascend_profile.json')
 
-    def test_split_copy_keeps_all_records_and_each_file_under_12kib(self):
+    def test_split_copy_keeps_all_records_and_each_file_under_64kib(self):
         from dabs_ascend.copy_log import enable_parts, emit
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
@@ -152,7 +152,7 @@ class ShadowUnitTests(unittest.TestCase):
             emit(run, 'START', mode='fixture')
             enable_parts(run, labels)
             for label in labels:
-                emit(run, 'DETAIL', condition=label, text='字'*9000)
+                emit(run, 'DETAIL', condition=label, text='字'*30000)
                 emit(run, 'SHADOW_SUMMARY', condition=label, returned=617)
                 emit(run, 'SHADOW_BRIEF', label=label, counts={'returned': 617})
             manifest = read_json(run/'copy_logs/parts.json')
@@ -160,10 +160,10 @@ class ShadowUnitTests(unittest.TestCase):
             for f in manifest['files']:
                 path = run/'copy_logs'/f['name']
                 self.assertEqual(len(path.read_bytes()), f['bytes'])
-                self.assertLessEqual(f['bytes'], 12*1024)
+                self.assertLessEqual(f['bytes'], 64*1024)
                 texts.append(path.read_text(encoding='utf-8'))
             joined = ''.join(texts)
-            self.assertEqual(joined.count('字'), 24*9000)
+            self.assertEqual(joined.count('字'), 24*30000)
             self.assertEqual(joined.count(' SHADOW_SUMMARY '), 24)
             self.assertEqual(joined.count(' SHADOW_BRIEF '), 24)
             self.assertIn(' START ', joined)

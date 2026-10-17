@@ -62,7 +62,7 @@ class RepairContracts(unittest.TestCase):
     def test_whole_batch_rejects_over_capacity_duplicates_stale_and_dependencies(self):
         self.assertEqual(admission_check(action(), self.nodes, {**self.cfg, 'max_num_seqs': 1}, 1., 1.01), 'client_capacity_changed')
         self.assertEqual(admission_check({**action(), 'admit': ['a', 'a']}, self.nodes, self.cfg, 1., 1.01), 'duplicate_admission')
-        self.assertEqual(admission_check(action(), self.nodes, self.cfg, 1., 1.13), 'stale_snapshot')
+        self.assertEqual(admission_check(action(), self.nodes, self.cfg, 1., 1. + self.cfg['snapshot_max_age_s'] + .01), 'stale_snapshot')
         self.nodes['b']['parents'] = ['a']
         self.assertEqual(admission_check(action(), self.nodes, self.cfg, 1., 1.01), 'dependency_not_complete')
 

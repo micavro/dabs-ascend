@@ -24,7 +24,7 @@ class ExpiringRefresh(SlowObservationDouble):
     async def observe(self, nodes, cfg, index, model, **kwargs):
         s = await super().observe(nodes, cfg, index, model, **kwargs)
         if not kwargs.get('cache_queries', True) and (self.persistent or self.query_refreshes % 5 == 1):
-            # Equivalent to projection/planning consuming the unchanged 120 ms
+            # Equivalent to projection/planning consuming the configured snapshot
             # lease after an otherwise fast RPC, without slow wall-clock sleeps.
             s['now'] -= cfg['snapshot_max_age_s'] + 1
         return s
@@ -45,7 +45,7 @@ class RejectedThenExpired(NativeDouble):
         if not kwargs.get('cache_queries', True) and self.rejected:
             self.refreshes += 1
             if self.refreshes == 1:
-                s['now'] -= 1
+                s['now'] -= cfg['snapshot_max_age_s'] + 1
         return s
 
     async def commit(self, action, state, nodes, fallback=False):
@@ -81,7 +81,7 @@ class RefreshIntegration(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(d['native_deferred_reason'], 'stale_snapshot')
             self.assertEqual(d['applied_submission_order'], [])
             self.assertFalse(d['client_applied_nonreference'])
-            self.assertGreater(d['fallback_validation']['snapshot_age_ms'], 120)
+            self.assertGreater(d['fallback_validation']['snapshot_age_ms'], self.cfg['snapshot_max_age_s'] * 1000)
 
     async def test_stale_refresh_recovers_for_all_four_methods_without_duplicate_work(self):
         with tempfile.TemporaryDirectory() as directory, ThreadPoolExecutor(1) as pool:

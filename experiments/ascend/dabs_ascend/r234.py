@@ -119,7 +119,7 @@ def ours_timing_plan(group='all', limit=None):
     selected = plan() if group == 'all' else screening_plan('all' if group == 'screening' else group)
     selected = [s for s in selected if s['method'] == 'Ours']
     if limit is not None and (type(limit) is not int or not 1 <= limit <= len(selected)):
-        raise ValueError('ours-timing -n must be 1..' + str(len(selected)) + ' for group ' + group)
+        raise ValueError('ours / ours-timing -n must be 1..' + str(len(selected)) + ' for group ' + group)
     return selected if limit is None else selected[:limit]
 
 

@@ -84,6 +84,8 @@ def verify_original_assets():
 
 def configuration(replicas, native_resources=None, client_max_inflight=2):
     cfg = read_json(ROOT / "profiles/reference/configuration.json")
+    from dabs_native.timing_policy import configuration as timing_configuration
+    cfg.update(timing_configuration())
     cfg.update(replicas=replicas, base_cap=4096, wf_router_seed=20261014,
                wf_public_method="DAG", apply_delay_ms=0.,
                phase_model_required=False, cache_scenario="no_unverified_reuse")

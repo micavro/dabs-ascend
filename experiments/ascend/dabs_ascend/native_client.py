@@ -8,6 +8,7 @@ import time
 import uuid
 
 from dabs_native.contracts import digest, prefix_key, validate_capabilities, engine_epoch, validate_observation, require_control_semantics
+from dabs_native.timing_policy import ACTION_WINDOW_NS
 
 
 class NativeClient:
@@ -21,6 +22,7 @@ class NativeClient:
         self.defer_evidence = False
         self.input_identity_cache = {}
         self.query_hints = {}
+        self.bindings, self.binding_waiters = {}, {}
 
     def flush_evidence(self, *, durable=False):
         self.evidence_buffer.flush(durable=durable)
@@ -44,7 +46,59 @@ class NativeClient:
         old = self.identities.setdefault(replica, row['identity'])
         if engine_epoch(row['identity']) != engine_epoch(old):
             raise ValueError('engine restart: invalidate state, calibration and acceptance; start a new run')
+        self.remember_bindings(replica, row)
         return row
+
+    def remember_bindings(self, replica, row):
+        records = list(row.get('mappings', [])) + list(row.get('request_bindings', []))
+        records += [r['mapping'] for group in ('running', 'waiting', 'skipped_waiting')
+                    for r in row.get(group, []) if r.get('mapping')]
+        for bound in records:
+            cid = bound.get('client_request_id')
+            if not cid:
+                continue
+            key = replica, cid
+            previous = self.bindings.get(key)
+            if previous:
+                old = previous['mappings'][0]
+                fields = ('node_id', 'client_request_id', 'server_request_id', 'engine_request_id', 'action_id')
+                if any(old.get(k) != bound.get(k) for k in fields):
+                    raise ValueError('native engine binding changed within one request')
+                bound = {**old, **bound}
+            receipt = {'identity': row.get('identity'), 'mappings': [copy.deepcopy(bound)]}
+            self.bindings[key] = receipt
+            waiter = self.binding_waiters.get(key)
+            if waiter is not None and not waiter.done():
+                waiter.set_result(receipt)
+
+    async def binding(self, replica, request_id):
+        """One overlapping query, also resolved by existing snapshot evidence."""
+        key = replica, request_id
+        if key in self.bindings:
+            return self.bindings[key]
+        waiter = asyncio.get_running_loop().create_future()
+        self.binding_waiters[key] = waiter
+        query = asyncio.create_task(self.call(replica, 'mapping', client_request_ids=[request_id]))
+        try:
+            done, _ = await asyncio.wait((waiter, query), return_when=asyncio.FIRST_COMPLETED)
+            # Never hide a protocol/transport error from the concurrent query.
+            if query in done:
+                row = query.result()
+                self.remember_bindings(replica, row)
+                return self.bindings.get(key, row)
+            receipt = waiter.result()
+            # Cancellation only stops the redundant transport wait, never inference.
+            # Surface an error that completed between wait() and this branch too.
+            if query.done():
+                query.result()
+            return receipt
+        finally:
+            self.binding_waiters.pop(key, None)
+            if not waiter.done():
+                waiter.cancel()
+            if not query.done():
+                query.cancel()
+            await asyncio.gather(query, return_exceptions=True)
 
     async def inspect(self):
         self.capabilities = await asyncio.gather(*(self.call(r, 'capabilities') for r in range(len(self.endpoints))))
@@ -73,7 +127,7 @@ class NativeClient:
         return {'action_id': uuid.uuid4().hex, 'identity': snapshot['identity'],
                 'snapshot_id': snapshot['snapshot_id'], 'expires_ns': snapshot['expires_ns'],
                 'not_before_ns': time.monotonic_ns(),
-                'action_expires_ns': deadline_ns if deadline_ns is not None else snapshot['captured_ns'] + 200_000_000,
+                'action_expires_ns': deadline_ns if deadline_ns is not None else snapshot['captured_ns'] + ACTION_WINDOW_NS,
                 'resource_digest': digest(snapshot['resources']), 'admissions': list(admissions), 'order': list(order)}
 
     def admission(self, node):
@@ -92,6 +146,33 @@ class NativeClient:
         return result
 
     async def observe(self, nodes, cfg, index, model, *, cache_queries=True):
+        started = time.monotonic()
+        deadline = cfg.get('native_observation_deadline', started + cfg['epoch_s'] - cfg['commit_reserve_s'])
+        first = await self._observe_once(nodes, cfg, index, model, cache_queries=cache_queries)
+        retryable = {'observation_lifecycle_changed', 'request_completed_during_observation',
+                     'engine_client_request_state_race', 'request_in_API_EngineCore_transit',
+                     'http_done_binding_pending', 'unmapped_inflight_batch'}
+        reasons = list(first['native_observation_errors'])
+        state, retried = first, False
+        expected = max(.009, first['native_observe_ms'] / 1000)
+        if retryable.intersection(reasons) and time.monotonic() + expected < deadline:
+            # Let completion/binding callbacks publish; never hold a lock across RPC.
+            await asyncio.sleep(0)
+            state = await self._observe_once(nodes, cfg, index, model, cache_queries=cache_queries)
+            retried = True
+            for key in ('native_prepare_ms', 'native_rpc_ms', 'native_projection_ms'):
+                state[key] += first[key]
+            before, after = first.get('native_prepare_parts_ms', {}), state.get('native_prepare_parts_ms', {})
+            state['native_prepare_parts_ms'] = {k: before.get(k, 0) + after.get(k, 0) for k in before.keys() | after.keys()}
+        state['native_observe_ms'] = (time.monotonic() - started) * 1000
+        state['native_observation_retry'] = {
+            'attempts': 2 if retried else 1, 'initial_errors': reasons,
+            'initial_query_budget': first.get('native_query_budget') if retried else None,
+            'recovered': bool(retried and not state['native_observation_errors']),
+            'retry_skipped_budget': bool(retryable.intersection(reasons) and not retried)}
+        return state
+
+    async def _observe_once(self, nodes, cfg, index, model, *, cache_queries=True):
         from .scheduler import snapshot
         from .native_prediction import predict, pending_startup
         from .native_observation import prefix_queries, prefix_identities
@@ -102,7 +183,19 @@ class NativeClient:
         queries, bindings, query_stats = prefix_queries(nodes, cfg, self.salt, enabled=cache_queries,
             model=model, hints=self.query_hints)
         rpc_started = time.monotonic()
-        raw = await asyncio.gather(*(self.call(r, 'snapshot', queries=queries) for r in range(count)))
+        def lifecycle():
+            return tuple((k, n['state'], n.get('arrival'), n.get('ready_at'), n.get('replica'),
+                          n.get('http_done_at'), n.get('binding_status')) for k, n in nodes.items())
+        version = lifecycle()
+        tracked = [[n['client_request_id'] for n in nodes.values()
+                    if n['state'] == 'submitted' and n.get('replica') == r and n.get('client_request_id')]
+                   for r in range(count)]
+        raw = await asyncio.gather(*(self.call(r, 'snapshot', queries=queries, client_request_ids=tracked[r])
+                                     for r in range(count)))
+        for replica, row in enumerate(raw):
+            self.remember_bindings(replica, row)
+        await asyncio.sleep(0)
+        changed = version != lifecycle()
         now = time.monotonic()
         state = snapshot(nodes, {}, count, cfg, index, now)
         query_ready = set(query_stats['ready_node_ids'])
@@ -117,6 +210,8 @@ class NativeClient:
                      capacity_blocks=[], physical_reserved_blocks=[], physical_active_blocks=[],
                      pressure=[], native_pressure=[], state_ages_s=[], native_state_ages_s=[],
                      state_source='EngineCore utility RPC', capacity_source='EngineCore block pool; null block excluded')
+        if changed:
+            state['native_observation_errors'].append('observation_lifecycle_changed')
         state['resource_units'].update(client_max_inflight=cfg['client_max_inflight'],
             server_max_num_seqs=cfg['max_num_seqs'], physical_kv_capacity_blocks=[x['resources']['physical_blocks'] for x in raw])
         for replica, row in enumerate(raw):
@@ -164,6 +259,10 @@ class NativeClient:
             if any(n['state'] == 'submitted' and n['replica'] == replica and k not in mapping.values()
                    for k, n in state['nodes'].items()):
                 state['native_observation_errors'].append('request_in_API_EngineCore_transit')
+            if any(n.get('http_done_at') is not None and n['state'] == 'submitted'
+                   and n.get('replica') == replica and n.get('binding_status') != 'verified'
+                   for n in nodes.values()):
+                state['native_observation_errors'].append('http_done_binding_pending')
             evidence_by_query = {e['query_id']: e for e in row['cache']}
             for key in state['ready']:
                 evidence = evidence_by_query.get(bindings.get(key))

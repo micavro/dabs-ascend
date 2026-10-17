@@ -5,7 +5,7 @@ includes IPC; an old plan never gets a fresh duration in the worker.
 """
 import time
 
-CONTRACT = 'bounded_native_observation_prediction_v3'
+CONTRACT = 'bounded_native_observation_prediction_v4_1500_lifecycle'
 
 
 def planning_window(state, cfg, tick, now=None):
@@ -39,11 +39,31 @@ def run_planner(planner, state, model, cfg, window):
     started = time.monotonic()
     result = planner(state, model, cfg, window['deadline'])
     result['planning_finished_at'] = time.monotonic()
+    result['planning_prepared_at'] = window['prepared_at']
     result['planning_dispatch_delay_ms'] = (started - window['prepared_at']) * 1000
     result['planning_worker_budget_ms'] = (window['deadline'] - started) * 1000
     result['planning_deadline'] = window['deadline']
     result['worker_clock_contract'] = 'same-host monotonic absolute deadline; IPC consumes budget'
     return result
+
+
+def record_planner_return(result):
+    """Called by the controller, so IPC/loop delivery delay is not lost."""
+    if 'planning_received_at' in result:
+        return result
+    received = time.monotonic()
+    result['planning_received_at'] = received
+    for source, metric in (('planning_prepared_at', 'planning_from_ready_ms'),
+                           ('planning_finished_at', 'planning_return_delay_ms')):
+        if source in result:
+            result[metric] = max(0., (received - result[source]) * 1000)
+    return result
+
+
+def record_planner_completion(future):
+    # Timestamp at delivery, not when a later tick consumes a late diagnostic.
+    if not future.cancelled() and future.exception() is None:
+        record_planner_return(future.result())
 
 
 def decision_record(decision):

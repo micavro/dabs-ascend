@@ -70,7 +70,9 @@ class NativePlanning(unittest.TestCase):
         self.assertAlmostEqual(w['deadline'], 100.175)
         self.assertAlmostEqual(w['budget_ms'], 60)
         self.assertEqual(w['fixed_action_deadline'], 100.2)
-        self.assertLess(100.0 + cfg['planning_soft_limit_s'], w['prepared_at'])  # old bug
+        self.assertEqual(cfg['planning_soft_limit_s'], 1.2)
+        # The fixed 200ms test window still binds even with the new 1200ms soft limit.
+        self.assertLess(w['deadline'], w['prepared_at'] + cfg['planning_soft_limit_s'])
 
     def test_old_engine_snapshot_and_exhausted_fixed_tick_cannot_gain_new_lease(self):
         cfg, s = opportunity(); s['now'] = 100.
