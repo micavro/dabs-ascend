@@ -1,0 +1,117 @@
+name: Package pinned Fast-One source
+
+on:
+  push:
+    branches: [codex/package-fast-one-9fe5abc]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 9fe5abc2b6548622066af827fa7521d72a83c149
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check pinned source and one-scenario plan
+        run: |
+          test "$(git rev-parse HEAD)" = 9fe5abc2b6548622066af827fa7521d72a83c149
+          mkdir -p "$RUNNER_TEMP/fast-one-package-validation"
+          bash -n run_fast_one.sh
+          bash run_fast_one.sh plan > "$RUNNER_TEMP/fast-one-package-validation/PLAN.json"
+          bash run_fast_one.sh selftest > "$RUNNER_TEMP/fast-one-package-validation/CPU_SELFTEST.txt" 2>&1
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p=json.loads((Path(os.environ['RUNNER_TEMP'])/'fast-one-package-validation/PLAN.json').read_text())
+          assert p['scenario']=='R4_L8_T1'
+          assert p['methods']==['RR','SLL','Ayo','Ours']
+          assert p['condition_count']==4 and p['generation_requests']==864
+          assert not p['automatic_grid'] and not p['new_calibration']
+          PY
+      - name: Archive complete tracked source without changing experiment files
+        run: |
+          python - <<'PY'
+          import hashlib, json, os, subprocess, zipfile
+          from datetime import datetime, timezone
+          from pathlib import Path
+          commit='9fe5abc2b6548622066af827fa7521d72a83c149'
+          top='dabs-ascend-fastone-9fe5abc'
+          name='DABS_Ascend_FastOne_9fe5abc_FullSource.zip'
+          dist=Path('dist');dist.mkdir()
+          target=dist/name
+          subprocess.run(['git','archive','--format=zip','--prefix='+top+'/', '--output='+str(target),commit],check=True)
+          notes='''DABS Fast-One 四方法单场景完整源码包
+          
+          来源：micavro/dabs-ascend
+          固定源码提交：9fe5abc2b6548622066af827fa7521d72a83c149
+          本包包含该提交的全部Git跟踪文件；不是v1增量补丁。不包含.git历史、现场结果、现场标定证据、模型权重、Docker镜像或依赖安装包。
+          实验默认RR → SLL → Ayo → Ours，各一次；仅R=4、lambda=8、T1，共4条条件、864请求。
+          Reference仅为Ours内部参考，不是第五个方法。
+          
+          在slave21 Linux宿主机上执行，不先进入模型容器。先结束旧实验控制器及其他占用四个服务的推理任务，保留模型服务运行。
+          把本ZIP上传到/data/wushibo之后：
+          
+          cd /data/wushibo
+          unzip -n DABS_Ascend_FastOne_9fe5abc_FullSource.zip
+          cd dabs-ascend-fastone-9fe5abc
+          bash run_fast_one.sh plan
+          
+          确认plan显示R4_L8_T1、RR/SLL/Ayo/Ours、condition_count为4，然后：
+          
+          bash run_fast_one.sh run --input /data/wushibo/dabs-ascend-main-2026101704/outputs/native_test_20261017T093920Z_ba538c36
+          
+          证据目录只读复用，不拷贝进代码包；只有服务自该次测试以后没有重启、没有改变资源参数时才可复用。
+          目录不同应指定实际对应当前服务实例的目录。服务身份或资源改变时程序停止；不要绕过检查。
+          本入口不安装、不重启、不重新采集标定、不跑额外canary、不扩展全矩阵。复用已有服务和镜像，不是从空机器完全离线部署包。
+          
+          结果/错误：
+          bash run_fast_one.sh logs
+          
+          可选CPU自检，不发推理：
+          bash run_fast_one.sh selftest
+          
+          不要用旧run_native.sh experiment启动本轮。解压目录已经存在且手动改动过时，改用新的目录解压，避免混合版本。
+          43项专项CPU/模拟原生接口测试在打包工作流中通过；具体输出在_package_validation/CPU_SELFTEST.txt。
+          CPU测试不代表910B3现场兼容性、模型排名或性能收益通过；没有声称完整旧仓库回归通过。
+          源码包无.git元数据，不能在此目录直接git pull。后续可继续使用版本包或另建Git工作树。
+          '''
+          notes='\n'.join(x[10:] if x.startswith(' '*10) else x for x in notes.splitlines())+'\n'
+          with zipfile.ZipFile(target,'a',compression=zipfile.ZIP_DEFLATED) as z:
+              original={i.filename:z.read(i) for i in z.infolist() if not i.is_dir()}
+              metadata={'repository':'micavro/dabs-ascend','source_commit':commit,
+                'source_tree':subprocess.check_output(['git','rev-parse',commit+'^{tree}'],text=True).strip(),
+                'packaged_at_utc':datetime.now(timezone.utc).isoformat(),
+                'package_kind':'complete_tracked_source_plus_packaging_notes',
+                'tracked_source_files':len(original),'source_files_modified':False,
+                'methods':['RR','SLL','Ayo','Ours'],'scenario':'R4_L8_T1',
+                'contains_model_weights':False,'contains_site_evidence':False,
+                'bundles_runtime_dependencies':False,'npu_test_performed':False}
+              z.writestr(top+'/PACKAGE_VERSION.json',json.dumps(metadata,ensure_ascii=False,indent=2)+'\n')
+              z.writestr(top+'/PACKAGE_运行说明.txt',notes)
+              v=Path(os.environ['RUNNER_TEMP'])/'fast-one-package-validation'
+              for p in sorted(v.iterdir()):
+                  z.write(p,top+'/_package_validation/'+p.name)
+              files={i.filename:z.read(i) for i in z.infolist() if not i.is_dir()}
+              manifest=''.join(hashlib.sha256(data).hexdigest()+'  '+path[len(top)+1:]+'\n' for path,data in sorted(files.items()))
+              z.writestr(top+'/PACKAGE_FILES.sha256',manifest)
+              assert z.testzip() is None
+          digest=hashlib.sha256(target.read_bytes()).hexdigest()
+          (dist/'SHA256SUMS.txt').write_text(digest+'  '+name+'\n',encoding='utf-8')
+          (dist/'运行说明.txt').write_text(notes,encoding='utf-8')
+          print(json.dumps({'file':name,'bytes':target.stat().st_size,'sha256':digest,'source_files':len(original)},ensure_ascii=False))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DABS_Ascend_FastOne_9fe5abc_FullSource
+          path: dist/
+          compression-level: 0
+          retention-days: 30
+          if-no-files-found: error
