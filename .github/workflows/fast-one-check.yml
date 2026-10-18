@@ -1,0 +1,46 @@
+name: Fast-One four-method CPU checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fast-one:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check the isolated entry and four-method plan
+        run: |
+          bash -n run_fast_one.sh
+          bash run_fast_one.sh plan > /tmp/fast-one-plan.json
+          python - <<'PY'
+          import json
+          p = json.load(open('/tmp/fast-one-plan.json'))
+          assert p['methods'] == ['RR', 'SLL', 'Ayo', 'Ours']
+          assert p['condition_count'] == 4 and p['generation_requests'] == 864
+          assert p['scenario'] == 'R4_L8_T1'
+          assert not p['automatic_grid'] and not p['new_calibration']
+          PY
+      - name: Run focused CPU and fake-native tests (no inference)
+        run: bash run_fast_one.sh selftest
+      - name: Install only existing CPU controller dependencies
+        run: python -m pip install -r requirements-ascend.txt
+      - name: Verify real adapter imports without contacting services
+        run: |
+          PYTHONPATH=experiments/ascend python - <<'PY'
+          from dabs_ascend.common import source_paths
+          source_paths()
+          from dabs_ascend.fast_policy import warm_worker
+          from dabs_ascend.native_algorithms import adapted
+          print(warm_worker())
+          for name in ('routing', 'ayo_topology', 'semantic_selector'):
+              adapted(name)
+          PY
